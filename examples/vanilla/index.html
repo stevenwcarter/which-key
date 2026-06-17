@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>which-key vanilla example</title>
+
+  <!--
+    In a real project, import the styles via your bundler:
+      import 'which-key/styles.css';
+
+    For this standalone HTML file we inline a minimal style to keep it self-contained.
+    See which-key/styles.css for the full prebuilt stylesheet.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #eee;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+
+    /* Minimal which-key popup styles (wk-* classes) */
+    .wk-popup {
+      position: fixed;
+      z-index: 9999;
+      background: rgba(17,24,39,0.95);
+      color: #f9fafb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    .wk-popup--vertical { bottom: 16px; right: 16px; min-width: 200px; }
+    .wk-popup--horizontal { bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; }
+    .wk-popup__body { display: flex; align-items: flex-start; gap: 12px; }
+    .wk-popup__grid { display: grid; grid-auto-flow: column; gap: 4px 16px; }
+    .wk-popup__list { list-style: none; margin: 4px 0 0; padding: 0; }
+    .wk-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+    .wk-row--group .wk-row__label::before { content: '+'; margin-right: 2px; }
+    .wk-kbd { background: #374151; border: 1px solid #6b7280; border-radius: 4px; padding: 2px 6px; font-family: monospace; }
+    .wk-sequence { display: flex; align-items: center; gap: 4px; }
+    .wk-sequence__ellipsis { opacity: 0.6; }
+    .wk-cheatsheet {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      color: #f9fafb;
+    }
+    .wk-cheatsheet__panel {
+      background: #1f2937;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h2>which-key vanilla example</h2>
+    <p>
+      Press <kbd>g</kbd> to see the leader popup, then <kbd>h</kbd> to navigate home.<br />
+      Press <kbd>s</kbd> to save.<br />
+      Press <kbd>?</kbd> to open the full cheatsheet.
+    </p>
+    <p><em>Shortcuts do not fire while a text input has focus (default behaviour).</em></p>
+    <textarea placeholder="Type here… shortcuts are suppressed inside inputs." rows="4" cols="60"></textarea>
+  </div>
+
+  <!--
+    In a real project use a bundler (Vite, esbuild, webpack, etc.) and import:
+
+      import { createWhichKey } from 'which-key';
+      import { mountWhichKey } from 'which-key/vanilla';
+      import 'which-key/styles.css';
+
+    This inline script uses unpkg for a zero-setup demo.
+  -->
+  <script type="module">
+    // ESM imports from unpkg (replace with local bundler imports in production)
+    import { createWhichKey } from 'https://unpkg.com/which-key@0.1.0/dist/engine/index.js';
+    import { mountWhichKey } from 'https://unpkg.com/which-key@0.1.0/dist/vanilla/index.js';
+
+    function save() {
+      console.log('Saved!');
+      alert('Saved!');
+    }
+
+    // 1. Create the engine
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+
+    // 2. Register groups and shortcuts
+    wk.registerGroup('g', { description: 'Go to' });
+    wk.register('g h', () => location.assign('/'), { description: 'Home' });
+    wk.register('s', () => save(), { description: 'Save' });
+    wk.register('Ctrl+s', () => save(), { description: 'Save (Ctrl+S)' });
+
+    // 3. Mount the DOM renderer (does NOT start the engine)
+    mountWhichKey(wk, {
+      popup: { layout: 'horizontal' },
+      cheatsheet: true,
+      container: document.body,
+    });
+
+    // 4. Start the engine (attach the keydown listener)
+    wk.start();
+  </script>
+</body>
+</html>
