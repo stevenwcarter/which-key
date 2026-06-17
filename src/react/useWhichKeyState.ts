@@ -7,12 +7,14 @@ const EMPTY: WhichKeySnapshot = {
   cheatsheet: { visible: false },
 };
 const noopSubscribe = () => () => {};
+const getEmptySnapshot = () => EMPTY;
 
 export const useWhichKeyState = (): WhichKeyState => {
   const engine = useContext(WhichKeyContext);
   const snapshot = useSyncExternalStore(
     engine ? engine.subscribe : noopSubscribe,
-    engine ? engine.getSnapshot : () => EMPTY,
+    engine ? engine.getSnapshot : getEmptySnapshot,
+    getEmptySnapshot,
   );
   return useMemo<WhichKeyState>(() => ({
     visible: snapshot.popup.visible,

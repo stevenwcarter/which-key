@@ -20,6 +20,8 @@ npm i react react-dom
 
 ### React
 
+> **SSR / client-only:** `<WhichKeyPopup>` and `<ShortcutCheatsheet>` render nothing during server rendering (Next.js, Remix, etc.) and activate after hydration on the client — they are client-only UI components.
+
 ```tsx
 import { WhichKeyProvider, useShortcut, useShortcutGroup, WhichKeyPopup, ShortcutCheatsheet } from 'which-key/react';
 import 'which-key/styles.css';

@@ -220,6 +220,10 @@ import { WhichKeyProvider } from 'which-key/react';
 | `sortKeys`  | `'registration' \| 'alphabetical' \| KeyComparator`   | `'registration'`| Popup/cheatsheet sort order.             |
 | `children`  | `ReactNode`                                           | (required)      |                                          |
 
+> **Mount-time props:** `timeoutMs`, `helpKey`, and `sortKeys` are read once when the provider mounts; changing them on later renders has no effect (the engine is created once and lives for the lifetime of the provider).
+
+> **SSR / client-only:** `<WhichKeyPopup>` and `<ShortcutCheatsheet>` render nothing during server rendering and activate after hydration on the client — they are client-only UI components.
+
 ### `useShortcut(keys, handler, options?)`
 
 Registers a shortcut for the lifetime of the component. Re-registers automatically if `keys` or `options` change.

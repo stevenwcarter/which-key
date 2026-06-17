@@ -3,11 +3,15 @@ import { WhichKeyContext } from './context';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
+const noopSubscribe = () => () => {};
+const getNullSnapshot = () => null;
+
 export const ShortcutCheatsheet = () => {
   const engine = useContext(WhichKeyContext);
   const snapshot = useSyncExternalStore(
-    engine ? engine.subscribe : () => () => {},
-    engine ? engine.getSnapshot : () => null,
+    engine ? engine.subscribe : noopSubscribe,
+    engine ? engine.getSnapshot : getNullSnapshot,
+    getNullSnapshot,
   );
   const visible = snapshot?.cheatsheet.visible ?? false;
 
