@@ -103,4 +103,15 @@ describe('createWhichKey', () => {
     expect(model.groups[0].description).toBe('Go');
     expect(model.groups[0].entries.map((e) => e.keys)).toEqual(['g a']);
   });
+
+  it('registerGroup returns a working unregister thunk', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    const offGroup = wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    expect(wk.getCheatsheetModel().groups[0].description).toBe('Go');
+    offGroup();
+    // Group metadata is gone; the entry remains but with no group description.
+    expect(wk.getCheatsheetModel().groups[0].description).toBeUndefined();
+  });
+
 });

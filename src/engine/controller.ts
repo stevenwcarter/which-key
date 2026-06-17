@@ -108,7 +108,11 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     onFire: (entry, event) => entry.handler(event),
     onShowPopup: (state) => {
       popupVisible = true;
-      currentSequence = state.currentSequence;
+      // Defensive copy: never store the Matcher's live array in a snapshot.
+      // Snapshots are handed to useSyncExternalStore consumers and must be
+      // immutable; aliasing the Matcher's buffer would let a later mutation
+      // silently corrupt an already-emitted snapshot.
+      currentSequence = [...state.currentSequence];
       emit();
     },
     onHidePopup: () => {
