@@ -49,4 +49,48 @@ describe('mountWhichKey', () => {
     expect(document.querySelector('.wk-backdrop')).toBeNull();
     wk.stop();
   });
+
+  it('classPrefix option applies custom prefix classes and omits default wk- classes', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, { classPrefix: 'kbd', popup: { layout: 'horizontal' } });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(document.querySelector('.kbd-popup')).not.toBeNull();
+    expect(document.querySelector('.wk-popup')).toBeNull();
+    ui.unmount();
+    wk.stop();
+  });
+
+  it('popup: false suppresses popup node even when engine has popup visible', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, { popup: false });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(wk.getSnapshot().popup.visible).toBe(true);
+    expect(document.querySelector('.wk-popup')).toBeNull();
+    ui.unmount();
+    wk.stop();
+  });
+
+  it('vertical layout emits list structure and omits horizontal-only elements', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, { popup: { layout: 'vertical' } });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(document.querySelector('.wk-popup--vertical')).not.toBeNull();
+    expect(document.querySelector('.wk-popup__list')).not.toBeNull();
+    expect(document.querySelector('.wk-popup__grid')).toBeNull();
+    expect(document.querySelector('.wk-popup__body')).toBeNull();
+    ui.unmount();
+    wk.stop();
+  });
 });
