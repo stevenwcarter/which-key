@@ -1,6 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { createWhichKey, type WhichKeyEngine } from '../engine';
-import type { SortMode } from '../engine';
+import { createWhichKey, type WhichKeyEngine, type SortMode } from '../engine';
 import { WhichKeyContext } from './context';
 
 export type WhichKeyProviderProps = {

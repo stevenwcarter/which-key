@@ -221,7 +221,11 @@ describe('WhichKeyProvider — cheatsheet', () => {
   it('helpKey=null disables the default cheatsheet shortcut', () => {
     const Wrapper = () => {
       const ctx = useContext(WhichKeyContext);
-      return <span data-testid="cs">{ctx?.getSnapshot().cheatsheet.visible ? 'on' : 'off'}</span>;
+      const snapshot = useSyncExternalStore(
+        ctx ? ctx.subscribe : () => () => {},
+        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+      );
+      return <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>;
     };
     const { getByTestId } = render(
       <WhichKeyProvider helpKey={null}>
@@ -239,10 +243,14 @@ describe('WhichKeyProvider — cheatsheet', () => {
     const handler = vi.fn();
     const Wrapper = () => {
       const ctx = useContext(WhichKeyContext);
+      const snapshot = useSyncExternalStore(
+        ctx ? ctx.subscribe : () => () => {},
+        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+      );
       return (
         <>
           <Probe onCtx={(c) => (captured = c)} />
-          <span data-testid="cs">{ctx?.getSnapshot().cheatsheet.visible ? 'on' : 'off'}</span>
+          <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>
         </>
       );
     };

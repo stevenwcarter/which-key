@@ -31,6 +31,7 @@ describe('useShortcutGroup', () => {
     );
     expect(ctx!.registry.getActiveGroup('g')?.description).toBe('Focus widget');
     unmount();
+    expect(ctx!.registry.getActiveGroup('g')).toBeUndefined();
   });
 
   it('LIFO override: later mount wins', () => {
