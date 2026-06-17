@@ -54,7 +54,7 @@ const wk = createWhichKey({
 
 The object returned by `createWhichKey`.
 
-#### `engine.register(keys, handler, options?) => () => void`
+#### <a id="engine-register"></a>`engine.register(keys, handler, options?) => () => void`
 
 Registers a keyboard shortcut and returns an unregister function.
 
@@ -229,7 +229,7 @@ useShortcut('Ctrl+s', () => save(), { description: 'Save document' });
 useShortcut('g h', () => navigate('/'), { description: 'Home' });
 ```
 
-Parameters mirror `engine.register` — see [`ShortcutOptions`](#engineregisterkeys-handler-options--void) above.
+Parameters mirror `engine.register` — see [`ShortcutOptions`](#engine-register) above.
 
 ### `useShortcutGroup(prefix, options)`
 
