@@ -1,0 +1,44 @@
+{
+  "name": "which-key",
+  "version": "0.1.0",
+  "description": "Keyboard-shortcut engine with a which-key popup and cheatsheet. Framework-agnostic core, React binding, and a vanilla-DOM renderer.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Steven Carter",
+  "keywords": ["keyboard", "shortcuts", "hotkeys", "which-key", "leader-key", "react", "keybindings"],
+  "repository": { "type": "git", "url": "https://github.com/stevenwcarter/which-key.git" },
+  "engines": { "node": ">=20" },
+  "sideEffects": ["**/*.css"],
+  "files": ["dist", "README.md", "LICENSE"],
+  "exports": {
+    ".": { "types": "./dist/engine/index.d.ts", "import": "./dist/engine/index.js", "require": "./dist/engine/index.cjs" },
+    "./react": { "types": "./dist/react/index.d.ts", "import": "./dist/react/index.js", "require": "./dist/react/index.cjs" },
+    "./vanilla": { "types": "./dist/vanilla/index.d.ts", "import": "./dist/vanilla/index.js", "require": "./dist/vanilla/index.cjs" },
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": { "react": ">=18" },
+  "peerDependenciesMeta": { "react": { "optional": true } },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  }
+}
