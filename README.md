@@ -1,5 +1,7 @@
 # which-key
 
+[![codecov](https://codecov.io/gh/stevenwcarter/which-key/branch/main/graph/badge.svg)](https://codecov.io/gh/stevenwcarter/which-key)
+
 A framework-agnostic keyboard-shortcut engine with a leader-key popup and full-screen cheatsheet. Inspired by Emacs/Neovim `which-key`. Includes a React binding and a vanilla-DOM renderer — pick what fits your stack.
 
 ## Install
@@ -159,6 +161,12 @@ mountWhichKey(wk, { classPrefix: 'myapp' });
 ## API
 
 See **[docs/API.md](./docs/API.md)** for the full reference.
+
+---
+
+## Coverage
+
+The test suite is gated at **80%** (lines, statements, functions, branches). `npm test` runs Vitest with V8 coverage and prints a report; CI uploads results to Codecov.
 
 ---
 
