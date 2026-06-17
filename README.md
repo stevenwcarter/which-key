@@ -162,12 +162,6 @@ See **[docs/API.md](./docs/API.md)** for the full reference.
 
 ---
 
-## Migration
-
-Migrating from an inlined `@whichkey/core` / `@whichkey/ui`? See **[docs/MIGRATION.md](./docs/MIGRATION.md)**.
-
----
-
 ## Contributing
 
 See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
