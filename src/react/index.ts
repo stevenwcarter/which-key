@@ -1,2 +1,12 @@
-// React bindings — populated in Task 2
-export {};
+export { WhichKeyProvider } from './WhichKeyProvider';
+export type { WhichKeyProviderProps } from './WhichKeyProvider';
+export { WhichKeyContext } from './context';
+export { useShortcut } from './useShortcut';
+export { useShortcutGroup } from './useShortcutGroup';
+export { useWhichKeyState } from './useWhichKeyState';
+// TODO(Task 4): uncomment these once WhichKeyPopup and ShortcutCheatsheet are created
+// export { WhichKeyPopup } from './WhichKeyPopup';
+// export type { WhichKeyPopupProps, WhichKeyPopupLayout } from './WhichKeyPopup';
+// export { ShortcutCheatsheet } from './ShortcutCheatsheet';
+// Re-export engine surface so consumers can import everything from which-key/react.
+export * from '../engine';
