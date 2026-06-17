@@ -5,15 +5,46 @@
   "type": "module",
   "license": "MIT",
   "author": "Steven Carter",
-  "keywords": ["keyboard", "shortcuts", "hotkeys", "which-key", "leader-key", "react", "keybindings"],
-  "repository": { "type": "git", "url": "https://github.com/stevenwcarter/which-key.git" },
-  "engines": { "node": ">=20" },
-  "sideEffects": ["**/*.css"],
-  "files": ["dist", "README.md", "LICENSE"],
+  "keywords": [
+    "keyboard",
+    "shortcuts",
+    "hotkeys",
+    "which-key",
+    "leader-key",
+    "react",
+    "keybindings"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevenwcarter/which-key.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
-    ".": { "types": "./dist/engine/index.d.ts", "import": "./dist/engine/index.js", "require": "./dist/engine/index.cjs" },
-    "./react": { "types": "./dist/react/index.d.ts", "import": "./dist/react/index.js", "require": "./dist/react/index.cjs" },
-    "./vanilla": { "types": "./dist/vanilla/index.d.ts", "import": "./dist/vanilla/index.js", "require": "./dist/vanilla/index.cjs" },
+    ".": {
+      "types": "./dist/engine/index.d.ts",
+      "import": "./dist/engine/index.js",
+      "require": "./dist/engine/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    },
+    "./vanilla": {
+      "types": "./dist/vanilla/index.d.ts",
+      "import": "./dist/vanilla/index.js",
+      "require": "./dist/vanilla/index.cjs"
+    },
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
@@ -25,9 +56,16 @@
     "format": "prettier --write .",
     "prepublishOnly": "npm run build"
   },
-  "peerDependencies": { "react": ">=18" },
-  "peerDependenciesMeta": { "react": { "optional": true } },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
