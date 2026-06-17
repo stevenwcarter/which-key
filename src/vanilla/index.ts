@@ -1,2 +1,2 @@
-// Vanilla-DOM renderer — populated in Task 3
-export {};
+export { mountWhichKey } from './mount';
+export type { MountOptions } from './mount';
