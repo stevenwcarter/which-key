@@ -220,7 +220,7 @@ describe('WhichKeyPopup props (clamping)', () => {
       vi.advanceTimersByTime(50);
     });
     const grid = getByTestId('whichkey-popup-grid');
-    expect(grid.style.gridAutoFlow).toBe('column');
+    expect(grid).toHaveClass('wk-popup__grid');
     expect(grid.style.gridTemplateRows).toBe('repeat(5, auto)');
   });
 

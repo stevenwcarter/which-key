@@ -45,7 +45,7 @@ const HorizontalBar = ({ state, bg, rows }: { state: WhichKeyState; bg: string; 
     <div className="wk-popup__body">
       <Sequence sequence={state.currentSequence} />
       <div data-testid="whichkey-popup-grid" className="wk-popup__grid"
-           style={{ gridAutoFlow: 'column', gridTemplateRows: `repeat(${rows}, auto)` }}>
+           style={{ gridTemplateRows: `repeat(${rows}, auto)` }}>
         {state.candidates.map((c) => <CandidateRow key={c.keys} c={c} />)}
       </div>
     </div>

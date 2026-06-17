@@ -120,6 +120,27 @@ describe('ShortcutCheatsheet', () => {
     expect(orderedDescriptions).toEqual(['Abilities', 'Notes', 'Skills']);
   });
 
+  it('does not render the internal default-help entry ("Toggle keyboard shortcuts")', () => {
+    // The engine auto-registers __whichkey_default_help__ when helpKey is set.
+    // The cheatsheet must filter it out — this test would fail if the filter
+    // in controller.ts (line: getAllActive().filter(e => e.id !== DEFAULT_HELP_ID))
+    // were removed.
+    const { getByTestId } = render(
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true }));
+    });
+    const cs = getByTestId('whichkey-cheatsheet');
+    // Normal shortcuts must be present (proves the cheatsheet rendered)
+    expect(cs.textContent).toContain('Focus Notes');
+    // The internal help-toggle entry must NOT appear
+    expect(cs.textContent).not.toContain('Toggle keyboard shortcuts');
+  });
+
   // Brief-required assertion: cheatsheet root has class wk-cheatsheet
   it('cheatsheet root has class wk-cheatsheet', () => {
     const { getByTestId } = render(
