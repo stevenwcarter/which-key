@@ -3,6 +3,33 @@ import type { ShortcutEntry, GroupEntry, WhichKeyCandidate } from './types';
 export class ShortcutRegistry {
   private shortcuts = new Map<string, ShortcutEntry[]>();
   private groups = new Map<string, GroupEntry[]>();
+  private layers = new Map<string, { level: number; exclusive: boolean }>();
+
+  activateLayer(id: string, level: number, exclusive: boolean): void {
+    this.layers.set(id, { level, exclusive });
+  }
+
+  deactivateLayer(id: string): void {
+    this.layers.delete(id);
+  }
+
+  nextLevel(): number {
+    let max = 0;
+    for (const { level } of this.layers.values()) if (level > max) max = level;
+    return max + 1;
+  }
+
+  private blockLevel(): number {
+    let block = 0;
+    for (const { level, exclusive } of this.layers.values()) {
+      if (exclusive && level > block) block = level;
+    }
+    return block;
+  }
+
+  private isReachable(entry: { level: number; global: boolean }, block: number): boolean {
+    return entry.global || entry.level >= block;
+  }
 
   register(entry: ShortcutEntry): void {
     const bucket = this.shortcuts.get(entry.keys) ?? [];
@@ -57,7 +84,23 @@ export class ShortcutRegistry {
   getActiveGroup(prefix: string): GroupEntry | undefined {
     const bucket = this.groups.get(prefix);
     if (!bucket || bucket.length === 0) return undefined;
-    return bucket[bucket.length - 1];
+    const block = this.blockLevel();
+    let best: GroupEntry | undefined;
+    let bestIdx = -1;
+    for (let i = 0; i < bucket.length; i++) {
+      const g = bucket[i];
+      if (g.level < block) continue;
+      if (
+        best === undefined ||
+        g.level > best.level ||
+        (g.level === best.level && g.priority > best.priority) ||
+        (g.level === best.level && g.priority === best.priority && i > bestIdx)
+      ) {
+        best = g;
+        bestIdx = i;
+      }
+    }
+    return best;
   }
 
   getAllActive(): ShortcutEntry[] {
@@ -95,9 +138,22 @@ export class ShortcutRegistry {
   }
 
   private findActive(bucket: ShortcutEntry[]): ShortcutEntry | undefined {
-    for (let i = bucket.length - 1; i >= 0; i--) {
-      if (bucket[i].enabled) return bucket[i];
+    const block = this.blockLevel();
+    let best: ShortcutEntry | undefined;
+    let bestIdx = -1;
+    for (let i = 0; i < bucket.length; i++) {
+      const e = bucket[i];
+      if (!e.enabled || !this.isReachable(e, block)) continue;
+      if (
+        best === undefined ||
+        e.level > best.level ||
+        (e.level === best.level && e.priority > best.priority) ||
+        (e.level === best.level && e.priority === best.priority && i > bestIdx)
+      ) {
+        best = e;
+        bestIdx = i;
+      }
     }
-    return undefined;
+    return best;
   }
 }

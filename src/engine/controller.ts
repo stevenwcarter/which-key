@@ -131,6 +131,8 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       enableOnInputs: false,
       priority: -1,
       enabled: true,
+      level: 0,
+      global: true,
     });
   }
 
@@ -148,13 +150,15 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         enableOnInputs: opts?.enableOnInputs ?? false,
         priority: opts?.priority ?? 0,
         enabled: opts?.enabled ?? true,
+        level: opts?.level ?? 0,
+        global: opts?.global ?? false,
       };
       registry.register(entry);
       return () => registry.unregister(id);
     },
     registerGroup(prefix, opts) {
       const id = `wkg_${idCounter++}`;
-      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0 });
+      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: 0 });
       return () => registry.unregisterGroup(id);
     },
     start() {

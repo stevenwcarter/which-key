@@ -62,6 +62,8 @@ describe('WhichKeyProvider', () => {
       enableOnInputs: false,
       priority: 0,
       enabled: true,
+      level: 0,
+      global: false,
     });
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
@@ -101,6 +103,8 @@ describe('WhichKeyProvider', () => {
       enableOnInputs: false,
       priority: 0,
       enabled: true,
+      level: 0,
+      global: false,
     });
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
@@ -128,6 +132,8 @@ describe('WhichKeyProvider', () => {
       enableOnInputs: false,
       priority: 0,
       enabled: true,
+      level: 0,
+      global: false,
     });
     unmount();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
@@ -267,6 +273,8 @@ describe('WhichKeyProvider — cheatsheet', () => {
       enableOnInputs: false,
       priority: 0,
       enabled: true,
+      level: 0,
+      global: false,
     });
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true }));
