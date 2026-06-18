@@ -50,25 +50,20 @@ src/
    npm run lint && npm run typecheck && npm test && npm run build
    ```
 
-4. Add a changeset describing your change:
-
-   ```bash
-   npx changeset
-   ```
-
-   Select the bump level (`patch` for fixes, `minor` for new features, `major` for breaking changes) and write a one-line summary.
+4. Write [Conventional Commit](https://www.conventionalcommits.org/) messages (`feat:`, `fix:`, `docs:`, `test:`, `build:`, `chore:`, …). A husky `commit-msg` hook enforces the format; the version bump and changelog are derived from these messages at release time.
 
 5. Push and open a PR against `main`. CI will run lint, typecheck, tests, build, and `npm pack --dry-run`.
 
-## Changesets
+## Releasing (maintainers)
 
-This project uses [changesets](https://github.com/changesets/changesets) to manage versioning and changelogs. Every PR that changes behaviour (engine, React binding, vanilla renderer, or the prebuilt CSS) needs a changeset. Documentation-only PRs may omit one.
+Versioning is driven by Conventional Commits via [`commit-and-tag-version`](https://github.com/absolute-version/commit-and-tag-version). While the package is pre-1.0 (`0.x`), semver-for-0.x rules apply: `fix:`→patch, `feat:`→patch, `feat!:`/`BREAKING CHANGE:`→minor (after `1.0.0`: `feat:`→minor, `feat!:`→major).
 
 ```bash
-npx changeset          # interactive: choose bump + write summary
-npx changeset version  # maintainer-only: bump versions + update CHANGELOG
-npx changeset publish  # maintainer-only: publish to npm
+npm run release:dry   # preview the next version + changelog (no changes)
+npm run release       # bump version, regenerate CHANGELOG.md, commit, and tag
 ```
+
+`npm run release` does not push or publish. See the README "Releasing" section for the full flow (including the one-time first release and the manual publish steps).
 
 ## Code style
 
