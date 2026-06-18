@@ -183,4 +183,35 @@ describe('controller layers', () => {
     expect(() => layer.pop()).not.toThrow();
     expect(listener).not.toHaveBeenCalled();
   });
+
+  it('pushLayer works when destructured (no this dependency)', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const { pushLayer } = wk;
+    let layer: ReturnType<typeof pushLayer> | undefined;
+    expect(() => { layer = pushLayer({ exclusive: true }); }).not.toThrow();
+    const modal = vi.fn();
+    layer!.register('b', modal);
+    expect(wk.registry.getActive('b')?.handler).toBeTypeOf('function');
+    layer!.pop();
+    expect(wk.registry.getActive('b')).toBeUndefined();
+  });
+
+  it('? help key toggles cheatsheet while an exclusive layer is active', () => {
+    const wk = createWhichKey({ target: document });
+    wk.start();
+    wk.pushLayer({ exclusive: true });
+
+    // '?' still resolves (global help entry)
+    expect(wk.registry.getActive('?')?.id).toBe('__whichkey_default_help__');
+
+    // First press: cheatsheet becomes visible
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    expect(wk.getSnapshot().cheatsheet.visible).toBe(true);
+
+    // Second press: cheatsheet closes again
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    expect(wk.getSnapshot().cheatsheet.visible).toBe(false);
+
+    wk.stop();
+  });
 });

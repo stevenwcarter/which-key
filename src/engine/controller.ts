@@ -147,7 +147,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
 
   const handler = (event: Event) => matcher.handleKeyDown(event as KeyboardEvent);
 
-  return {
+  const engine: WhichKeyEngine = {
     registry,
     register(keys, h, opts) {
       const id = `wk_${idCounter++}`;
@@ -184,7 +184,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     pushLayer(opts) {
       const level = opts?.level ?? registry.nextLevel();
-      const deactivate = this.activateLayer(level, opts?.exclusive ?? false);
+      const deactivate = engine.activateLayer(level, opts?.exclusive ?? false);
       const owned = new Set<() => void>();
       const track = (un: () => void): (() => void) => {
         const wrapped = () => { un(); owned.delete(wrapped); };
@@ -193,8 +193,8 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       };
       return {
         level,
-        register: (keys, h, o) => track(this.register(keys, h, { ...o, level })),
-        registerGroup: (prefix, o) => track(this.registerGroup(prefix, { ...o, level })),
+        register: (keys, h, o) => track(engine.register(keys, h, { ...o, level })),
+        registerGroup: (prefix, o) => track(engine.registerGroup(prefix, { ...o, level })),
         pop: () => {
           for (const un of [...owned]) un();
           deactivate();
@@ -233,4 +233,5 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       return buildCheatsheetModel(registry, cmp);
     },
   };
+  return engine;
 };

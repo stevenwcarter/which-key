@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
 import { WhichKeyLayer } from '../WhichKeyLayer';
@@ -69,5 +70,28 @@ describe('<WhichKeyLayer>', () => {
     expect(inner).toHaveBeenCalledTimes(1);
     expect(outer).not.toHaveBeenCalled();
     expect(base).not.toHaveBeenCalled();
+  });
+
+  it('StrictMode double-mount does not leak layers — outer shortcut suppressed exactly once, inner fires exactly once per keypress', () => {
+    const base = vi.fn();
+    const modal = vi.fn();
+    render(
+      <StrictMode>
+        <WhichKeyProvider helpKey={null}>
+          <Shortcut k="a" fn={base} />
+          <WhichKeyLayer exclusive>
+            <Shortcut k="b" fn={modal} />
+          </WhichKeyLayer>
+        </WhichKeyProvider>
+      </StrictMode>,
+    );
+
+    // Outer shortcut 'a' must be suppressed (exclusive layer is active)
+    fireEvent.keyDown(document, { key: 'a' });
+    expect(base).not.toHaveBeenCalled();
+
+    // Inner shortcut 'b' must fire exactly once (not doubly-registered)
+    fireEvent.keyDown(document, { key: 'b' });
+    expect(modal).toHaveBeenCalledTimes(1);
   });
 });

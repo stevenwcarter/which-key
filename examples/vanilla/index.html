@@ -148,6 +148,7 @@
     }
 
     function openModal() {
+      if (activeLayer) return;
       selectedIndex = 0;
       updateSelection();
       modal.style.display = 'flex';
