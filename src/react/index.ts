@@ -1,6 +1,8 @@
 export { WhichKeyProvider } from './WhichKeyProvider';
 export type { WhichKeyProviderProps } from './WhichKeyProvider';
-export { WhichKeyContext } from './context';
+export { WhichKeyContext, LayerContext } from './context';
+export { WhichKeyLayer } from './WhichKeyLayer';
+export type { WhichKeyLayerProps } from './WhichKeyLayer';
 export { useShortcut } from './useShortcut';
 export { useShortcutGroup } from './useShortcutGroup';
 export { useWhichKeyState } from './useWhichKeyState';

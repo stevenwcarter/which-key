@@ -3,7 +3,7 @@ import { createWhichKey, type WhichKeyEngine, type SortMode } from '../engine';
 import { WhichKeyContext } from './context';
 
 export type WhichKeyProviderProps = {
-  children: ReactNode;
+  children?: ReactNode;
   timeoutMs?: number;
   helpKey?: string | null;
   sortKeys?: SortMode;
