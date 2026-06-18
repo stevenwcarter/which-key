@@ -24,9 +24,18 @@ export type WhichKeySnapshot = {
   cheatsheet: { visible: boolean };
 };
 
+export type LayerHandle = {
+  readonly level: number;
+  register: WhichKeyEngine['register'];
+  registerGroup: WhichKeyEngine['registerGroup'];
+  pop(): void;
+};
+
 export type WhichKeyEngine = {
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
-  registerGroup(prefix: string, options: { description: string; priority?: number }): () => void;
+  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  activateLayer(level: number, exclusive: boolean): () => void;
+  pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
   start(): void;
   stop(): void;
   subscribe(listener: (snapshot: WhichKeySnapshot) => void): () => void;
@@ -131,12 +140,14 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       enableOnInputs: false,
       priority: -1,
       enabled: true,
+      level: 0,
+      global: true,
     });
   }
 
   const handler = (event: Event) => matcher.handleKeyDown(event as KeyboardEvent);
 
-  return {
+  const engine: WhichKeyEngine = {
     registry,
     register(keys, h, opts) {
       const id = `wk_${idCounter++}`;
@@ -148,14 +159,47 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         enableOnInputs: opts?.enableOnInputs ?? false,
         priority: opts?.priority ?? 0,
         enabled: opts?.enabled ?? true,
+        level: opts?.level ?? 0,
+        global: opts?.global ?? false,
       };
       registry.register(entry);
       return () => registry.unregister(id);
     },
     registerGroup(prefix, opts) {
       const id = `wkg_${idCounter++}`;
-      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0 });
+      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: opts.level ?? 0 });
       return () => registry.unregisterGroup(id);
+    },
+    activateLayer(level, exclusive) {
+      const id = `wklayer_${idCounter++}`;
+      registry.activateLayer(id, level, exclusive);
+      emit();
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        registry.deactivateLayer(id);
+        emit();
+      };
+    },
+    pushLayer(opts) {
+      const level = opts?.level ?? registry.nextLevel();
+      const deactivate = engine.activateLayer(level, opts?.exclusive ?? false);
+      const owned = new Set<() => void>();
+      const track = (un: () => void): (() => void) => {
+        const wrapped = () => { un(); owned.delete(wrapped); };
+        owned.add(wrapped);
+        return wrapped;
+      };
+      return {
+        level,
+        register: (keys, h, o) => track(engine.register(keys, h, { ...o, level })),
+        registerGroup: (prefix, o) => track(engine.registerGroup(prefix, { ...o, level })),
+        pop: () => {
+          for (const un of [...owned]) un();
+          deactivate();
+        },
+      };
     },
     start() {
       if (started) return;
@@ -189,4 +233,5 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       return buildCheatsheetModel(registry, cmp);
     },
   };
+  return engine;
 };

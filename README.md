@@ -122,6 +122,97 @@ In React the same option lives on `<WhichKeyProvider helpKey="F1" />`.
 
 ---
 
+### Layers
+
+Layers scope a set of shortcuts to a UI state (e.g. a modal, a panel, a command palette). When you push a layer you get back a `LayerHandle` whose shortcuts are automatically cleaned up when the layer is popped.
+
+**Engine / vanilla**
+
+```ts
+// Open a modal: push an exclusive layer so page shortcuts don't fire while it's open.
+const layer = wk.pushLayer({ exclusive: true });
+
+layer.register('Escape', () => closeModal(), { description: 'Close' });
+layer.register('j', () => selectNext(), { description: 'Next item' });
+layer.register('k', () => selectPrev(), { description: 'Previous item' });
+
+// Close the modal: pop the layer — all its shortcuts are unregistered.
+layer.pop();
+```
+
+`pushLayer` returns a `LayerHandle`:
+
+| Property / method        | Description                                                         |
+|--------------------------|---------------------------------------------------------------------|
+| `level`                  | Numeric level assigned to this layer                                |
+| `register(keys, fn, opts?)` | Register a shortcut bound to this layer                          |
+| `registerGroup(prefix, opts)` | Register a group label bound to this layer                   |
+| `pop()`                  | Unregister all shortcuts on this layer and deactivate the layer     |
+
+**React**
+
+Wrap the modal (or any conditional UI) in `<WhichKeyLayer>`. Every `useShortcut` and `useShortcutGroup` call inside it automatically binds to that layer. The layer activates on mount and deactivates on unmount — no manual cleanup needed.
+
+```tsx
+import {
+  WhichKeyProvider, WhichKeyLayer,
+  useShortcut, WhichKeyPopup, ShortcutCheatsheet,
+} from 'which-key/react';
+import { useState } from 'react';
+
+function Modal({ onClose }: { onClose: () => void }) {
+  // These shortcuts only fire while the modal is mounted.
+  useShortcut('Escape', onClose, { description: 'Close' });
+  useShortcut('j', () => console.log('next'), { description: 'Next item' });
+  useShortcut('k', () => console.log('prev'), { description: 'Previous item' });
+  return (
+    <div role="dialog">
+      <p>Modal open — press <kbd>j</kbd>/<kbd>k</kbd> to navigate, <kbd>Escape</kbd> to close.</p>
+      <button onClick={onClose}>Close</button>
+    </div>
+  );
+}
+
+export default function App() {
+  const [open, setOpen] = useState(false);
+  return (
+    <WhichKeyProvider>
+      <button onClick={() => setOpen(true)}>Open modal</button>
+      {open && (
+        <WhichKeyLayer exclusive>
+          <Modal onClose={() => setOpen(false)} />
+        </WhichKeyLayer>
+      )}
+      <WhichKeyPopup />
+      <ShortcutCheatsheet />
+    </WhichKeyProvider>
+  );
+}
+```
+
+**Exclusive vs additive layers**
+
+`pushLayer({ exclusive: true })` (or `<WhichKeyLayer exclusive>`) **blocks** all shortcuts registered at lower layers — the page shortcuts `s`, `g h`, etc. are silenced while the layer is active. `pushLayer({ exclusive: false })` (the default) **stacks additively**: lower-layer shortcuts continue to fire alongside the new layer's shortcuts. Multiple active layers are resolved in descending level order; the highest active exclusive layer forms a floor below which no lower shortcuts are reachable.
+
+**Global shortcuts**
+
+A shortcut registered with `global: true` pierces exclusive layers and fires regardless of which layer is active. The built-in `?` help shortcut is global by default — you can open the cheatsheet even when a modal layer is blocking everything else.
+
+```ts
+// Engine: register a global shortcut
+wk.register('Mod+/', () => openHelp(), { description: 'Help', global: true });
+
+// Inside a layer handle (vanilla)
+layer.register('x', handler, { global: true });
+```
+
+```tsx
+// React hook
+useShortcut('Mod+/', () => openHelp(), { description: 'Help', global: true });
+```
+
+---
+
 ## Styling
 
 Import the prebuilt stylesheet:

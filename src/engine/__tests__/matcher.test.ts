@@ -17,6 +17,8 @@ const entry = (overrides: Partial<ShortcutEntry>): ShortcutEntry => ({
   enableOnInputs: false,
   priority: 0,
   enabled: true,
+  level: 0,
+  global: false,
   ...overrides,
 });
 

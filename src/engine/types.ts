@@ -7,6 +7,8 @@ export type ShortcutOptions = {
   enableOnInputs?: boolean;
   priority?: number;
   enabled?: boolean;
+  global?: boolean;
+  level?: number;
 };
 
 export type ShortcutEntry = {
@@ -17,6 +19,8 @@ export type ShortcutEntry = {
   enableOnInputs: boolean;
   priority: number;
   enabled: boolean;
+  level: number;
+  global: boolean;
 };
 
 export type GroupEntry = {
@@ -24,6 +28,7 @@ export type GroupEntry = {
   prefix: string;
   description: string;
   priority: number;
+  level: number;
 };
 
 export type WhichKeyCandidate = {

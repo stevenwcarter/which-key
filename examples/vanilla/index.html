@@ -70,6 +70,28 @@
     </p>
     <p><em>Shortcuts do not fire while a text input has focus (default behaviour).</em></p>
     <textarea placeholder="Type here… shortcuts are suppressed inside inputs." rows="4" cols="60"></textarea>
+
+    <p style="margin-top:1.5rem;">
+      <button id="open-modal-btn">Open modal (or press <kbd>m</kbd>)</button>
+    </p>
+  </div>
+
+  <!-- Modal — hidden by default; shown via JS below -->
+  <div id="modal" role="dialog" aria-modal="true" aria-label="Item picker" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:8px; padding:2rem; min-width:300px; color:#111;">
+      <h3 style="margin-top:0;">Item picker</h3>
+      <p>
+        Press <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Escape</kbd> to close.<br />
+        Page shortcuts are blocked — try <kbd>s</kbd>; it will not fire.<br />
+        Press <kbd>?</kbd> to open the cheatsheet (global — still works).
+      </p>
+      <ul id="modal-items">
+        <li>Alpha</li>
+        <li>Beta</li>
+        <li>Gamma</li>
+      </ul>
+      <button id="close-modal-btn">Close</button>
+    </div>
   </div>
 
   <!--
@@ -94,7 +116,7 @@
     // 1. Create the engine
     const wk = createWhichKey({ sortKeys: 'alphabetical' });
 
-    // 2. Register groups and shortcuts
+    // 2. Register base-layer groups and shortcuts
     wk.registerGroup('g', { description: 'Go to' });
     wk.register('g h', () => location.assign('/'), { description: 'Home' });
     wk.register('s', () => save(), { description: 'Save' });
@@ -109,6 +131,61 @@
 
     // 4. Start the engine (attach the keydown listener)
     wk.start();
+
+    // -------------------------------------------------------------------------
+    // Modal demo — keybinding layers
+    // -------------------------------------------------------------------------
+    const modal = document.getElementById('modal');
+    const modalItems = document.getElementById('modal-items');
+    let activeLayer = null;
+    let selectedIndex = 0;
+
+    function updateSelection() {
+      const items = modalItems.querySelectorAll('li');
+      items.forEach((li, i) => {
+        li.style.fontWeight = i === selectedIndex ? 'bold' : 'normal';
+      });
+    }
+
+    function openModal() {
+      if (activeLayer) return;
+      selectedIndex = 0;
+      updateSelection();
+      modal.style.display = 'flex';
+
+      // Push an exclusive layer: base-layer shortcuts (s, g h, …) are blocked
+      // while this layer is active. The ? help shortcut is global and still fires.
+      activeLayer = wk.pushLayer({ exclusive: true });
+      const items = modalItems.querySelectorAll('li');
+
+      activeLayer.register('j', () => {
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection();
+      }, { description: 'Select next' });
+
+      activeLayer.register('k', () => {
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection();
+      }, { description: 'Select previous' });
+
+      activeLayer.register('Escape', closeModal, { description: 'Close modal' });
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+      // Pop the layer: all shortcuts registered on it are removed and the layer
+      // is deactivated; base-layer shortcuts become reachable again.
+      if (activeLayer) {
+        activeLayer.pop();
+        activeLayer = null;
+      }
+    }
+
+    // Register the base-layer shortcut that opens the modal
+    wk.register('m', openModal, { description: 'Open modal' });
+
+    document.getElementById('open-modal-btn').addEventListener('click', openModal);
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
   </script>
 </body>
 </html>

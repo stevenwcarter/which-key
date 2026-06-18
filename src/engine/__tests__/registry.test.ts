@@ -10,6 +10,8 @@ const entry = (overrides: Partial<ShortcutEntry> = {}): ShortcutEntry => ({
   enableOnInputs: false,
   priority: 0,
   enabled: true,
+  level: 0,
+  global: false,
   ...overrides,
 });
 
@@ -110,6 +112,7 @@ const groupEntry = (overrides: Partial<GroupEntry> = {}): GroupEntry => ({
   prefix: 'g',
   description: 'Focus widget',
   priority: 0,
+  level: 0,
   ...overrides,
 });
 
@@ -220,5 +223,78 @@ describe('ShortcutRegistry — getAllActive', () => {
     expect(all).toHaveLength(2);
     const descs = all.map((e) => e.description);
     expect(descs).toContain('override');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Layer tests — added for feat/keybinding-layers Task 1
+// ---------------------------------------------------------------------------
+
+const layerEntry = (over: Partial<ShortcutEntry> & { keys: string; id: string }): ShortcutEntry => ({
+  handler: () => {},
+  description: undefined,
+  enableOnInputs: false,
+  priority: 0,
+  enabled: true,
+  level: 0,
+  global: false,
+  ...over,
+});
+
+describe('registry layers', () => {
+  it('exclusive layer blocks lower-level entries', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'base', keys: 'a', level: 0 }));
+    r.register(layerEntry({ id: 'modal', keys: 'b', level: 1 }));
+    r.activateLayer('L1', 1, true);
+    expect(r.getActive('a')).toBeUndefined();      // base suppressed
+    expect(r.getActive('b')?.id).toBe('modal');     // layer reachable
+  });
+
+  it('additive layer leaves lower entries reachable', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'base', keys: 'a', level: 0 }));
+    r.activateLayer('L1', 1, false);
+    expect(r.getActive('a')?.id).toBe('base');
+  });
+
+  it('global entry pierces an exclusive layer', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'help', keys: '?', level: 0, global: true }));
+    r.activateLayer('L1', 1, true);
+    expect(r.getActive('?')?.id).toBe('help');
+  });
+
+  it('a higher layer overrides a global key', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'help', keys: '?', level: 0, global: true }));
+    r.register(layerEntry({ id: 'modalHelp', keys: '?', level: 1 }));
+    r.activateLayer('L1', 1, true);
+    expect(r.getActive('?')?.id).toBe('modalHelp');  // (level,priority,index): level 1 wins
+  });
+
+  it('deactivateLayer re-reveals the layer beneath', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'base', keys: 'a', level: 0 }));
+    r.activateLayer('L1', 1, true);
+    expect(r.getActive('a')).toBeUndefined();
+    r.deactivateLayer('L1');
+    expect(r.getActive('a')?.id).toBe('base');
+  });
+
+  it('nextLevel is max active level + 1', () => {
+    const r = new ShortcutRegistry();
+    expect(r.nextLevel()).toBe(1);
+    r.activateLayer('L1', 1, false);
+    expect(r.nextLevel()).toBe(2);
+  });
+
+  it('candidates and cheatsheet exclude suppressed entries', () => {
+    const r = new ShortcutRegistry();
+    r.register(layerEntry({ id: 'g-d', keys: 'g d', level: 0 }));
+    r.register(layerEntry({ id: 'm', keys: 'g x', level: 1 }));
+    r.activateLayer('L1', 1, true);
+    expect(r.getActiveCandidates('g').map((c) => c.keys)).toEqual(['g x']);
+    expect(r.getAllActive().map((e) => e.id)).toEqual(['m']);
   });
 });
