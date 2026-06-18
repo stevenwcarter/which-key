@@ -115,3 +115,72 @@ describe('createWhichKey', () => {
   });
 
 });
+
+describe('controller layers', () => {
+  it('exclusive pushLayer suppresses a base shortcut, pop restores it', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const base = vi.fn();
+    wk.register('a', base);
+    const layer = wk.pushLayer({ exclusive: true });
+    const modal = vi.fn();
+    layer.register('b', modal);
+    // base 'a' now unreachable, layer 'b' reachable
+    expect(wk.registry.getActive('a')).toBeUndefined();
+    expect(wk.registry.getActive('b')?.handler).toBeTypeOf('function');
+    layer.pop();
+    expect(wk.registry.getActive('a')?.handler).toBeTypeOf('function');
+    expect(wk.registry.getActive('b')).toBeUndefined(); // handle entries auto-unregistered
+  });
+
+  it('handle register survives destructuring (arrow keeps lexical this)', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const layer = wk.pushLayer({ exclusive: true });
+    const { register } = layer;
+    expect(() => register('b', vi.fn())).not.toThrow();
+    expect(wk.registry.getActive('b')?.handler).toBeTypeOf('function');
+  });
+
+  it('global help survives an exclusive layer', () => {
+    const wk = createWhichKey(); // default ? help
+    wk.pushLayer({ exclusive: true });
+    expect(wk.registry.getActive('?')?.id).toBe('__whichkey_default_help__');
+  });
+
+  it('cheatsheet excludes suppressed base entries under an exclusive layer', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('a', () => {}, { description: 'base' });
+    const layer = wk.pushLayer({ exclusive: true });
+    layer.register('b', () => {}, { description: 'modal' });
+    const model = wk.getCheatsheetModel();
+    const keys = model.standalone.map((s) => s.keys);
+    expect(keys).toContain('b');
+    expect(keys).not.toContain('a');
+  });
+
+  it('pushLayer emits a snapshot', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const listener = vi.fn();
+    wk.subscribe(listener);
+    wk.pushLayer({ exclusive: true });
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it('pop emits a snapshot', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const layer = wk.pushLayer({ exclusive: true });
+    const listener = vi.fn();
+    wk.subscribe(listener);
+    layer.pop();
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it('pop is idempotent — a second pop neither throws nor re-emits', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const layer = wk.pushLayer({ exclusive: true });
+    layer.pop();
+    const listener = vi.fn();
+    wk.subscribe(listener);
+    expect(() => layer.pop()).not.toThrow();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});

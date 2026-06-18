@@ -24,9 +24,18 @@ export type WhichKeySnapshot = {
   cheatsheet: { visible: boolean };
 };
 
+export type LayerHandle = {
+  readonly level: number;
+  register: WhichKeyEngine['register'];
+  registerGroup: WhichKeyEngine['registerGroup'];
+  pop(): void;
+};
+
 export type WhichKeyEngine = {
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
-  registerGroup(prefix: string, options: { description: string; priority?: number }): () => void;
+  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  activateLayer(level: number, exclusive: boolean): () => void;
+  pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
   start(): void;
   stop(): void;
   subscribe(listener: (snapshot: WhichKeySnapshot) => void): () => void;
@@ -158,8 +167,39 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     registerGroup(prefix, opts) {
       const id = `wkg_${idCounter++}`;
-      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: 0 });
+      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: opts.level ?? 0 });
       return () => registry.unregisterGroup(id);
+    },
+    activateLayer(level, exclusive) {
+      const id = `wklayer_${idCounter++}`;
+      registry.activateLayer(id, level, exclusive);
+      emit();
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        registry.deactivateLayer(id);
+        emit();
+      };
+    },
+    pushLayer(opts) {
+      const level = opts?.level ?? registry.nextLevel();
+      const deactivate = this.activateLayer(level, opts?.exclusive ?? false);
+      const owned = new Set<() => void>();
+      const track = (un: () => void): (() => void) => {
+        const wrapped = () => { un(); owned.delete(wrapped); };
+        owned.add(wrapped);
+        return wrapped;
+      };
+      return {
+        level,
+        register: (keys, h, o) => track(this.register(keys, h, { ...o, level })),
+        registerGroup: (prefix, o) => track(this.registerGroup(prefix, { ...o, level })),
+        pop: () => {
+          for (const un of [...owned]) un();
+          deactivate();
+        },
+      };
     },
     start() {
       if (started) return;

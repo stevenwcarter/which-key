@@ -6,6 +6,6 @@ export type { MatcherOptions } from './matcher';
 export { alphabeticalKeysSort, resolveSort } from './sort';
 export { createWhichKey } from './controller';
 export type {
-  WhichKeyOptions, WhichKeyEngine, WhichKeySnapshot,
+  WhichKeyOptions, WhichKeyEngine, WhichKeySnapshot, LayerHandle,
   CheatsheetEntry, CheatsheetGroup, CheatsheetModel,
 } from './controller';
