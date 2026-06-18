@@ -54,7 +54,10 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "commit-and-tag-version",
+    "release:dry": "commit-and-tag-version --dry-run",
+    "postrelease": "echo 'Release prepared. To publish:' && echo '  git push --follow-tags origin main' && echo '  npm publish'"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -70,6 +73,7 @@
     "@types/react": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
+    "commit-and-tag-version": "^12.7.3",
     "eslint": "^9.17.0",
     "jsdom": "^25.0.1",
     "prettier": "^3.4.2",
