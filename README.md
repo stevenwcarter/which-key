@@ -267,6 +267,45 @@ See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ---
 
+## Releasing
+
+Versioning is driven by [Conventional Commits](https://www.conventionalcommits.org/).
+The version bump and changelog are derived from commit messages since the last tag.
+While the package is pre-1.0 (`0.x`), semver-for-0.x rules apply:
+
+- `fix: …` → patch (e.g. `0.2.0` → `0.2.1`)
+- `feat: …` → **patch** while `0.x` (the public API is still unstable)
+- `feat!: …` or a `BREAKING CHANGE:` footer → **minor** while `0.x` (`0.2.0` → `0.3.0`)
+
+(After the project cuts `1.0.0`, the usual rules resume: `feat:`→minor, `feat!:`→major.)
+
+Commit messages are linted by a husky `commit-msg` hook (`@commitlint/config-conventional`).
+
+**First release (one-time):** the default first bump with no prior tag would be a patch
+(`0.1.1`); to start at `0.2.0` instead, force a minor once:
+
+```bash
+npm run release -- --release-as minor   # 0.1.0 → 0.2.0, writes CHANGELOG.md, tags v0.2.0
+```
+
+**Ongoing releases:**
+
+```bash
+npm run release:dry   # preview the next version + changelog (no changes)
+npm run release       # bump package.json, regenerate CHANGELOG.md, commit, and tag
+```
+
+`npm run release` does not push or publish. After it succeeds, publish manually:
+
+```bash
+git push --follow-tags origin main
+npm publish           # prepublishOnly rebuilds dist/ first
+```
+
+To intentionally cut `1.0.0`: `npm run release -- --release-as major`.
+
+---
+
 ## License
 
 MIT © Steven Carter
