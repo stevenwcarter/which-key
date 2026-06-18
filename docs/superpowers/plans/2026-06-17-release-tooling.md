@@ -45,16 +45,23 @@ In the `"scripts"` block, add these three entries (keep existing scripts):
 
 Rationale: npm automatically runs `postrelease` after `release` (post-hook for any script name); `release:dry` is a distinct name so it does not trigger the post-hook. The `postrelease` body only echoes — it must not contain `git push` or `npm publish` as executed commands.
 
-- [ ] **Step 3: Verify the dry run computes 0.2.0 and changes nothing**
+- [ ] **Step 3: Verify the dry run behaves correctly and changes nothing**
+
+The tool applies 0.x semver: at `0.x` with no prior tag, `feat:` commits bump **patch**, so
+the default dry run reports `0.1.0 → 0.1.1`. **This is the correct expected output** (the
+first release to `0.2.0` is a separate one-time forced minor, documented in Task 3 — NOT
+this script's default).
 
 Run: `npm run release:dry`
-Expected: output shows bump from `0.1.0` to **`0.2.0`** (we have `feat:` commits, no breaking changes, no prior tag) and a changelog preview under "Features". 
+Expected: output shows bump from `0.1.0` to **`0.1.1`** with a "Features" changelog preview.
 
-Then verify no side effects:
+Confirm the planned first release previews 0.2.0 (still no side effects):
+Run: `npm run release -- --dry-run --release-as minor`
+Expected: shows `0.1.0` to **`0.2.0`**.
+
+Then verify no side effects from either dry run:
 Run: `git status --porcelain && git tag -l`
-Expected: working tree clean (only `package.json`/`package-lock.json` from Step 1 staged/changed, no new commit), and `git tag -l` prints nothing.
-
-If the dry run reports a version other than `0.2.0`, STOP and report it (DONE_WITH_CONCERNS) rather than forcing it — the maintainer chose 0.2.0 expecting a minor bump.
+Expected: working tree clean apart from `package.json`/`package-lock.json` from Step 1 (no new commit), and `git tag -l` prints nothing.
 
 - [ ] **Step 4: Commit**
 
@@ -161,15 +168,25 @@ Read `README.md` first to match heading style; add near the end (after contribut
 ## Releasing
 
 Versioning is driven by [Conventional Commits](https://www.conventionalcommits.org/).
-The version bump and changelog are derived from commit messages since the last tag:
+The version bump and changelog are derived from commit messages since the last tag.
+While the package is pre-1.0 (`0.x`), semver-for-0.x rules apply:
 
 - `fix: …` → patch (e.g. `0.2.0` → `0.2.1`)
-- `feat: …` → minor (`0.2.0` → `0.3.0`)
-- `feat!: …` or a `BREAKING CHANGE:` footer → major (`0.2.0` → `1.0.0`)
+- `feat: …` → **patch** while `0.x` (the public API is still unstable)
+- `feat!: …` or a `BREAKING CHANGE:` footer → **minor** while `0.x` (`0.2.0` → `0.3.0`)
+
+(After the project cuts `1.0.0`, the usual rules resume: `feat:`→minor, `feat!:`→major.)
 
 Commit messages are linted by a husky `commit-msg` hook (`@commitlint/config-conventional`).
 
-To cut a release:
+**First release (one-time):** the default first bump with no prior tag would be a patch
+(`0.1.1`); to start at `0.2.0` instead, force a minor once:
+
+```bash
+npm run release -- --release-as minor   # 0.1.0 → 0.2.0, writes CHANGELOG.md, tags v0.2.0
+```
+
+**Ongoing releases:**
 
 ```bash
 npm run release:dry   # preview the next version + changelog (no changes)
@@ -182,6 +199,8 @@ npm run release       # bump package.json, regenerate CHANGELOG.md, commit, and 
 git push --follow-tags origin main
 npm publish           # prepublishOnly rebuilds dist/ first
 ```
+
+To intentionally cut `1.0.0`: `npm run release -- --release-as major`.
 ````
 
 - [ ] **Step 3: Update `CLAUDE.local.md`**
@@ -191,7 +210,7 @@ Read the file. Make these edits:
   - `npm run release:dry` — Preview the next version + changelog (conventional commits; no changes)
   - `npm run release` — Bump version from commits, write `CHANGELOG.md`, commit, tag
 - Replace the sentence telling contributors to run `npx changeset` (currently: "Behavior-changing PRs need a changeset (`npx changeset`; `patch`/`minor`/`major`). Docs-only PRs may skip it.") with:
-  > Commits follow Conventional Commits, enforced by a husky `commit-msg` hook (`@commitlint/config-conventional`): `feat:`→minor, `fix:`→patch, `feat!:`/`BREAKING CHANGE:`→major. Cut a release with `npm run release` (preview: `npm run release:dry`) — it derives the version + `CHANGELOG.md` + tag from commit messages. Publish per the README "Releasing" section.
+  > Commits follow Conventional Commits, enforced by a husky `commit-msg` hook (`@commitlint/config-conventional`). Versioning uses `commit-and-tag-version` with semver-for-0.x rules while pre-1.0: `fix:`→patch, `feat:`→patch, `feat!:`/`BREAKING CHANGE:`→minor (after `1.0.0`: `feat:`→minor, `feat!:`→major). Cut a release with `npm run release` (preview: `npm run release:dry`) — it derives the version + `CHANGELOG.md` + tag from commit messages. The first release to `0.2.0` is a one-time `npm run release -- --release-as minor`. Publish per the README "Releasing" section.
 - If the file mentions a changeset in the CI description, leave CI text accurate (CI does not run changesets; do not invent CI changes here).
 
 - [ ] **Step 4: Verify CLAUDE.local.md budget**

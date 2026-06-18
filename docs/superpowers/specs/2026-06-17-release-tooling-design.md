@@ -20,13 +20,32 @@ conventional commits and **remove** the Changesets scaffolding.
 ## Decisions (locked in brainstorming)
 
 1. **Model:** conventional commits, not Changesets. Remove `.changeset/`.
-2. **First release:** bump now from history → `0.1.0` becomes **`0.2.0`**, tag `v0.2.0`
-   (we have `feat:` commits and no prior tag, so the highest bump is `minor`).
-3. **Enforcement:** add commitlint + a husky `commit-msg` hook to reject malformed
+2. **First release:** **`0.1.0` → `0.2.0`**, tag `v0.2.0`, via a one-time
+   `npm run release -- --release-as minor`. (See "Versioning rules" — the tool's
+   default at `0.x` with no prior tag would compute `0.1.1`, so the first minor is forced.)
+3. **Versioning model:** stay pre-1.0 and accept the tool's standard **0.x semver**
+   rules (see table below) for all ongoing releases. We do NOT override the bump logic.
+4. **Enforcement:** add commitlint + a husky `commit-msg` hook to reject malformed
    messages locally.
-4. **Tool:** `commit-and-tag-version` (local/manual; the maintained successor to the
+5. **Tool:** `commit-and-tag-version` (local/manual; the maintained successor to the
    deprecated `standard-version`). It stops before push/publish so the maintainer
    controls timing. (`semantic-release`/`release-please` rejected — CI-driven, auto-publish.)
+
+### Versioning rules (the tool's 0.x behaviour — verified empirically with v12)
+
+While the package major version is `0`, `commit-and-tag-version` applies semver-for-0.x:
+
+| Commit type | bump at `0.x` (now) | bump at `≥1.0` |
+|---|---|---|
+| `fix:` | patch | patch |
+| `feat:` | **patch** | minor |
+| `feat!:` / `BREAKING CHANGE:` footer | **minor** | major |
+
+This is intentional (pre-1.0 the public API is unstable). We keep this behaviour as-is —
+no `.versionrc.json` bump override (a `preMajor:false` preset option does NOT change it in
+v12). Consequence: ongoing `feat:` work bumps patch until the maintainer deliberately cuts
+`1.0.0` (`npm run release -- --release-as major`). Documentation must state this accurately
+rather than the ≥1.0 "feat→minor" rule.
 
 ## Components
 
@@ -82,25 +101,32 @@ Install latest stable of each; pin with caret ranges to match existing devDeps s
 
 ## First-release behaviour (explicit)
 
-Run `npm run release` once on this branch's merge result (or document it as the maintainer's
-first action). With no prior tag, `commit-and-tag-version` scans all history; the highest
-conventional bump is `minor` (from `feat:` commits, no breaking changes), so `0.1.0 → 0.2.0`.
-It writes `CHANGELOG.md` (Features/Bug Fixes grouped from history), commits
-`chore(release): 0.2.0`, and tags `v0.2.0`.
+The tool's default at `0.x` with no prior git tag computes a **patch** (`0.1.0 → 0.1.1`),
+even though `feat:` commits exist (0.x semver, above). The maintainer wants the first
+release to be **`0.2.0`**, so the first release is a one-time forced minor:
+
+```bash
+npm run release -- --release-as minor   # 0.1.0 → 0.2.0, writes CHANGELOG.md, tags v0.2.0
+```
+
+After `v0.2.0` exists as a baseline tag, ongoing `npm run release` derives the bump from
+commits per the 0.x rules table (e.g. a later `feat:` → `0.2.1`, a `feat!:` → `0.3.0`).
 
 **Note:** the actual version bump/tag is a release action the maintainer performs; this
 spec's deliverable is the *tooling and scripts*, verified via `--dry-run`. Do not create
-the real `v0.2.0` tag as part of implementing/merging this branch unless the maintainer
-asks — cutting a real release is a separate, deliberate step.
+the real `v0.2.0` tag as part of implementing/merging this branch — cutting a real release
+is a separate, deliberate maintainer step (documented in the README "Releasing" section).
 
 ## Testing / verification (tooling, not unit-testable logic)
 
 There is no application logic to unit-test; the deliverable is configuration. Acceptance
 checks (run during implementation; record output):
 1. `npm install` (or `npm ci`) succeeds with the four new dev deps; `prepare` runs husky.
-2. `npm run release:dry` prints the computed next version **`0.2.0`** and a changelog
-   preview, and creates **no** commit, tag, or file change (verify `git status` clean and
-   no new tag afterward).
+2. `npm run release:dry` prints the computed next version (**`0.1.1`** by default at `0.x`
+   with no tag — this is correct) and a changelog preview, and creates **no** commit, tag,
+   or file change (verify `git status` clean and no new tag afterward). A separate check:
+   `npm run release -- --dry-run --release-as minor` previews **`0.2.0`** (the planned first
+   release), still side-effect-free.
 3. commitlint rejects a bad message and accepts a good one:
    - `echo "nonsense message" | npx commitlint` → exits non-zero.
    - `echo "feat: add a thing" | npx commitlint` → exits zero.
