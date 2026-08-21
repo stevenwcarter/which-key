@@ -155,6 +155,38 @@ describe('createWhichKey', () => {
       err.mockRestore();
     });
   });
+
+  describe('snapshot emission', () => {
+    it('does not notify subscribers for keystrokes that match nothing', () => {
+      const wk = createWhichKey();
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+      const listener = vi.fn();
+      wk.subscribe(listener);
+      const before = wk.getSnapshot();
+
+      press('a'); press('b'); press('c'); press('d'); press('e');
+
+      expect(listener).not.toHaveBeenCalled();
+      expect(wk.getSnapshot()).toBe(before);
+      wk.stop();
+    });
+
+    it('still notifies exactly once when the popup actually opens', () => {
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+      const listener = vi.fn();
+      wk.subscribe(listener);
+
+      press('g');
+      vi.advanceTimersByTime(60);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      wk.stop();
+    });
+  });
 });
 
 describe('controller layers', () => {

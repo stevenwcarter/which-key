@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B5. Every non-matching keystroke emits a new deep-equal snapshot, re-rendering all React subscribers: `onHidePopup` / `Matcher.resetBuffer` (src/engine/controller.ts:127)
-- Category: caching
-- Impact: 15 (severity 3 × blast-radius 5)
-- Effort: S
-- Risk: medium
-- Evidence: `handleKeyDown`'s fall-through (matcher.ts:86) calls `resetBuffer()` for every key that matches nothing — i.e. essentially every key the user types anywhere in the host app. `resetBuffer` unconditionally calls `onHidePopup()`, which reassigns `snapshot = computeSnapshot()` (a fresh object) and notifies every listener even when `popupVisible` was already false and `currentSequence` already empty. Measured: 5 unrelated keystrokes on an idle engine → subscriber notified 5 times, snapshot identity changed, snapshots deep-equal. Because `useWhichKeyState` and `ShortcutCheatsheet` both use `useSyncExternalStore`, the new object identity fails `Object.is` and React re-renders `WhichKeyPopup` and `ShortcutCheatsheet` on **every keypress in the application**, including each character typed into a textarea; `mountWhichKey`'s `render()` re-runs too. docs/API.md:109 documents the listener as called "after every state change", so a no-op emit also violates the documented contract.
-- Blast radius: src/engine/controller.ts:127; src/engine/matcher.ts:45,86,97; src/react/useWhichKeyState.ts:14; src/react/ShortcutCheatsheet.tsx:11; src/vanilla/mount.ts:52
-- Proposed fix: guard the callback in controller.ts — `onHidePopup: () => { if (!popupVisible && currentSequence.length === 0) return; popupVisible = false; currentSequence = []; emit(); }`. State stays identical; only the redundant notification is suppressed.
-- [x] execute   [ ] skip
-
 ### B6. handleKeyDown builds the full candidate list on every keystroke only to test emptiness, then the controller rebuilds it: `Matcher.handleKeyDown` / `getActiveCandidates` (src/engine/matcher.ts:38)
 - Category: caching
 - Impact: 15 (severity 3 × blast-radius 5)

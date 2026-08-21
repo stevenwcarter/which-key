@@ -136,6 +136,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       emit();
     },
     onHidePopup: () => {
+      if (!popupVisible && currentSequence.length === 0) return;
       popupVisible = false;
       currentSequence = [];
       emit();
