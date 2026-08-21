@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../controller';
 
 const press = (key: string, target: EventTarget = document.body) => {
-  const ev = new KeyboardEvent('keydown', { key, bubbles: true });
-  Object.defineProperty(ev, 'target', { value: target });
-  document.dispatchEvent(ev);
+  // Dispatch on the real target (not document with a faked `.target`) so
+  // `event.composedPath()[0]` — what Matcher now reads — genuinely resolves
+  // to `target`, matching real browser behavior. `target` must be connected
+  // to `document` (the matcher's default bound target) so the event bubbles
+  // up and the listener actually sees it.
+  target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
 };
 
 describe('createWhichKey', () => {
@@ -185,6 +188,55 @@ describe('createWhichKey', () => {
       expect(listener).toHaveBeenCalledTimes(1);
       expect(wk.getSnapshot().popup.visible).toBe(true);
       wk.stop();
+    });
+  });
+
+  describe('popup suppression in text fields', () => {
+    it('does not show the popup for a leader key typed into a password field', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep', enableOnInputs: false });
+      wk.start();
+
+      press('g', input);
+      vi.advanceTimersByTime(60);
+
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      wk.stop();
+      input.remove();
+    });
+
+    it('still shows the popup for the same key outside a text field', () => {
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      press('g');
+      vi.advanceTimersByTime(60);
+
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      wk.stop();
+    });
+
+    it('still completes a deeper sequence whose leaf opted in with enableOnInputs', () => {
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      const fn = vi.fn();
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', fn, { description: 'Deep', enableOnInputs: true });
+      wk.start();
+
+      press('g', input);
+      press('h', input);
+
+      expect(fn).toHaveBeenCalledTimes(1);
+      wk.stop();
+      input.remove();
     });
   });
 });
