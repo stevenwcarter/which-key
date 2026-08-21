@@ -66,7 +66,7 @@ export class Matcher {
 
     if (leaf && hasCandidates) {
       // Leaf-AND-prefix — commit buffer, start timer to fire leaf if no continuation.
-      this.commitBuffer(prospective);
+      this.commitBuffer(prospective, isInputTarget(eventTarget));
       this.clearTimer();
       const fireTarget = eventTarget;
       this.timer = setTimeout(() => {
@@ -86,17 +86,16 @@ export class Matcher {
 
     if (!leaf && hasCandidates) {
       // Prefix-only — commit buffer, start timer to show popup.
-      this.commitBuffer(prospective);
+      this.commitBuffer(prospective, isInputTarget(eventTarget));
       this.clearTimer();
       // Never surface buffered keystrokes that were typed into a text field:
-      // the characters themselves would be rendered on screen. The buffer
-      // commit above still stands, so a deeper enableOnInputs:true leaf can
-      // still complete and fire — only the popup's display is suppressed.
-      // Latch this per-buffer (not just per-event): once a field keystroke
-      // has been buffered, keep suppressing display even after focus moves
-      // outside, so a later outside-field key never flushes the buffered
-      // field characters to the popup.
-      if (isInputTarget(eventTarget)) this.bufferTouchedInput = true;
+      // the characters themselves would be rendered on screen. commitBuffer
+      // above latches bufferTouchedInput whenever the buffer holds a
+      // field-typed key, regardless of which branch committed it, so this
+      // check covers keys buffered via the leaf-AND-prefix branch too. The
+      // buffer commit itself still stands, so a deeper enableOnInputs:true
+      // leaf can still complete and fire — only the popup's display is
+      // suppressed.
       if (this.bufferTouchedInput) return;
       if (this.popupVisible) {
         // Already visible — refresh immediately as the buffer changed.
@@ -118,8 +117,12 @@ export class Matcher {
     this.resetBuffer();
   }
 
-  private commitBuffer(next: string[]): void {
+  private commitBuffer(next: string[], fromInput: boolean): void {
     this.buffer = next;
+    // Latch once true; a key committed while focus was in a field taints the
+    // whole buffer until the next resetBuffer(), regardless of which branch
+    // (leaf-AND-prefix or prefix-only) committed it.
+    if (fromInput) this.bufferTouchedInput = true;
   }
 
   private resetBuffer(): void {

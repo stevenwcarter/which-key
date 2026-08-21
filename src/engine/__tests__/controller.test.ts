@@ -292,6 +292,40 @@ describe('createWhichKey', () => {
       wk.stop();
       input.remove();
     });
+
+    it('does not leak a field-typed key committed via the leaf-AND-prefix branch', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g', vi.fn(), { description: 'Leaf' });
+      wk.register('g h i', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      // 'g' is both a registered leaf and a prefix of 'g h i', so it takes
+      // the leaf-AND-prefix branch, not the prefix-only branch. Typed into
+      // the password field, that branch must still latch the field-touched
+      // flag on the buffer it commits.
+      press('g', input);
+
+      // Before the leaf's deferred-fire timer elapses, continue OUTSIDE the
+      // field. This takes the prefix-only branch; the buffer now holds
+      // ['g','h'], but 'g' was typed into the field and must never reach
+      // the display.
+      press('h');
+
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('g');
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      // Confirm the suppression holds for the rest of this buffer, not just
+      // for the instant 'h' was pressed.
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('g');
+
+      wk.stop();
+      input.remove();
+    });
   });
 });
 
