@@ -93,4 +93,31 @@ describe('mountWhichKey', () => {
     ui.unmount();
     wk.stop();
   });
+
+  it('gives the cheatsheet panel modal semantics, focus, and a close button', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const wk = createWhichKey();
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('?');
+
+    const panel = document.querySelector('.wk-cheatsheet') as HTMLElement;
+    expect(panel.getAttribute('aria-modal')).toBe('true');
+    expect(panel.getAttribute('aria-labelledby')).toBe('wk-cheatsheet-title');
+    expect(panel.contains(document.activeElement)).toBe(true);
+
+    const close = panel.querySelector('.wk-cheatsheet__close') as HTMLButtonElement;
+    expect(close).not.toBeNull();
+    close.click();
+    expect(wk.getSnapshot().cheatsheet.visible).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+
+    ui.unmount();
+    wk.stop();
+    trigger.remove();
+  });
 });

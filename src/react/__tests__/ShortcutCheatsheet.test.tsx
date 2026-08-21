@@ -155,3 +155,44 @@ describe('ShortcutCheatsheet', () => {
     expect(getByTestId('whichkey-cheatsheet')).toHaveClass('wk-cheatsheet');
   });
 });
+
+describe('cheatsheet focus management', () => {
+  it('marks the panel as a modal dialog labelled by its title', () => {
+    const { getByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    const panel = getByTestId('whichkey-cheatsheet');
+    expect(panel).toHaveAttribute('aria-modal', 'true');
+    expect(panel).toHaveAttribute('aria-labelledby', 'wk-cheatsheet-title');
+    expect(document.getElementById('wk-cheatsheet-title')).not.toBeNull();
+  });
+
+  it('moves focus into the panel on open and restores it on close', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const { getByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    expect(getByTestId('whichkey-cheatsheet').contains(document.activeElement)).toBe(true);
+
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('exposes a keyboard-reachable close button that closes the sheet', () => {
+    const { getByTestId, getByLabelText, queryByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    const close = getByLabelText('Close keyboard shortcuts');
+    expect(getByTestId('whichkey-cheatsheet').contains(close)).toBe(true);
+    act(() => { close.click(); });
+    expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
+  });
+});
