@@ -44,8 +44,11 @@ export class Matcher {
         this.resetBuffer();
         return;
       }
-      this.options.onFire(leaf, event);
-      this.resetBuffer();
+      try {
+        this.options.onFire(leaf, event);
+      } finally {
+        this.resetBuffer();
+      }
       return;
     }
 
@@ -60,8 +63,11 @@ export class Matcher {
           return;
         }
         const synthetic = new KeyboardEvent('keydown', { key });
-        this.options.onFire(leaf, synthetic);
-        this.resetBuffer();
+        try {
+          this.options.onFire(leaf, synthetic);
+        } finally {
+          this.resetBuffer();
+        }
       }, this.options.timeoutMs);
       return;
     }

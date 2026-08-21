@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B4. Consumer handler exceptions escape unwrapped and wedge the matcher's buffer with no diagnostic: `onFire` / `Matcher.handleKeyDown` (src/engine/controller.ts:117)
-- Category: observability
-- Impact: 16 (severity 4 × blast-radius 4)
-- Effort: S
-- Risk: high
-- Evidence: `onFire: (entry, event) => entry.handler(event)` calls consumer code with no try/finally, and both call sites depend on it returning normally to clean up — matcher.ts:47 runs `onFire` then `resetBuffer()` on line 48, and matcher.ts:63 does the same inside a `setTimeout` with `resetBuffer()` on line 64. If a handler throws, `resetBuffer()` never runs: `buffer` keeps the stale prefix, `popupVisible` stays true, `timer` is left non-null, and `onHidePopup` never fires — so the popup stays on screen and every subsequent keypress is appended to the stale buffer, silently mismatching every later shortcut. In the leaf path the throw propagates out of the document listener as an unattributed window error; in the timer path it becomes an uncaught async error with no `[whichkey]` context at all. matcher.ts:59-61 is uncovered, so nothing pins current behavior.
-- Blast radius: src/engine/controller.ts:117,207; src/engine/matcher.ts:47,48,63,64,97
-- Proposed fix: wrap both `onFire` call sites in `try { ... } finally { this.resetBuffer(); }` so engine state is always restored, and change controller.ts:117 to catch and attribute: `catch (err) { console.error(\`[whichkey] Handler for "${entry.keys}" threw; sequence state was reset.\`, err); }`.
-- [x] execute   [ ] skip
-
 ### B5. Every non-matching keystroke emits a new deep-equal snapshot, re-rendering all React subscribers: `onHidePopup` / `Matcher.resetBuffer` (src/engine/controller.ts:127)
 - Category: caching
 - Impact: 15 (severity 3 × blast-radius 5)

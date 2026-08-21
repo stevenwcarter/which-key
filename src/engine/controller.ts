@@ -116,7 +116,16 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
 
   const matcher = new Matcher(registry, {
     timeoutMs,
-    onFire: (entry, event) => entry.handler(event),
+    onFire: (entry, event) => {
+      try {
+        entry.handler(event);
+      } catch (err) {
+        console.error(
+          `[whichkey] Handler for "${entry.keys}" threw; sequence state was reset.`,
+          err,
+        );
+      }
+    },
     onShowPopup: (state) => {
       popupVisible = true;
       // Defensive copy: never store the Matcher's live array in a snapshot.
