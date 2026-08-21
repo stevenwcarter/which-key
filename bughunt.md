@@ -28,16 +28,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 - Proposed fix: guard on the actual active entry rather than bucket length — insert first, then call `findActive(bucket)` and warn only when the new entry is not the winner **and** the pre-existing winner is at the same `level` (a true accidental collision, not a layer override). Rewrite the message to state the real outcome with both levels/priorities and the offending key. Skip entirely when levels differ or `findActive` returns undefined.
 - [x] execute   [ ] skip
 
-### B9. Leader-key popup renders keystrokes typed into password and text inputs: `Matcher.handleKeyDown` (src/engine/matcher.ts:69)
-- Category: security
-- Impact: 12 (severity 3 × blast-radius 4)
-- Effort: S
-- Risk: high
-- Evidence: the prefix-only branch (matcher.ts:69-83) commits the pressed key into the buffer and schedules `onShowPopup` with **no** `isInputTarget(event.target)` guard, unlike the two leaf branches at lines 43 and 58. The listener is on `document`, so keys typed into any focused field reach the matcher. Confirmed: with `register('g h', …, {enableOnInputs:false})` — the README quick-start binding, which even renders a `<textarea>` beside it — typing `g` into a text field and pausing `timeoutMs` yields `popup visible = true, seq = ["g"]`. With a `<input type="password">` and a deeper registration such as `g a b c`, up to three consecutive typed password characters are rendered as `<kbd>` text in a `position:fixed; z-index:50` overlay and stay in the DOM until the buffer resets. docs/API.md:78 documents `enableOnInputs:false` as "the shortcut is suppressed while focus is in a text input" — the suppression is incomplete, and the user sees an overlay for a shortcut guaranteed not to fire.
-- Blast radius: src/engine/matcher.ts:43,58,69,75,79; src/engine/controller.ts:118; src/react/WhichKeyPopup.tsx:18,35,46; src/vanilla/popup.ts:28,52,64
-- Proposed fix: capture `const inInput = isInputTarget(event.target)` at the top of `handleKeyDown` and wrap the popup show/refresh block (matcher.ts:73-81) in `if (!inInput) { ... }`. Leave `commitBuffer` on line 71 unchanged so a deeper leaf with `enableOnInputs: true` can still complete and fire — only the visual rendering of buffered keys is gated.
-- [x] execute   [ ] skip
-
 ### B11. parseKey rejects lowercase modifiers although both README and API.md promise case-insensitivity: `parseKey` / `KNOWN_MODIFIERS` (src/engine/keys.ts:65)
 - Category: correctness
 - Impact: 12 (severity 4 × blast-radius 3)

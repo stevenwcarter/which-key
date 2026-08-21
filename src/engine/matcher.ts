@@ -83,6 +83,11 @@ export class Matcher {
       // Prefix-only — commit buffer, start timer to show popup.
       this.commitBuffer(prospective);
       this.clearTimer();
+      // Never surface buffered keystrokes that were typed into a text field:
+      // the characters themselves would be rendered on screen. The buffer
+      // commit above still stands, so a deeper enableOnInputs:true leaf can
+      // still complete and fire — only the popup's display is suppressed.
+      if (isInputTarget(eventTarget)) return;
       if (this.popupVisible) {
         // Already visible — refresh immediately as the buffer changed.
         this.options.onShowPopup({ currentSequence: [...this.buffer] });
