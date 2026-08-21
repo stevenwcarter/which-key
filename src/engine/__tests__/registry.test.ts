@@ -298,3 +298,32 @@ describe('registry layers', () => {
     expect(r.getAllActive().map((e) => e.id)).toEqual(['m']);
   });
 });
+
+describe('hasCandidates', () => {
+  const build = () => new ShortcutRegistry();
+
+  it('agrees with getActiveCandidates across leaf, group, mixed and empty prefixes', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a' }));
+    r.register(entry({ id: '2', keys: 'g b c' }));
+    r.register(entry({ id: '3', keys: 'z' }));
+    for (const prefix of ['g', 'g b', 'z', 'nope', '']) {
+      expect(r.hasCandidates(prefix)).toBe(r.getActiveCandidates(prefix).length > 0);
+    }
+  });
+
+  it('returns false when the only matching entry is disabled', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a', enabled: false }));
+    expect(r.hasCandidates('g')).toBe(false);
+    expect(r.getActiveCandidates('g').length).toBe(0);
+  });
+
+  it('returns false when the only matching entry is blocked by an exclusive layer', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a', level: 0 }));
+    r.activateLayer('L', 1, true);
+    expect(r.hasCandidates('g')).toBe(false);
+    expect(r.getActiveCandidates('g').length).toBe(0);
+  });
+});

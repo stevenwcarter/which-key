@@ -137,6 +137,19 @@ export class ShortcutRegistry {
     return Array.from(seen.values());
   }
 
+  /**
+   * Cheap existence check for `getActiveCandidates(prefix).length > 0`.
+   * Runs on every keystroke, so it allocates nothing and exits on the first hit.
+   */
+  hasCandidates(prefix: string): boolean {
+    const prefixWithSpace = prefix + ' ';
+    for (const [keys, bucket] of this.shortcuts) {
+      if (!keys.startsWith(prefixWithSpace)) continue;
+      if (this.findActive(bucket) !== undefined) return true;
+    }
+    return false;
+  }
+
   private findActive(bucket: ShortcutEntry[]): ShortcutEntry | undefined {
     const block = this.blockLevel();
     let best: ShortcutEntry | undefined;

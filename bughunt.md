@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B6. handleKeyDown builds the full candidate list on every keystroke only to test emptiness, then the controller rebuilds it: `Matcher.handleKeyDown` / `getActiveCandidates` (src/engine/matcher.ts:38)
-- Category: caching
-- Impact: 15 (severity 3 × blast-radius 5)
-- Effort: S
-- Risk: medium
-- Evidence: every keydown calls `registry.getActiveCandidates(prospectiveKeys)`, but the result is only ever consumed as `candidates.length === 0` / `> 0` (matcher.ts:40, 52, 69) — the array itself is discarded. `getActiveCandidates` (registry.ts:115-135) does a full scan of the `shortcuts` Map with `startsWith`, allocates a `seen` Map plus one object per match, calls `findActive` per matching bucket (each a full `layers` scan via `blockLevel`) and `getActiveGroup` per group candidate (another full scan). When the popup is already visible, matcher.ts:75 calls `onShowPopup`, whose `emit` runs `computeCandidates` and calls `getActiveCandidates` on the **same prefix a second time**, then copies and sorts it — two identical full-Map scans per keystroke for one event. On the common case (typing prose, buffer empty, nothing matches) the scan still runs in full and returns empty.
-- Blast radius: src/engine/matcher.ts:38,40,52,69; src/engine/registry.ts:115; src/engine/controller.ts:94
-- Proposed fix: add `hasCandidates(prefix: string): boolean` to `ShortcutRegistry` that returns true on the first key where `keys.startsWith(prefix + ' ')` and `findActive(bucket)` is defined — no allocation, no group lookups, early exit. Replace the three `candidates.length` checks with it and drop the local binding, so the full list is built exactly once by `computeCandidates` and only when a popup is actually shown.
-- [x] execute   [ ] skip
-
 ### B7. Leader popup uses `role="dialog"` for a non-interactive transient hint, so it is silent to screen readers: `VerticalCorner` / `HorizontalBar` / `renderPopup` (src/react/WhichKeyPopup.tsx:34)
 - Category: frontend
 - Impact: 15 (severity 3 × blast-radius 5)

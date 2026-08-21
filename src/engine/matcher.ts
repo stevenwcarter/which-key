@@ -35,9 +35,9 @@ export class Matcher {
     }
 
     const leaf = this.registry.getActive(prospectiveKeys);
-    const candidates = this.registry.getActiveCandidates(prospectiveKeys);
+    const hasCandidates = this.registry.hasCandidates(prospectiveKeys);
 
-    if (leaf && candidates.length === 0) {
+    if (leaf && !hasCandidates) {
       // Pure leaf — fire immediately, respecting input guard.
       this.clearTimer();
       if (!leaf.enableOnInputs && isInputTarget(event.target)) {
@@ -52,7 +52,7 @@ export class Matcher {
       return;
     }
 
-    if (leaf && candidates.length > 0) {
+    if (leaf && hasCandidates) {
       // Leaf-AND-prefix — commit buffer, start timer to fire leaf if no continuation.
       this.commitBuffer(prospective);
       this.clearTimer();
@@ -72,7 +72,7 @@ export class Matcher {
       return;
     }
 
-    if (!leaf && candidates.length > 0) {
+    if (!leaf && hasCandidates) {
       // Prefix-only — commit buffer, start timer to show popup.
       this.commitBuffer(prospective);
       this.clearTimer();
