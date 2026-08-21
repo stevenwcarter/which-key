@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   eventToCanonical,
   parseKey,
@@ -169,6 +169,33 @@ describe('parseKey', () => {
 
   it('throws on bare Shift', () => {
     expect(() => parseKey('Shift')).toThrow(/missing key/i);
+  });
+});
+
+describe('Shift on punctuation and digits', () => {
+  it('warns that Shift is dropped and names the key it will actually match', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseKey('Shift+/');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('Shift+/');
+    expect(warn.mock.calls[0][0]).toContain('"/"');
+    warn.mockRestore();
+  });
+
+  it('does not warn when the shifted character is written directly', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseKey('?');
+    parseKey('Shift+?');
+    parseKey('Ctrl+s');
+    parseKey('Shift+A');
+    parseKey('Shift+Tab');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('round-trips the documented spelling against a real Shift+/ keypress', () => {
+    const event = new KeyboardEvent('keydown', { key: '?', shiftKey: true });
+    expect(parseKey('?')).toBe(eventToCanonical(event));
   });
 });
 

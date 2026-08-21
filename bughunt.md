@@ -16,16 +16,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## Critical
 
-### B2. `Shift+<punctuation>` bindings canonicalize to the unshifted glyph, so they never fire and hijack the plain key: `parseKey` / `buildCanonical` (src/engine/keys.ts:105)
-- Category: correctness
-- Impact: 20 (severity 5 × blast-radius 4)
-- Effort: M
-- Risk: medium
-- Evidence: empirically confirmed by running keys.ts under node. `buildCanonical` drops the Shift flag for any non-letter, non-special base (keys.ts:43-45) because `eventToCanonical` already receives the shifted glyph in `event.key` — but `parseKey` receives the *unshifted* glyph the author typed. Measured mismatches: `Shift+/`→`/` vs runtime `?`; `Shift+1`→`1` vs `!`; `Shift+;`→`;` vs `:`; `Ctrl+Shift+1`→`Ctrl+1` vs `Ctrl+!`. Two failures at once — the intended chord silently never fires, **and** the binding is now attached to the bare unshifted key, so pressing plain `/` triggers a shortcut registered as `Shift+/`. docs/API.md:360 documents `Shift+/ → ? (on US keyboard layouts)` as working and README.md:81 lists it in the key-string table, so the documented contract is wrong. keys.test.ts:117 pins only `parseKey('Shift+?') === '?'` (already-shifted glyph), which stays valid under any fix.
-- Blast radius: src/engine/keys.ts:38,43,105; src/engine/controller.ts:136; src/react/useShortcut.ts:22; docs/API.md:360; README.md:81
-- Proposed fix: two tiers — (a) minimum, effort S: correct README.md:81, docs/API.md:360 and the keys.ts:37 comment to state that the shifted character is written directly (`?`, which already works), and `console.warn` in `parseKey` when `Shift+` is combined with a printable non-letter base since the Shift is being discarded; (b) full, effort M: map a Shift-modified single-character non-letter base through a US-layout glyph table (`1`→`!`, `/`→`?`, `;`→`:`, …) and clear the shift flag — idempotent for already-shifted input. Note (b) hardcodes a US layout, so (a) is the safe surgical baseline.
-- [x] execute   [ ] skip
-
 ### B3. Cheatsheet claims `role="dialog"` but never traps, moves, or restores focus and never hides the background from AT: `ShortcutCheatsheet` / `renderCheatsheet` (src/react/ShortcutCheatsheet.tsx:31)
 - Category: frontend
 - Impact: 20 (severity 4 × blast-radius 5)

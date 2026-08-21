@@ -78,7 +78,7 @@ Shortcuts are strings of one or more space-separated keys:
 | `g h`     | Leader sequence: press `g`, then `h`       |
 | `Ctrl+s`  | `Control` + `s`                            |
 | `Alt+x`   | `Alt` (or `Option` on macOS) + `x`        |
-| `Shift+/` | `Shift` + `/`                              |
+| `?`       | The shifted character itself — write `?`, not `Shift+/` |
 | `Cmd+k`   | `Command` (macOS) + `k`                   |
 | `Mod+s`   | `Cmd` on macOS, `Ctrl` elsewhere           |
 

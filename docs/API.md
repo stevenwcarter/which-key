@@ -357,7 +357,7 @@ s              →  plain s
 g n            →  leader sequence: g then n
 Ctrl+s         →  Control+s
 Mod+k g        →  (Cmd/Ctrl)+k, then g
-Shift+/        →  ?  (on US keyboard layouts)
+?              →  ?  (write the shifted character directly, not "Shift+/")
 ```
 
 ---
