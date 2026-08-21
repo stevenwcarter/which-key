@@ -78,7 +78,9 @@ const buildCheatsheetModel = (
 };
 
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
-  const { timeoutMs = 500, helpKey = '?', sortKeys, target = document } = options;
+  const { timeoutMs = 500, helpKey = '?', sortKeys } = options;
+  const explicitTarget = options.target;
+  let bound: Document | HTMLElement | null = null;
   const registry = new ShortcutRegistry();
   const cmp = resolveSort(sortKeys);
   const listeners = new Set<(snapshot: WhichKeySnapshot) => void>();
@@ -203,13 +205,17 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     start() {
       if (started) return;
+      const resolved = explicitTarget ?? (typeof document !== 'undefined' ? document : null);
+      if (resolved === null) return;
       started = true;
-      target.addEventListener('keydown', handler);
+      bound = resolved;
+      bound.addEventListener('keydown', handler);
     },
     stop() {
       if (!started) return;
       started = false;
-      target.removeEventListener('keydown', handler);
+      bound?.removeEventListener('keydown', handler);
+      bound = null;
       matcher.cancel();
     },
     subscribe(listener) {

@@ -16,16 +16,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## Critical
 
-### B1. createWhichKey dereferences bare `document` at call time, crashing every SSR consumer: `createWhichKey` (src/engine/controller.ts:81)
-- Category: correctness
-- Impact: 25 (severity 5 × blast-radius 5)
-- Effort: S
-- Risk: high
-- Evidence: `const { ..., target = document } = options;` evaluates the `document` global whenever `options.target` is undefined. `WhichKeyProvider` calls `createWhichKey({timeoutMs, helpKey, sortKeys})` in its **render body** (WhichKeyProvider.tsx:17), which runs on the server. Three lenses independently confirmed this empirically against the built bundle in plain Node: `renderToString(<WhichKeyProvider><WhichKeyPopup/></WhichKeyProvider>)` throws `ReferenceError: document is not defined`. README.md:25 and docs/API.md:225 both promise SSR support ("render nothing during server rendering (Next.js, Remix, etc.) and activate after hydration"). The leaf components are genuinely SSR-safe — `getServerSnapshot` is correctly supplied in useWhichKeyState.ts:18 and ShortcutCheatsheet.tsx:14 — but the Provider they require crashes first, so any Next.js/Remix app following the documented React quick-start 500s on every page. No test renders the provider outside jsdom.
-- Blast radius: src/engine/controller.ts:81,207,212; src/react/WhichKeyProvider.tsx:17; README.md:25; docs/API.md:225
-- Proposed fix: stop resolving `target` eagerly. Keep `const explicitTarget = options.target;` and resolve lazily inside `start()`: `bound = explicitTarget ?? (typeof document !== 'undefined' ? document : null);` then `bound?.addEventListener(...)`; mirror in `stop()` and no-op when null. `start()` only ever runs from the Provider's `useEffect`, which does not execute on the server. Add a `renderToString` smoke test to lock it in.
-- [x] execute   [ ] skip
-
 ### B2. `Shift+<punctuation>` bindings canonicalize to the unshifted glyph, so they never fire and hijack the plain key: `parseKey` / `buildCanonical` (src/engine/keys.ts:105)
 - Category: correctness
 - Impact: 20 (severity 5 × blast-radius 4)
