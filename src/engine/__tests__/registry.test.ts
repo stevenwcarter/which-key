@@ -359,4 +359,22 @@ describe('collision warning precision', () => {
     expect(msg).toContain('Winner');
     warn.mockRestore();
   });
+
+  // This fixture (lower priority registered first, higher priority second)
+  // is deliberately chosen so the pre-insertion "top" and the post-insertion
+  // winner are two different entries. A regression that computed the winner
+  // before the splice (the pre-task behavior) would name the incumbent
+  // ("Incumbent") as the sole party and never mention "Override" at all, so
+  // this asserts the winner-then-"wins over"-then-loser shape specifically,
+  // not just substring presence.
+  it('names the true post-insertion winner even when it differs from the pre-insertion incumbent', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', priority: 0, description: 'Incumbent' }));
+    r.register(entry({ id: '2', keys: 'x', priority: 5, description: 'Override' }));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const msg = String(warn.mock.calls[0][0]);
+    expect(msg).toMatch(/"Override".*wins over.*"Incumbent"/);
+    warn.mockRestore();
+  });
 });
