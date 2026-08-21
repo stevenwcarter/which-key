@@ -13,6 +13,11 @@ export class Matcher {
   private buffer: string[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private popupVisible = false;
+  // Once any keystroke in the current buffer was typed into a text field,
+  // the popup must stay suppressed for the rest of this buffer — even after
+  // focus moves outside the field — so a later outside-field keystroke never
+  // flushes the buffered field characters to the display.
+  private bufferTouchedInput = false;
 
   constructor(
     private readonly registry: ShortcutRegistry,
@@ -87,7 +92,12 @@ export class Matcher {
       // the characters themselves would be rendered on screen. The buffer
       // commit above still stands, so a deeper enableOnInputs:true leaf can
       // still complete and fire — only the popup's display is suppressed.
-      if (isInputTarget(eventTarget)) return;
+      // Latch this per-buffer (not just per-event): once a field keystroke
+      // has been buffered, keep suppressing display even after focus moves
+      // outside, so a later outside-field key never flushes the buffered
+      // field characters to the popup.
+      if (isInputTarget(eventTarget)) this.bufferTouchedInput = true;
+      if (this.bufferTouchedInput) return;
       if (this.popupVisible) {
         // Already visible — refresh immediately as the buffer changed.
         this.options.onShowPopup({ currentSequence: [...this.buffer] });
@@ -116,6 +126,7 @@ export class Matcher {
     this.buffer = [];
     this.clearTimer();
     this.popupVisible = false;
+    this.bufferTouchedInput = false;
     this.options.onHidePopup();
   }
 

@@ -238,6 +238,60 @@ describe('createWhichKey', () => {
       wk.stop();
       input.remove();
     });
+
+    it('does not leak a keystroke typed into a field once the sequence continues outside it', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h i j', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      press('g');
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual(['g']);
+
+      // 'h' is typed into the password field — buffered, but must never be displayed.
+      press('h', input);
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('h');
+
+      // The sequence continues OUTSIDE the field. The buffer now holds
+      // ['g','h','i'], but this buffer was touched by an in-field keystroke,
+      // so the popup must stay suppressed for the rest of it — 'h' (and the
+      // buffer containing it) must never reach the display.
+      press('i');
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('h');
+
+      wk.stop();
+      input.remove();
+    });
+
+    it('clears the field-touched flag on reset so a later outside-only sequence still displays', () => {
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      // First sequence touches the field, then aborts on an unmatched key —
+      // this resets the buffer (and must clear the field-touched flag with it).
+      press('g', input);
+      press('z');
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      // A second, wholly-outside sequence must display normally — the flag
+      // must not leak across a reset and over-suppress an unrelated sequence.
+      press('g');
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual(['g']);
+
+      wk.stop();
+      input.remove();
+    });
   });
 });
 
