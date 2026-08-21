@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B11. parseKey rejects lowercase modifiers although both README and API.md promise case-insensitivity: `parseKey` / `KNOWN_MODIFIERS` (src/engine/keys.ts:65)
-- Category: correctness
-- Impact: 12 (severity 4 × blast-radius 3)
-- Effort: S
-- Risk: medium
-- Evidence: empirically confirmed — `parseKey('ctrl+s')`, `'CTRL+s'`, `'shift+a'`, `'alt+x'`, `'cmd+k'`, `'mod+k'` all throw `whichkey: unknown modifier "..."`; only exact `Ctrl`/`Alt`/`Shift`/`Cmd`/`Mod` are accepted, because `KNOWN_MODIFIERS` is a case-sensitive `Set` and the switch matches exact strings. README.md:85 states "Modifiers are case-insensitive and can be combined" and docs/API.md:351 repeats "Modifier names are case-insensitive." The throw is not a soft failure: it propagates out of `engine.register` / `useShortcut`'s effect (useShortcut.ts:22) and out of `createWhichKey` when `helpKey` is e.g. `'ctrl+/'`, tearing down the consumer's React tree at the nearest error boundary. keys.ts:90-91 and 96-97 (the Alt and Cmd switch arms) are uncovered.
-- Blast radius: src/engine/keys.ts:65,73,82,85; src/engine/controller.ts:136; src/react/useShortcut.ts:22; README.md:85; docs/API.md:351
-- Proposed fix: normalize before lookup — `const MODIFIER_ALIASES = new Map([['ctrl','Ctrl'],['control','Ctrl'],['alt','Alt'],['option','Alt'],['shift','Shift'],['cmd','Cmd'],['meta','Cmd'],['command','Cmd'],['mod','Mod']])`, then `const mod = MODIFIER_ALIASES.get(seg.toLowerCase()); if (!mod) throw ...`. Apply the same lowercase lookup to the bare-modifier check at keys.ts:73. Strictly widens accepted input; keys.test.ts:155 (`parseKey('Hyper+K')` throws) still passes.
-- [x] execute   [ ] skip
-
 ### B12. Package `exports` never points at the emitted `.d.cts` files, breaking types for node16 CJS consumers: `exports` (package.json:32)
 - Category: api-surface
 - Impact: 12 (severity 4 × blast-radius 3)

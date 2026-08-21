@@ -252,3 +252,36 @@ describe('isInputTarget', () => {
     expect(isInputTarget(null)).toBe(false);
   });
 });
+
+describe('modifier case-insensitivity', () => {
+  it('accepts every documented modifier in any case', () => {
+    expect(parseKey('ctrl+s')).toBe('Ctrl+S');
+    expect(parseKey('CTRL+s')).toBe('Ctrl+S');
+    expect(parseKey('Ctrl+s')).toBe('Ctrl+S');
+    expect(parseKey('alt+x')).toBe('Alt+X');
+    expect(parseKey('shift+Tab')).toBe('Shift+Tab');
+    expect(parseKey('cmd+k')).toBe('Cmd+K');
+  });
+
+  it('accepts the common spelled-out aliases', () => {
+    expect(parseKey('control+s')).toBe('Ctrl+S');
+    expect(parseKey('option+x')).toBe('Alt+X');
+    expect(parseKey('meta+k')).toBe('Cmd+K');
+    expect(parseKey('command+k')).toBe('Cmd+K');
+  });
+
+  it('round-trips a lowercase modifier against a real keypress', () => {
+    const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true });
+    expect(parseKey('ctrl+s')).toBe(eventToCanonical(event));
+  });
+
+  it('still rejects a genuinely unknown modifier', () => {
+    expect(() => parseKey('Hyper+K')).toThrow(/unknown modifier/);
+    expect(() => parseKey('hyper+K')).toThrow(/unknown modifier/);
+  });
+
+  it('still rejects a bare modifier with no key', () => {
+    expect(() => parseKey('ctrl+')).toThrow();
+    expect(() => parseKey('ctrl')).toThrow();
+  });
+});

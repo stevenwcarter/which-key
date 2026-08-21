@@ -63,7 +63,13 @@ export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
 export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
 
-const KNOWN_MODIFIERS = new Set(['Ctrl', 'Alt', 'Shift', 'Cmd', 'Mod']);
+const MODIFIER_ALIASES = new Map<string, string>([
+  ['ctrl', 'Ctrl'], ['control', 'Ctrl'],
+  ['alt', 'Alt'], ['option', 'Alt'],
+  ['shift', 'Shift'],
+  ['cmd', 'Cmd'], ['meta', 'Cmd'], ['command', 'Cmd'],
+  ['mod', 'Mod'],
+]);
 
 // US-layout characters that a Shift press turns into something else. Used only
 // to decide whether to warn — never to rewrite the key, which would guess wrong
@@ -79,7 +85,7 @@ export const parseKey = (input: string): CanonicalKey => {
   }
   const segments = input.split('+');
   const baseRaw = segments.pop() as string;
-  if (baseRaw === '' || KNOWN_MODIFIERS.has(baseRaw)) {
+  if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
     throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
   }
   let ctrl = false;
@@ -88,10 +94,11 @@ export const parseKey = (input: string): CanonicalKey => {
   let meta = false;
 
   for (const seg of segments) {
-    if (!KNOWN_MODIFIERS.has(seg)) {
+    const mod = MODIFIER_ALIASES.get(seg.toLowerCase());
+    if (mod === undefined) {
       throw new Error(`whichkey: unknown modifier "${seg}" in "${input}"`);
     }
-    switch (seg) {
+    switch (mod) {
       case 'Ctrl':
         ctrl = true;
         break;
