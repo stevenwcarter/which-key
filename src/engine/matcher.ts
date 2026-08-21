@@ -21,6 +21,13 @@ export class Matcher {
 
   handleKeyDown(event: KeyboardEvent): void {
     if (isModifierOnlyEvent(event)) return;
+
+    // An event crossing an open shadow boundary is retargeted to the host, so
+    // `event.target` would hide the real <input>. composedPath()[0] is the
+    // un-retargeted origin, and equals event.target outside shadow DOM.
+    const eventTarget =
+      typeof event.composedPath === 'function' ? (event.composedPath()[0] ?? event.target) : event.target;
+
     const key = eventToCanonical(event);
     const prospective = [...this.buffer, key];
     const prospectiveKeys = prospective.join(' ');
@@ -40,7 +47,7 @@ export class Matcher {
     if (leaf && !hasCandidates) {
       // Pure leaf — fire immediately, respecting input guard.
       this.clearTimer();
-      if (!leaf.enableOnInputs && isInputTarget(event.target)) {
+      if (!leaf.enableOnInputs && isInputTarget(eventTarget)) {
         this.resetBuffer();
         return;
       }
@@ -56,7 +63,7 @@ export class Matcher {
       // Leaf-AND-prefix — commit buffer, start timer to fire leaf if no continuation.
       this.commitBuffer(prospective);
       this.clearTimer();
-      const fireTarget = event.target;
+      const fireTarget = eventTarget;
       this.timer = setTimeout(() => {
         if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
           this.resetBuffer();

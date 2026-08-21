@@ -38,16 +38,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 - Proposed fix: capture `const inInput = isInputTarget(event.target)` at the top of `handleKeyDown` and wrap the popup show/refresh block (matcher.ts:73-81) in `if (!inInput) { ... }`. Leave `commitBuffer` on line 71 unchanged so a deeper leaf with `enableOnInputs: true` can still complete and fire — only the visual rendering of buffered keys is gated.
 - [x] execute   [ ] skip
 
-### B10. Input guard bypassed for shadow-DOM fields because `event.target` is retargeted to the host: `Matcher.handleKeyDown` (src/engine/matcher.ts:43)
-- Category: security
-- Impact: 12 (severity 4 × blast-radius 3)
-- Effort: S
-- Risk: high
-- Evidence: both input guards use the raw `event.target` (matcher.ts:43 and the captured `fireTarget` at :56), and `isInputTarget` (keys.ts:125-136) only accepts INPUT/TEXTAREA/contenteditable. Per the DOM spec an event crossing an open shadow boundary is retargeted, so a listener on `document` sees `event.target` as the shadow **host**, not the inner `<input>`. For any web-component field — Lit/Shoelace/Ionic/LWC login forms wrapping `<input type="password">` in a shadow root — `isInputTarget` returns false and the shortcut fires. Concrete path: an app registers a single-letter destructive shortcut (`d` = delete, `x` = archive) with the default `enableOnInputs:false`; the user types a password containing `d` into a shadow-DOM field and the handler runs. No test constructs a shadow root, and matcher.ts:58-61 is entirely uncovered.
-- Blast radius: src/engine/matcher.ts:43,56,58; src/engine/keys.ts:125; src/engine/index.ts:2; src/engine/controller.ts:148,207
-- Proposed fix: resolve the true origin at the two call sites without touching the publicly-exported `isInputTarget` signature — add `const eventTarget = typeof event.composedPath === 'function' ? (event.composedPath()[0] ?? event.target) : event.target;` at the top of `handleKeyDown`, then use it at line 43 and for `fireTarget` at line 56. `composedPath()[0]` is the un-retargeted origin for open shadow roots and equals `event.target` otherwise, so non-shadow behavior is byte-identical.
-- [x] execute   [ ] skip
-
 ### B11. parseKey rejects lowercase modifiers although both README and API.md promise case-insensitivity: `parseKey` / `KNOWN_MODIFIERS` (src/engine/keys.ts:65)
 - Category: correctness
 - Impact: 12 (severity 4 × blast-radius 3)
