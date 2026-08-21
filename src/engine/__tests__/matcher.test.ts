@@ -107,6 +107,44 @@ describe('Matcher — input guard', () => {
   });
 });
 
+describe('shadow DOM input guard', () => {
+  it('suppresses a shortcut typed into an input inside an open shadow root', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = host.attachShadow({ mode: 'open' });
+    const input = document.createElement('input');
+    input.type = 'password';
+    root.appendChild(input);
+
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire });
+    registry.register(entry({ keys: 'd', enableOnInputs: false }));
+
+    const event = new KeyboardEvent('keydown', { key: 'd', composed: true, bubbles: true });
+    Object.defineProperty(event, 'target', { value: host });
+    Object.defineProperty(event, 'composedPath', { value: () => [input, root, host, document] });
+    matcher.handleKeyDown(event);
+
+    expect(onFire).not.toHaveBeenCalled();
+    host.remove();
+  });
+
+  it('is unchanged for ordinary light-DOM targets', () => {
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire });
+    registry.register(entry({ keys: 'd', enableOnInputs: false }));
+
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    const event = new KeyboardEvent('keydown', { key: 'd' });
+    Object.defineProperty(event, 'target', { value: div });
+    matcher.handleKeyDown(event);
+
+    expect(onFire).toHaveBeenCalledTimes(1);
+    div.remove();
+  });
+});
+
 describe('Matcher — sequences', () => {
   beforeEach(() => {
     vi.useFakeTimers();
