@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B8. Duplicate-registration warning fires on the documented layer-override pattern and misstates which entry wins: `ShortcutRegistry.register` (src/engine/registry.ts:36)
-- Category: observability
-- Impact: 12 (severity 3 × blast-radius 4)
-- Effort: M
-- Risk: medium
-- Evidence: the warn fires on the single condition `bucket.length > 0`, regardless of level, priority, `enabled`, or exclusivity — which is precisely the mechanism README.md:125-215 documents for layers. Running the README's own modal example (page `register('Escape', …, {description:'page escape'})`, then `pushLayer({exclusive:true})`, then `layer.register('Escape', …)`) prints `Existing top: "(no description)"` — both halves wrong: the level-0 entry is blocked by the exclusive layer so nothing is active, and its description is `page escape`, not `(no description)`. The claim `new registration takes precedence until unmount` is also false whenever the existing entry has higher priority or level; registry.test.ts:68-74 exercises exactly that case. Under React StrictMode the double-mounted effects warn twice per mount. Net effect: developers learn `[whichkey]` means nothing and mute it — exactly when a genuine collision would go unnoticed. **Contractual test change:** registry.test.ts:77-85 asserts the current substring and description, and :87-90 asserts no warn on first registration.
-- Blast radius: src/engine/registry.ts:35,36,37,38,39,140; src/engine/controller.ts:135,165; src/engine/__tests__/registry.test.ts:77,87; README.md:125,191
-- Proposed fix: guard on the actual active entry rather than bucket length — insert first, then call `findActive(bucket)` and warn only when the new entry is not the winner **and** the pre-existing winner is at the same `level` (a true accidental collision, not a layer override). Rewrite the message to state the real outcome with both levels/priorities and the offending key. Skip entirely when levels differ or `findActive` returns undefined.
-- [x] execute   [ ] skip
-
 ### B11. parseKey rejects lowercase modifiers although both README and API.md promise case-insensitivity: `parseKey` / `KNOWN_MODIFIERS` (src/engine/keys.ts:65)
 - Category: correctness
 - Impact: 12 (severity 4 × blast-radius 3)

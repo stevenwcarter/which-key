@@ -79,7 +79,7 @@ describe('ShortcutRegistry — register/unregister/getActive', () => {
     r.register(entry({ id: 'a', description: 'Focus Notes' }));
     r.register(entry({ id: 'b', description: 'Other' }));
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('Shortcut "g n" registered while another is active'),
+      expect.stringContaining('Shortcut "g n" has a same-level collision'),
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Focus Notes'));
   });
@@ -325,5 +325,38 @@ describe('hasCandidates', () => {
     r.activateLayer('L', 1, true);
     expect(r.hasCandidates('g')).toBe(false);
     expect(r.getActiveCandidates('g').length).toBe(0);
+  });
+});
+
+describe('collision warning precision', () => {
+  it('stays silent when an exclusive layer makes the existing entry unreachable', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'Escape', level: 0, description: 'page escape' }));
+    r.activateLayer('L', 1, true);
+    r.register(entry({ id: '2', keys: 'Escape', level: 1, description: 'Close' }));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('stays silent when the only existing entry is disabled', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', enabled: false }));
+    r.register(entry({ id: '2', keys: 'x' }));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('warns and names the real winner on a same-level collision', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', priority: 5, description: 'Winner' }));
+    r.register(entry({ id: '2', keys: 'x', priority: 0, description: 'Loser' }));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const msg = String(warn.mock.calls[0][0]);
+    expect(msg).toContain('"x"');
+    expect(msg).toContain('Winner');
+    warn.mockRestore();
   });
 });
