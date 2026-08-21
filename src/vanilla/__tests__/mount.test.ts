@@ -182,4 +182,20 @@ describe('mountWhichKey', () => {
     wk.stop();
     trigger.remove();
   });
+
+  it('renders the popup as a polite live region in the vanilla renderer', () => {
+    const wk = createWhichKey();
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    const popup = document.querySelector('.wk-popup') as HTMLElement;
+    expect(popup.getAttribute('role')).toBe('status');
+    expect(popup.getAttribute('aria-live')).toBe('polite');
+    expect(popup.getAttribute('aria-atomic')).toBe('true');
+    ui.unmount();
+    wk.stop();
+  });
 });

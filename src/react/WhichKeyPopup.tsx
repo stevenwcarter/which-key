@@ -31,7 +31,7 @@ const CandidateRow = ({ c }: { c: WhichKeyCandidate }) => (
 
 const VerticalCorner = ({ state, bg }: { state: WhichKeyState; bg: string }) => (
   <div data-testid="whichkey-popup" data-layout="vertical" className="wk-popup wk-popup--vertical"
-       style={{ backgroundColor: bg }} role="dialog" aria-label="Keyboard shortcuts">
+       style={{ backgroundColor: bg }} role="status" aria-live="polite" aria-atomic="true" aria-label="Keyboard shortcuts">
     <div className="wk-popup__header"><Sequence sequence={state.currentSequence} /></div>
     <ul className="wk-popup__list">
       {state.candidates.map((c) => <li key={c.keys}><CandidateRow c={c} /></li>)}
@@ -41,7 +41,7 @@ const VerticalCorner = ({ state, bg }: { state: WhichKeyState; bg: string }) => 
 
 const HorizontalBar = ({ state, bg, rows }: { state: WhichKeyState; bg: string; rows: number }) => (
   <div data-testid="whichkey-popup" data-layout="horizontal" className="wk-popup wk-popup--horizontal"
-       style={{ backgroundColor: bg }} role="dialog" aria-label="Keyboard shortcuts">
+       style={{ backgroundColor: bg }} role="status" aria-live="polite" aria-atomic="true" aria-label="Keyboard shortcuts">
     <div className="wk-popup__body">
       <Sequence sequence={state.currentSequence} />
       <div data-testid="whichkey-popup-grid" className="wk-popup__grid"

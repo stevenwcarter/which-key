@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B7. Leader popup uses `role="dialog"` for a non-interactive transient hint, so it is silent to screen readers: `VerticalCorner` / `HorizontalBar` / `renderPopup` (src/react/WhichKeyPopup.tsx:34)
-- Category: frontend
-- Impact: 15 (severity 3 × blast-radius 5)
-- Effort: S
-- Risk: medium
-- Evidence: the popup is tagged `role="dialog" aria-label="Keyboard shortcuts"` at all three sites (WhichKeyPopup.tsx:34, :44, vanilla/popup.ts:46-47). It is a transient hint: no focusable children, focus is never moved into it, it traps nothing, and it is dismissed by sequence timing rather than any dialog convention. Per the ARIA APG a `dialog` requires focus to be placed inside on open; because focus never moves, screen readers announce nothing at all — so the candidate list, the entire point of the popup, is invisible to AT users while the bogus role pollutes the AT dialog list.
-- Blast radius: src/react/WhichKeyPopup.tsx:34,44; src/vanilla/popup.ts:46,47
-- Proposed fix: replace with `role="status" aria-live="polite" aria-atomic="true" aria-label="Keyboard shortcuts"` at all three sites — a three-line change, identical in both renderers. Fix B18 (vanilla rebuild churn) first or the live region will re-announce on every keystroke.
-- [x] execute   [ ] skip
-
 ### B8. Duplicate-registration warning fires on the documented layer-override pattern and misstates which entry wins: `ShortcutRegistry.register` (src/engine/registry.ts:36)
 - Category: observability
 - Impact: 12 (severity 3 × blast-radius 4)
