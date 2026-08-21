@@ -114,6 +114,47 @@ describe('createWhichKey', () => {
     expect(wk.getCheatsheetModel().groups[0].description).toBeUndefined();
   });
 
+  describe('handler exceptions', () => {
+    it('resets sequence state when an immediate leaf handler throws', () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wk = createWhichKey();
+      const ok = vi.fn();
+      wk.register('x', () => { throw new Error('boom'); }, { description: 'Boom' });
+      wk.register('y', ok, { description: 'Fine' });
+      wk.start();
+
+      expect(() => press('x')).not.toThrow();
+      press('y');
+
+      expect(ok).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      expect(err).toHaveBeenCalled();
+      expect(String(err.mock.calls[0][0])).toContain('[whichkey]');
+      wk.stop();
+      err.mockRestore();
+    });
+
+    it('resets sequence state when a deferred leaf-and-prefix handler throws', () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wk = createWhichKey({ timeoutMs: 50 });
+      const ok = vi.fn();
+      wk.register('g', () => { throw new Error('boom'); }, { description: 'Leaf' });
+      wk.register('g h', vi.fn(), { description: 'Deeper' });
+      wk.register('y', ok, { description: 'Fine' });
+      wk.start();
+
+      press('g');
+      expect(() => vi.advanceTimersByTime(60)).not.toThrow();
+      press('y');
+
+      expect(ok).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      expect(err).toHaveBeenCalled();
+      wk.stop();
+      err.mockRestore();
+    });
+  });
 });
 
 describe('controller layers', () => {
