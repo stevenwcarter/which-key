@@ -16,16 +16,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## Critical
 
-### B3. Cheatsheet claims `role="dialog"` but never traps, moves, or restores focus and never hides the background from AT: `ShortcutCheatsheet` / `renderCheatsheet` (src/react/ShortcutCheatsheet.tsx:31)
-- Category: frontend
-- Impact: 20 (severity 4 × blast-radius 5)
-- Effort: M
-- Risk: high
-- Evidence: both renderers set only `role="dialog"` + `aria-label` (ShortcutCheatsheet.tsx:31, vanilla/cheatsheet.ts:31-32). There is no `aria-modal`, no `tabIndex={-1}`, no `.focus()` call, no focus trap, no focus restoration on close, and no `inert`/`aria-hidden` on the host app — grep for `aria-modal|tabindex|inert|focus\(` over src/ returns nothing. For a screen-reader user pressing `?`: focus stays where it was, so the dialog is never announced and its content is unreachable. For a keyboard user: Tab walks through host-app controls hidden behind the `.wk-backdrop` full-screen overlay (styles.css:40), so focus goes invisible. The panel has zero interactive children — no close button — so the only affordances are a mouse-only backdrop click and Escape. No test asserts any role/aria attribute in either renderer.
-- Blast radius: src/react/ShortcutCheatsheet.tsx:20,29,31,32; src/vanilla/cheatsheet.ts:26,31,36; src/vanilla/mount.ts:38,43; src/styles.css:39
-- Proposed fix: in both renderers add `aria-modal="true"`, `tabIndex={-1}`, and `aria-labelledby` pointing at the existing `<h2 class="wk-cheatsheet__title">` (give it an id), plus a keyboard-reachable close button as the first child. On open capture `document.activeElement` and focus the panel; on close restore focus to it. Add a Tab keydown handler cycling focus among focusable descendants. React: inside the existing `visible`-guarded `useEffect`; vanilla: in `renderCheatsheet`, returning a teardown that mount.ts invokes on removal.
-- [x] execute   [ ] skip
-
 ## High
 
 ### B4. Consumer handler exceptions escape unwrapped and wedge the matcher's buffer with no diagnostic: `onFire` / `Matcher.handleKeyDown` (src/engine/controller.ts:117)
