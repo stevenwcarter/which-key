@@ -1,0 +1,9 @@
+# Prettier reads .gitignore and this file, but NOT .git/info/exclude — so
+# anything excluded there must be repeated here or `prettier --check .`
+# reports it. The SDD scratch workspace lives under .git/info/exclude.
+.superpowers/
+
+# Generated output. Already in .gitignore, listed again so this file is a
+# complete picture of what Prettier skips.
+dist/
+coverage/
