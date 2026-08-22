@@ -101,13 +101,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Both files declare the same `({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>`. Move it to a module-private `src/react/Kbd.tsx` and import from both; do not add it to src/react/index.ts — keeping it unexported avoids a public-API change and puts the `wk-kbd` string at exactly one place on the React side, which src/**tests**/class-contract.test.tsx already polices.
 - [x] execute [ ] skip
 
-### T33. User-visible copy both renderers must keep identical, inlined at nine sites (src/vanilla/cheatsheet.ts:18)
-
-- Lenses: duplication, idioms
-- Risk: medium
-- Proposed fix: Sites: `'(no description)'` at src/vanilla/cheatsheet.ts:18 and src/react/ShortcutCheatsheet.tsx:141,158; `'Keyboard shortcuts'` at src/vanilla/cheatsheet.ts:53, src/vanilla/popup.ts:57, src/react/WhichKeyPopup.tsx:48,81, src/react/ShortcutCheatsheet.tsx:133; `'Press Escape to close.'` at src/vanilla/cheatsheet.ts:88 and src/react/ShortcutCheatsheet.tsx:165. The `wk-*` class contract has a parity test (src/**tests**/class-contract.test.tsx); this parallel string contract has none, so the renderers can drift silently. Add a module-private `src/shared/strings.ts` (not re-exported) with `NO_DESCRIPTION`, `SHORTCUTS_LABEL` and `CHEATSHEET_HINT`. **Caveat 1:** leave registry.ts:79-80's `'(no description)'` alone — that one is warning text, a different contract. **Caveat 2:** the related `candidateLabel` half — src/vanilla/popup.ts:23 (`${c.isGroup ? '+' : ''}${c.description ?? c.keys}`) vs src/react/WhichKeyPopup.tsx:28-29 (the same expression as two adjacent JSX children) — is genuinely shared model logic and could move to the same module as `candidateLabel(c: WhichKeyCandidate): string`, but React currently emits `'+'` and the description as two adjacent text nodes, so collapsing them to one string changes SSR markup (React drops the `<!-- -->` separator) even though `textContent` is unchanged. Check src/react/**tests**/ssr.test.tsx and src/**tests**/class-contract.test.tsx before applying that half, or apply only the constants.
-- [x] execute [ ] skip
-
 ### T34. Shared preamble followed by two large inline layout branches: `renderPopup` (src/vanilla/popup.ts:40-84, 45 lines)
 
 - Lenses: long-methods

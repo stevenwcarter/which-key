@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useWhichKeyState } from './useWhichKeyState';
 import type { WhichKeyCandidate, WhichKeyState } from '../engine';
 import { clamp01, clampRows, DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
+import { SHORTCUTS_LABEL } from '../shared/strings';
 
 /** Popup placement: a corner panel (`'vertical'`) or a bottom bar (`'horizontal'`). */
 export type WhichKeyPopupLayout = 'vertical' | 'horizontal';
@@ -57,7 +58,7 @@ const VerticalCorner = ({ state, bgOpacity }: { state: WhichKeyState; bgOpacity:
     role="status"
     aria-live="polite"
     aria-atomic="true"
-    aria-label="Keyboard shortcuts"
+    aria-label={SHORTCUTS_LABEL}
   >
     <div className="wk-popup__header">
       <Sequence sequence={state.currentSequence} />
@@ -90,7 +91,7 @@ const HorizontalBar = ({
     role="status"
     aria-live="polite"
     aria-atomic="true"
-    aria-label="Keyboard shortcuts"
+    aria-label={SHORTCUTS_LABEL}
   >
     <div className="wk-popup__body">
       <Sequence sequence={state.currentSequence} />

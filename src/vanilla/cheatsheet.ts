@@ -1,5 +1,6 @@
 import type { CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
+import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
 
 const kbd = (p: string, text: string): HTMLElement => {
   const el = document.createElement('kbd');
@@ -13,7 +14,7 @@ const item = (p: string, keys: string, description: string | undefined): HTMLEle
   li.className = `${p}-cheatsheet__item`;
   li.appendChild(kbd(p, keys));
   const span = document.createElement('span');
-  span.textContent = description ?? '(no description)';
+  span.textContent = description ?? NO_DESCRIPTION;
   li.appendChild(span);
   return li;
 };
@@ -48,7 +49,7 @@ export const renderCheatsheet = (
   const title = document.createElement('h2');
   title.className = `${p}-cheatsheet__title`;
   title.id = CHEATSHEET_TITLE_ID;
-  title.textContent = 'Keyboard shortcuts';
+  title.textContent = SHORTCUTS_LABEL;
   panel.appendChild(title);
 
   const sections = document.createElement('div');
@@ -83,7 +84,7 @@ export const renderCheatsheet = (
   panel.appendChild(sections);
   const hint = document.createElement('div');
   hint.className = `${p}-cheatsheet__hint`;
-  hint.textContent = 'Press Escape to close.';
+  hint.textContent = CHEATSHEET_HINT;
   panel.appendChild(hint);
   backdrop.appendChild(panel);
 

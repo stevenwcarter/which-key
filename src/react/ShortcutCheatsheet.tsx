@@ -3,6 +3,7 @@ import { WhichKeyContext } from './context';
 import { useEngineSnapshot } from './useEngineSnapshot';
 import type { CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
+import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
@@ -102,7 +103,7 @@ export const ShortcutCheatsheet = () => {
           ×
         </button>
         <h2 id={CHEATSHEET_TITLE_ID} className="wk-cheatsheet__title">
-          Keyboard shortcuts
+          {SHORTCUTS_LABEL}
         </h2>
         <div className="wk-cheatsheet__sections">
           {model.standalone.length > 0 && (
@@ -110,7 +111,7 @@ export const ShortcutCheatsheet = () => {
               {model.standalone.map((e) => (
                 <li key={e.keys} className="wk-cheatsheet__item">
                   <Kbd>{e.keys}</Kbd>
-                  <span>{e.description ?? '(no description)'}</span>
+                  <span>{e.description ?? NO_DESCRIPTION}</span>
                 </li>
               ))}
             </ul>
@@ -127,14 +128,14 @@ export const ShortcutCheatsheet = () => {
                 {g.entries.map((e) => (
                   <li key={e.keys} className="wk-cheatsheet__item">
                     <Kbd>{e.keys}</Kbd>
-                    <span>{e.description ?? '(no description)'}</span>
+                    <span>{e.description ?? NO_DESCRIPTION}</span>
                   </li>
                 ))}
               </ul>
             </section>
           ))}
         </div>
-        <div className="wk-cheatsheet__hint">Press Escape to close.</div>
+        <div className="wk-cheatsheet__hint">{CHEATSHEET_HINT}</div>
       </div>
     </div>
   );

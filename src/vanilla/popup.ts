@@ -1,5 +1,6 @@
 import type { WhichKeyCandidate, WhichKeySnapshot } from '../engine';
 import { clamp01, clampRows } from '../shared/clamp';
+import { SHORTCUTS_LABEL } from '../shared/strings';
 
 /**
  * Fully-resolved popup renderer options. `mountWhichKey` fills in whatever its
@@ -59,7 +60,7 @@ export const renderPopup = (
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('aria-atomic', 'true');
-  el.setAttribute('aria-label', 'Keyboard shortcuts');
+  el.setAttribute('aria-label', SHORTCUTS_LABEL);
   if (opts.layout === 'horizontal') {
     const body = document.createElement('div');
     body.className = `${p}-popup__body`;
