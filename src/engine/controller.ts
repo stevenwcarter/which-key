@@ -3,7 +3,12 @@ import { Matcher } from './matcher';
 import { parseKey, parseSequence } from './keys';
 import { resolveSort } from './sort';
 import type {
-  KeyComparator, ShortcutHandler, ShortcutOptions, ShortcutEntry, WhichKeyCandidate, SortMode,
+  KeyComparator,
+  ShortcutHandler,
+  ShortcutOptions,
+  ShortcutEntry,
+  WhichKeyCandidate,
+  SortMode,
 } from './types';
 
 const DEFAULT_HELP_ID = '__whichkey_default_help__';
@@ -24,7 +29,11 @@ export type WhichKeyOptions = {
 };
 
 export type CheatsheetEntry = { keys: string; description: string | undefined };
-export type CheatsheetGroup = { prefix: string; description: string | undefined; entries: CheatsheetEntry[] };
+export type CheatsheetGroup = {
+  prefix: string;
+  description: string | undefined;
+  entries: CheatsheetEntry[];
+};
 export type CheatsheetModel = { standalone: CheatsheetEntry[]; groups: CheatsheetGroup[] };
 
 export type WhichKeySnapshot = {
@@ -41,7 +50,10 @@ export type LayerHandle = {
 
 export type WhichKeyEngine = {
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
-  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  registerGroup(
+    prefix: string,
+    options: { description: string; priority?: number; level?: number },
+  ): () => void;
   activateLayer(level: number, exclusive: boolean): () => void;
   pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
   start(): void;
@@ -202,7 +214,9 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       // warn. register() runs inside a useEffect in the React binding, where a
       // throw is unrecoverable and unmounts the consumer's whole subtree.
       if (typeof h !== 'function') {
-        console.warn(`[whichkey] handler for "${keys}" is not a function; shortcut not registered.`);
+        console.warn(
+          `[whichkey] handler for "${keys}" is not a function; shortcut not registered.`,
+        );
         return () => {};
       }
       let canonical: string;
@@ -211,7 +225,9 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       } catch (err) {
         const rawMessage = err instanceof Error ? err.message : String(err);
         const message = stripWhichkeyPrefix(rawMessage);
-        console.warn(`[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`);
+        console.warn(
+          `[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`,
+        );
         return () => {};
       }
       const id = `wk_${idCounter++}`;
@@ -239,7 +255,9 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       } catch (err) {
         const rawMessage = err instanceof Error ? err.message : String(err);
         const message = stripWhichkeyPrefix(rawMessage);
-        console.warn(`[whichkey] invalid group prefix "${prefix}": ${message}; group not registered.`);
+        console.warn(
+          `[whichkey] invalid group prefix "${prefix}": ${message}; group not registered.`,
+        );
         return () => {};
       }
       const id = `wkg_${idCounter++}`;
@@ -293,7 +311,10 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       const deactivate = engine.activateLayer(level, opts?.exclusive ?? false);
       const owned = new Set<() => void>();
       const track = (un: () => void): (() => void) => {
-        const wrapped = () => { un(); owned.delete(wrapped); };
+        const wrapped = () => {
+          un();
+          owned.delete(wrapped);
+        };
         owned.add(wrapped);
         return wrapped;
       };
@@ -324,16 +345,24 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     subscribe(listener) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     getSnapshot() {
       return snapshot;
     },
     openCheatsheet() {
-      if (!cheatsheetVisible) { cheatsheetVisible = true; emit(); }
+      if (!cheatsheetVisible) {
+        cheatsheetVisible = true;
+        emit();
+      }
     },
     closeCheatsheet() {
-      if (cheatsheetVisible) { cheatsheetVisible = false; emit(); }
+      if (cheatsheetVisible) {
+        cheatsheetVisible = false;
+        emit();
+      }
     },
     toggleCheatsheet,
     cancel() {

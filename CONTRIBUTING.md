@@ -10,14 +10,14 @@ npm i
 
 ### Useful commands
 
-| Command              | Description                                           |
-|----------------------|-------------------------------------------------------|
-| `npm test`           | Run all tests with Vitest (single run)                |
-| `npm run test:watch` | Re-run tests on file change                           |
-| `npm run build`      | Compile with tsup (dual CJS+ESM, type declarations)   |
-| `npm run typecheck`  | `tsc --noEmit` — catch type errors without building   |
-| `npm run lint`       | ESLint                                                |
-| `npm run format`     | Prettier                                              |
+| Command              | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `npm test`           | Run all tests with Vitest (single run)              |
+| `npm run test:watch` | Re-run tests on file change                         |
+| `npm run build`      | Compile with tsup (dual CJS+ESM, type declarations) |
+| `npm run typecheck`  | `tsc --noEmit` — catch type errors without building |
+| `npm run lint`       | ESLint                                              |
+| `npm run format`     | Prettier                                            |
 
 ### TDD workflow
 

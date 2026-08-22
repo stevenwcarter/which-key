@@ -3,12 +3,16 @@ import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 import type { ShortcutHandler, ShortcutOptions } from '../engine';
 
 export const useShortcut = (
-  keys: string, handler: ShortcutHandler, options?: ShortcutOptions,
+  keys: string,
+  handler: ShortcutHandler,
+  options?: ShortcutOptions,
 ): void => {
   const engine = useContext(WhichKeyContext);
   const { level } = useContext(LayerContext);
   const handlerRef = useRef(handler);
-  useLayoutEffect(() => { handlerRef.current = handler; }, [handler]);
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
   const description = options?.description;
   const enableOnInputs = options?.enableOnInputs ?? false;
   const priority = options?.priority ?? 0;
@@ -20,7 +24,12 @@ export const useShortcut = (
       return;
     }
     return engine.register(keys, (event) => handlerRef.current(event), {
-      description, enableOnInputs, priority, enabled, global, level,
+      description,
+      enableOnInputs,
+      priority,
+      enabled,
+      global,
+      level,
     });
   }, [engine, keys, description, enableOnInputs, priority, enabled, global, level]);
 };

@@ -7,7 +7,10 @@ const press = (key: string) => document.dispatchEvent(new KeyboardEvent('keydown
 
 describe('mountWhichKey', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('renders no popup until a prefix is pending, then renders candidate rows', () => {
     const wk = createWhichKey({ sortKeys: 'alphabetical' });
@@ -224,7 +227,10 @@ describe('mountWhichKey', () => {
 
 describe('mountWhichKey — stable popup host [B18]', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('keeps the popup below the cheatsheet backdrop in DOM order', () => {
     const wk = createWhichKey({ sortKeys: 'alphabetical' });
@@ -233,8 +239,8 @@ describe('mountWhichKey — stable popup host [B18]', () => {
     const ui = mountWhichKey(wk);
     wk.start();
 
-    press('?');                                   // open the cheatsheet
-    press('g');                                   // then start a sequence
+    press('?'); // open the cheatsheet
+    press('g'); // then start a sequence
     vi.advanceTimersByTime(500);
 
     const popup = document.querySelector('.wk-popup')!;
@@ -291,7 +297,10 @@ describe('mountWhichKey — stable popup host [B18]', () => {
 
 describe('mountWhichKey — double-mount guard [B32]', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('warns and renders only one popup host for a repeated mount', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -302,12 +311,14 @@ describe('mountWhichKey — double-mount guard [B32]', () => {
     const second = mountWhichKey(wk);
     wk.start();
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] mountWhichKey called twice'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] mountWhichKey called twice'),
+    );
     press('g');
     vi.advanceTimersByTime(500);
     expect(document.querySelectorAll('[data-testid="whichkey-popup"]')).toHaveLength(1);
 
-    second.unmount();   // the no-op handle must not tear down the live mount
+    second.unmount(); // the no-op handle must not tear down the live mount
     // Reset the pending 'g' buffer before pressing '?'. Per the matcher
     // (src/engine/matcher.ts, final branch — also documented at the
     // ReactFixture comment in class-contract.test.tsx), an unrelated
@@ -349,7 +360,10 @@ describe('mountWhichKey — double-mount guard [B32]', () => {
 
 describe('mountWhichKey — classPrefix validation [B36]', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it.each(['my app', '1x', 'a.b', 'a#b', 'a:b', ''])(
     'warns and falls back to "wk" for %p',
@@ -391,7 +405,10 @@ describe('mountWhichKey — classPrefix validation [B36]', () => {
 
 describe('which-key/vanilla type exports [B25]', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('exposes PopupOptions and WhichKeyMountHandle to consumers', () => {
     const popup: Partial<PopupOptions> = { layout: 'horizontal', maxRows: 3 };

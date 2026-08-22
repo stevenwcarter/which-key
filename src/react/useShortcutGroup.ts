@@ -2,7 +2,8 @@ import { useContext, useEffect } from 'react';
 import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 
 export const useShortcutGroup = (
-  prefix: string, options: { description: string; priority?: number },
+  prefix: string,
+  options: { description: string; priority?: number },
 ): void => {
   const engine = useContext(WhichKeyContext);
   const { level } = useContext(LayerContext);

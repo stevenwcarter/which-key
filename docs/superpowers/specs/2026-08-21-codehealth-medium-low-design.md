@@ -125,15 +125,15 @@ list every warning added by B14/B23/B30/B32/B34/B36).
 
 **Task 1 — B27** (`frontend`, effort S, risk low) — `eslint.config.js`
 Add `eslint-plugin-jsx-a11y` and `eslint-plugin-react-hooks` as devDependencies
-and append their recommended flat configs **scoped to `src/react/**/*.tsx`**.
-Also add `coverage` to the top-level `ignores` array, which clears the two
-baseline `Unused eslint-disable directive` warnings so the rest of the batch runs
+and append their recommended flat configs **scoped to `src/react/**/\*.tsx`**.
+Also add `coverage`to the top-level`ignores`array, which clears the two
+baseline`Unused eslint-disable directive`warnings so the rest of the batch runs
 against a clean gate. B3 and B7 (the a11y defects this plugin would have caught)
 already landed in the B1–B13 batch, so expect few or no new errors — but if the
-plugins do surface violations in `src/react/`, fix them; they are in scope as
-part of making the gate green. Violations inside `src/react/__tests__/` get a
+plugins do surface violations in`src/react/`, fix them; they are in scope as
+part of making the gate green. Violations inside `src/react/**tests**/`get a
 scoped override instead.
-Commit: `chore(lint): add jsx-a11y and react-hooks eslint plugins [B27]`
+Commit:`chore(lint): add jsx-a11y and react-hooks eslint plugins [B27]`
 
 ### Group 2 — engine: matcher
 
@@ -156,7 +156,7 @@ Commit: `fix(correctness): pass the real triggering event to a timed-out leaf-an
 
 **Task 3 — B21** (`correctness`, effort S, risk medium) — `src/engine/matcher.ts`
 The leaf-AND-prefix branch commits the new buffer but never refreshes the popup,
-so during the timeout window the popup shows the *previous* sequence and the
+so during the timeout window the popup shows the _previous_ sequence and the
 previous candidates — advertising keys that will abort the sequence.
 Fix: mirror the prefix-only branch. After `this.commitBuffer(...)` and
 `this.clearTimer()` in the leaf-AND-prefix branch, add
@@ -220,7 +220,7 @@ Fix: add `private blockLevelCache: number | null = null;`, return it when
 non-null, and reset it to `null` in `activateLayer` and `deactivateLayer` — the
 only two mutators of `layers`, so invalidation is exhaustive. Verify by
 inspection that nothing else writes `this.layers`.
-Test: a layer activated *after* a first `getActive` call must still take effect
+Test: a layer activated _after_ a first `getActive` call must still take effect
 (pins that invalidation actually fires).
 Commit: `perf(registry): cache blockLevel and invalidate on layer changes [B19]`
 
@@ -233,13 +233,14 @@ strings, unknown modifiers and dangling `+`. `useShortcut` calls it from inside
 a `useEffect`, so the throw is unrecoverable and unmounts the consumer's whole
 subtree — while the neighbouring missing-provider path merely warns.
 Fix, in `createWhichKey.register`:
+
 - if `typeof h !== 'function'`, `console.warn` and return a no-op unregister;
 - wrap `parseSequence(keys)` in try/catch; on throw
   `console.warn('[whichkey] invalid key string "<keys>": <msg>; shortcut not registered')`
   and return a no-op unregister.
-Purely internal — the declared return type is unchanged, and `LayerHandle.register`
-inherits the fix because it delegates to `engine.register`.
-Commit: `fix(api-surface): soft-fail register() on an invalid key string or non-function handler [B14]`
+  Purely internal — the declared return type is unchanged, and `LayerHandle.register`
+  inherits the fix because it delegates to `engine.register`.
+  Commit: `fix(api-surface): soft-fail register() on an invalid key string or non-function handler [B14]`
 
 **Task 9 — B22** (`api-surface`, effort S, risk medium) —
 `WhichKeyEngine.registerGroup` (`src/engine/controller.ts:180`)
@@ -383,7 +384,7 @@ Commit: `fix(api-surface): make clamp01 and clampRows total over NaN and share o
 `render()` unconditionally does `popupNode?.remove(); popupNode = null;` then
 re-appends a freshly built node on every emit. Because `.wk-popup` and
 `.wk-backdrop` share `z-index: 50`, painting order falls to DOM order — so once
-the cheatsheet is open, the next popup render lands *after* the backdrop and the
+the cheatsheet is open, the next popup render lands _after_ the backdrop and the
 popup paints on top of the full-screen overlay. React reconciles in place and
 gets this right, so it is a renderer divergence. Every continuation keypress
 also discards and reallocates the whole subtree.
@@ -516,6 +517,7 @@ Commit: `chore(packaging): drop the dead .npmignore and fix the README API link 
 **Task 25 — B16** (`api-surface`, effort M, risk low) — `docs/API.md`
 The file README calls "the full reference" omits the entire layers API.
 Fix, all in `docs/API.md`:
+
 - add `engine.pushLayer(options?)` and `engine.activateLayer(level, exclusive)`
   sections plus a `LayerHandle` type block to the `WhichKeyEngine` section;
 - add a `<WhichKeyLayer>` section and a matching table-of-contents entry to the
@@ -524,12 +526,12 @@ Fix, all in `docs/API.md`:
 - add `level` to the `registerGroup` options table;
 - correct the `popup` default from `{}` to
   `{layout:'vertical', maxRows:5, backgroundOpacity:0.95}`.
-Also fold in the doc notes tasks 8/10/11/12 owe: the soft-failure behaviour of
-`register`, the `helpKey` warn-and-disable path, the `timeoutMs` clamp, and
-`pushLayer`'s `level` validation.
-Cross-check every documented signature against `src/engine/controller.ts` and
-`src/engine/types.ts` rather than against the prose already in the file.
-Commit: `docs(api): document the layers API and correct ShortcutOptions drift [B16]`
+  Also fold in the doc notes tasks 8/10/11/12 owe: the soft-failure behaviour of
+  `register`, the `helpKey` warn-and-disable path, the `timeoutMs` clamp, and
+  `pushLayer`'s `level` validation.
+  Cross-check every documented signature against `src/engine/controller.ts` and
+  `src/engine/types.ts` rather than against the prose already in the file.
+  Commit: `docs(api): document the layers API and correct ShortcutOptions drift [B16]`
 
 > **Milestone: full suite after task 25.**
 

@@ -278,7 +278,9 @@ describe('ShortcutRegistry — getAllActive', () => {
 // Layer tests — added for feat/keybinding-layers Task 1
 // ---------------------------------------------------------------------------
 
-const layerEntry = (over: Partial<ShortcutEntry> & { keys: string; id: string }): ShortcutEntry => ({
+const layerEntry = (
+  over: Partial<ShortcutEntry> & { keys: string; id: string },
+): ShortcutEntry => ({
   handler: () => {},
   description: undefined,
   enableOnInputs: false,
@@ -295,8 +297,8 @@ describe('registry layers', () => {
     r.register(layerEntry({ id: 'base', keys: 'a', level: 0 }));
     r.register(layerEntry({ id: 'modal', keys: 'b', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('a')).toBeUndefined();      // base suppressed
-    expect(r.getActive('b')?.id).toBe('modal');     // layer reachable
+    expect(r.getActive('a')).toBeUndefined(); // base suppressed
+    expect(r.getActive('b')?.id).toBe('modal'); // layer reachable
   });
 
   it('additive layer leaves lower entries reachable', () => {
@@ -318,7 +320,7 @@ describe('registry layers', () => {
     r.register(layerEntry({ id: 'help', keys: '?', level: 0, global: true }));
     r.register(layerEntry({ id: 'modalHelp', keys: '?', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('?')?.id).toBe('modalHelp');  // (level,priority,index): level 1 wins
+    expect(r.getActive('?')?.id).toBe('modalHelp'); // (level,priority,index): level 1 wins
   });
 
   it('deactivateLayer re-reveals the layer beneath', () => {

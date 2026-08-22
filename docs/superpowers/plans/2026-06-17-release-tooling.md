@@ -23,9 +23,11 @@
 ### Task 1: Release script (`commit-and-tag-version`)
 
 **Files:**
+
 - Modify: `package.json` (devDependencies + scripts)
 
 **Interfaces:**
+
 - Produces: npm scripts `release`, `release:dry`, `postrelease`. `release` = `commit-and-tag-version` (bump+changelog+commit+tag, no push/publish). `postrelease` prints publish steps and runs automatically after `npm run release`.
 
 - [ ] **Step 1: Install the release engine**
@@ -75,12 +77,14 @@ git commit -m "build(which-key): add commit-and-tag-version release scripts"
 ### Task 2: Commit-message enforcement (commitlint + husky)
 
 **Files:**
+
 - Create: `commitlint.config.js`
 - Create: `.husky/commit-msg`
 - Modify: `package.json` (devDependencies + `prepare` script)
 - Possibly modify: the eslint config (only if `eslint .` flags `commitlint.config.js`)
 
 **Interfaces:**
+
 - Consumes: nothing from Task 1.
 - Produces: a `commit-msg` git hook that rejects non-conventional commit messages; `prepare` script installs husky on `npm install`.
 
@@ -125,9 +129,11 @@ Expected: non-zero exit (reports "type may not be empty" / "subject may not be e
 - [ ] **Step 6: Verify the hook actually fires (without leaving a stray commit)**
 
 Run:
+
 ```bash
 git commit --allow-empty -m "broken commit message" || echo "HOOK_BLOCKED_OK"
 ```
+
 Expected: the commit is rejected by the `commit-msg` hook and `HOOK_BLOCKED_OK` prints (no commit created). Confirm with `git log -1 --oneline` that HEAD is still the Task 1 commit. If a commit slipped through, `git reset --hard HEAD~1` and fix the hook wiring.
 
 - [ ] **Step 7: Confirm lint is still clean with the new config file**
@@ -141,6 +147,7 @@ Expected: 0 errors. If `eslint .` errors on `commitlint.config.js`, locate the e
 git add package.json package-lock.json commitlint.config.js .husky
 git commit -m "build(which-key): enforce conventional commits via commitlint + husky"
 ```
+
 (Note: husky's generated `.husky/_/` contains its own `.gitignore`; `git add .husky` will stage only the tracked hook files. Verify with `git status` that `.husky/commit-msg` is staged and `.husky/_/` internals are not.)
 
 ---
@@ -148,11 +155,13 @@ git commit -m "build(which-key): enforce conventional commits via commitlint + h
 ### Task 3: Retire Changesets + documentation
 
 **Files:**
+
 - Delete: `.changeset/config.json`, `.changeset/initial.md`, `.changeset/keybinding-layers.md` (and the empty `.changeset/` dir)
 - Modify: `README.md` (new "Releasing" section)
 - Modify: `CLAUDE.local.md` (remove `npx changeset`; add release/commit guidance; update commands table)
 
 **Interfaces:**
+
 - Consumes: the scripts from Tasks 1–2 (`release`, `release:dry`, the commit-msg hook).
 
 - [ ] **Step 1: Remove the Changesets scaffolding**
@@ -206,6 +215,7 @@ To intentionally cut `1.0.0`: `npm run release -- --release-as major`.
 - [ ] **Step 3: Update `CLAUDE.local.md`**
 
 Read the file. Make these edits:
+
 - In the commands table, add rows:
   - `npm run release:dry` — Preview the next version + changelog (conventional commits; no changes)
   - `npm run release` — Bump version from commits, write `CHANGELOG.md`, commit, tag

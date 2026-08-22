@@ -21,10 +21,13 @@ export const useWhichKeyState = (what = 'useWhichKeyState()'): WhichKeyState => 
     engine ? engine.getSnapshot : getEmptySnapshot,
     getEmptySnapshot,
   );
-  return useMemo<WhichKeyState>(() => ({
-    visible: snapshot.popup.visible,
-    currentSequence: snapshot.popup.currentSequence,
-    candidates: snapshot.popup.candidates,
-    cancel: engine ? engine.cancel : () => {},
-  }), [snapshot, engine]);
+  return useMemo<WhichKeyState>(
+    () => ({
+      visible: snapshot.popup.visible,
+      currentSequence: snapshot.popup.currentSequence,
+      candidates: snapshot.popup.candidates,
+      cancel: engine ? engine.cancel : () => {},
+    }),
+    [snapshot, engine],
+  );
 };

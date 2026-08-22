@@ -1,7 +1,11 @@
 import type { WhichKeyCandidate, WhichKeySnapshot } from '../engine';
 import { clamp01, clampRows } from '../shared/clamp';
 
-export type PopupOptions = { layout: 'vertical' | 'horizontal'; maxRows: number; backgroundOpacity: number };
+export type PopupOptions = {
+  layout: 'vertical' | 'horizontal';
+  maxRows: number;
+  backgroundOpacity: number;
+};
 const PANEL_BG_RGB = '17, 24, 39';
 
 const kbd = (p: string, text: string): HTMLElement => {
@@ -34,7 +38,11 @@ const sequence = (p: string, seq: string[]): HTMLElement => {
   return wrap;
 };
 
-export const renderPopup = (p: string, snap: WhichKeySnapshot, opts: PopupOptions): HTMLElement | null => {
+export const renderPopup = (
+  p: string,
+  snap: WhichKeySnapshot,
+  opts: PopupOptions,
+): HTMLElement | null => {
   if (!snap.popup.visible) return null;
   const bg = `rgba(${PANEL_BG_RGB}, ${clamp01(opts.backgroundOpacity)})`;
   const el = document.createElement('div');

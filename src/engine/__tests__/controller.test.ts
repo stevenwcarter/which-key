@@ -14,7 +14,10 @@ const press = (key: string, target: EventTarget = document.body) => {
 // Like `press`, but for keystrokes that need modifier flags (Ctrl/Alt/Meta) —
 // used by the Finding-1 narrowed-latch tests below, which must distinguish
 // character-echoing keystrokes from modifier chords that never insert text.
-const pressWithInit = (init: KeyboardEventInit & { key: string }, target: EventTarget = document.body) => {
+const pressWithInit = (
+  init: KeyboardEventInit & { key: string },
+  target: EventTarget = document.body,
+) => {
   target.dispatchEvent(new KeyboardEvent('keydown', { ...init, bubbles: true }));
 };
 
@@ -130,7 +133,13 @@ describe('createWhichKey', () => {
       const err = vi.spyOn(console, 'error').mockImplementation(() => {});
       const wk = createWhichKey();
       const ok = vi.fn();
-      wk.register('x', () => { throw new Error('boom'); }, { description: 'Boom' });
+      wk.register(
+        'x',
+        () => {
+          throw new Error('boom');
+        },
+        { description: 'Boom' },
+      );
       wk.register('y', ok, { description: 'Fine' });
       wk.start();
 
@@ -150,7 +159,13 @@ describe('createWhichKey', () => {
       const err = vi.spyOn(console, 'error').mockImplementation(() => {});
       const wk = createWhichKey({ timeoutMs: 50 });
       const ok = vi.fn();
-      wk.register('g', () => { throw new Error('boom'); }, { description: 'Leaf' });
+      wk.register(
+        'g',
+        () => {
+          throw new Error('boom');
+        },
+        { description: 'Leaf' },
+      );
       wk.register('g h', vi.fn(), { description: 'Deeper' });
       wk.register('y', ok, { description: 'Fine' });
       wk.start();
@@ -176,7 +191,11 @@ describe('createWhichKey', () => {
       wk.subscribe(listener);
       const before = wk.getSnapshot();
 
-      press('a'); press('b'); press('c'); press('d'); press('e');
+      press('a');
+      press('b');
+      press('c');
+      press('d');
+      press('e');
 
       expect(listener).not.toHaveBeenCalled();
       expect(wk.getSnapshot()).toBe(before);
@@ -511,7 +530,9 @@ describe('controller layers', () => {
     const wk = createWhichKey({ helpKey: null });
     const { pushLayer } = wk;
     let layer: ReturnType<typeof pushLayer> | undefined;
-    expect(() => { layer = pushLayer({ exclusive: true }); }).not.toThrow();
+    expect(() => {
+      layer = pushLayer({ exclusive: true });
+    }).not.toThrow();
     const modal = vi.fn();
     layer!.register('b', modal);
     expect(wk.registry.getActive('b')?.handler).toBeTypeOf('function');
@@ -544,7 +565,9 @@ describe('createWhichKey.register — soft failure on misuse [B14]', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const wk = createWhichKey();
     let unregister: (() => void) | undefined;
-    expect(() => { unregister = wk.register('Hyper+K', vi.fn()); }).not.toThrow();
+    expect(() => {
+      unregister = wk.register('Hyper+K', vi.fn());
+    }).not.toThrow();
     // Pin the exact composed text: keys.ts's thrown Error is already prefixed
     // "whichkey: " on its own, so this also guards against that prefix
     // doubling up with the "[whichkey] " tag this warning adds.
@@ -570,7 +593,9 @@ describe('createWhichKey.register — soft failure on misuse [B14]', () => {
     // Deliberate misuse from untyped JS — the whole point of the guard.
     const notAFunction = 'nope' as unknown as ShortcutHandler;
     expect(() => wk.register('a', notAFunction)).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] handler for "a" is not a function'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] handler for "a" is not a function'),
+    );
     expect(wk.registry.getActive('a')).toBeUndefined();
     warn.mockRestore();
   });
@@ -629,8 +654,12 @@ describe('createWhichKey — invalid helpKey [B23]', () => {
   it('warns and returns a working engine instead of throwing', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     let wk: ReturnType<typeof createWhichKey> | undefined;
-    expect(() => { wk = createWhichKey({ helpKey: 'Hyper+/' }); }).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'));
+    expect(() => {
+      wk = createWhichKey({ helpKey: 'Hyper+/' });
+    }).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'),
+    );
 
     // The engine still works — only the help binding is gone. Prove it by
     // actually firing a registered shortcut (not just checking it landed in

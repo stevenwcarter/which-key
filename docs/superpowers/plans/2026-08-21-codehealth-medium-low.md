@@ -24,7 +24,7 @@ Every task's requirements implicitly include this section.
 - **Test files are never a fix target.** Add NEW tests; do not refactor existing ones. Two sanctioned exceptions, both because the existing assertion pins the behaviour being corrected: **Task 2 (B17)** tightening `expect.any(KeyboardEvent)` in `matcher.test.ts`, and **Task 1 (B27)** adding a scoped ESLint override for `src/react/__tests__/`.
 - **Soft-failure is the library's convention for consumer misuse.** `useShortcut` already `console.warn`s on a missing provider rather than throwing. Tasks 8, 9, 10, 11, 12, 20, 21 extend that convention. **None may start throwing, and none may change a public return type.**
 - **Warning message format:** every warning starts with the literal prefix `[whichkey] `. Task 28 greps for them all and documents each verbatim, so word them as final consumer-facing copy.
-- **Named exports only.** Anything public must be added to the relevant `index.ts` *and* to `docs/API.md`.
+- **Named exports only.** Anything public must be added to the relevant `index.ts` _and_ to `docs/API.md`.
 - **`src/engine/` stays framework-free.** Its only DOM touchpoints are the default `target = document` and the `navigator.platform` check in `isMacPlatform`.
 - **No `any` without justification.** Strict TS with `noUnusedLocals`/`noUnusedParameters`.
 - **Conventional Commits** are enforced by the husky `commit-msg` hook.
@@ -34,30 +34,31 @@ Every task's requirements implicitly include this section.
 ## File Structure
 
 **Created:**
+
 - `src/shared/clamp.ts` — internal (unpublished) home for `clamp01`/`clampRows`, shared by both renderers so the two copies cannot drift. Task 16.
 - `src/__tests__/styles-contract.test.ts` — reads `src/styles.css` as text and asserts the stylesheet contract: the `z-index` custom properties (Task 18) and that every `wk-*` class either renderer emits has a rule (Task 19). Follows the existing `src/engine/__tests__/package-exports.test.ts` precedent of asserting over file contents.
 
 **Modified:**
 
-| File | Tasks | Responsibility after this batch |
-|---|---|---|
-| `eslint.config.js` | 1 | Adds jsx-a11y + react-hooks scoped to `src/react/**/*.tsx`; ignores `coverage`. |
-| `src/engine/matcher.ts` | 2, 3, 4, 5 | Buffer + timers. Fires the real event, refreshes the popup on every buffer commit, computes the prospective leaf once, nulls fired timer handles. |
-| `src/engine/registry.ts` | 6, 7 | Priority-sorted buckets. Candidate dedup merges instead of dropping; `blockLevel()` is cached and invalidated on layer changes. |
-| `src/engine/controller.ts` | 8, 9, 10, 11, 12, 13 | Public engine surface. `register`/`registerGroup`/`helpKey`/`timeoutMs`/`pushLayer` all soft-fail on misuse; cheatsheet keeps group labels. |
-| `src/engine/keys.ts` | 14 | Canonicalization. `isMacPlatform` survives an absent `navigator`. |
-| `src/react/context.ts` | 15 | Adds the shared deduped `warnNoProvider` helper. |
-| `src/react/useWhichKeyState.ts`, `ShortcutCheatsheet.tsx`, `useShortcut.ts`, `useShortcutGroup.ts`, `WhichKeyLayer.tsx` | 15 | All five route their missing-provider diagnostic through `warnNoProvider`. |
-| `src/react/WhichKeyPopup.tsx` | 16 | Imports the shared clamps instead of defining its own. |
-| `src/vanilla/popup.ts` | 16 | Same. |
-| `src/vanilla/mount.ts` | 17, 20, 21, 22 | Stable popup host; double-mount guard; `classPrefix` validation; exports `WhichKeyMountHandle`. |
-| `src/vanilla/index.ts` | 22 | Re-exports `PopupOptions` and `WhichKeyMountHandle`. |
-| `src/styles.css` | 18, 19 | `z-index` via custom properties; defines `.wk-cheatsheet__section`. |
-| `examples/vanilla/index.html` | 23 | Demo stylesheet matches the real class contract. |
-| `.npmignore` (deleted), `README.md` | 24 | `files` becomes the single source of truth; README's API link is absolute. |
-| `docs/API.md` | 10, 11, 12, 16, 21, 22, 25, 26, 27, 28 | The maintained full reference: layers API, corrected option tables, Debugging section, warning reference. |
-| `README.md` | 18, 24, 27, 28 | Styling section documents the z-index variables and the `classPrefix` opt-out; new Troubleshooting section. |
-| `bughunt.md` | every task | Shrinks by one finding block per commit. |
+| File                                                                                                                    | Tasks                                  | Responsibility after this batch                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eslint.config.js`                                                                                                      | 1                                      | Adds jsx-a11y + react-hooks scoped to `src/react/**/*.tsx`; ignores `coverage`.                                                                   |
+| `src/engine/matcher.ts`                                                                                                 | 2, 3, 4, 5                             | Buffer + timers. Fires the real event, refreshes the popup on every buffer commit, computes the prospective leaf once, nulls fired timer handles. |
+| `src/engine/registry.ts`                                                                                                | 6, 7                                   | Priority-sorted buckets. Candidate dedup merges instead of dropping; `blockLevel()` is cached and invalidated on layer changes.                   |
+| `src/engine/controller.ts`                                                                                              | 8, 9, 10, 11, 12, 13                   | Public engine surface. `register`/`registerGroup`/`helpKey`/`timeoutMs`/`pushLayer` all soft-fail on misuse; cheatsheet keeps group labels.       |
+| `src/engine/keys.ts`                                                                                                    | 14                                     | Canonicalization. `isMacPlatform` survives an absent `navigator`.                                                                                 |
+| `src/react/context.ts`                                                                                                  | 15                                     | Adds the shared deduped `warnNoProvider` helper.                                                                                                  |
+| `src/react/useWhichKeyState.ts`, `ShortcutCheatsheet.tsx`, `useShortcut.ts`, `useShortcutGroup.ts`, `WhichKeyLayer.tsx` | 15                                     | All five route their missing-provider diagnostic through `warnNoProvider`.                                                                        |
+| `src/react/WhichKeyPopup.tsx`                                                                                           | 16                                     | Imports the shared clamps instead of defining its own.                                                                                            |
+| `src/vanilla/popup.ts`                                                                                                  | 16                                     | Same.                                                                                                                                             |
+| `src/vanilla/mount.ts`                                                                                                  | 17, 20, 21, 22                         | Stable popup host; double-mount guard; `classPrefix` validation; exports `WhichKeyMountHandle`.                                                   |
+| `src/vanilla/index.ts`                                                                                                  | 22                                     | Re-exports `PopupOptions` and `WhichKeyMountHandle`.                                                                                              |
+| `src/styles.css`                                                                                                        | 18, 19                                 | `z-index` via custom properties; defines `.wk-cheatsheet__section`.                                                                               |
+| `examples/vanilla/index.html`                                                                                           | 23                                     | Demo stylesheet matches the real class contract.                                                                                                  |
+| `.npmignore` (deleted), `README.md`                                                                                     | 24                                     | `files` becomes the single source of truth; README's API link is absolute.                                                                        |
+| `docs/API.md`                                                                                                           | 10, 11, 12, 16, 21, 22, 25, 26, 27, 28 | The maintained full reference: layers API, corrected option tables, Debugging section, warning reference.                                         |
+| `README.md`                                                                                                             | 18, 24, 27, 28                         | Styling section documents the z-index variables and the `classPrefix` opt-out; new Troubleshooting section.                                       |
+| `bughunt.md`                                                                                                            | every task                             | Shrinks by one finding block per commit.                                                                                                          |
 
 ---
 
@@ -66,11 +67,13 @@ Every task's requirements implicitly include this section.
 ### Task 1: B27 — add jsx-a11y and react-hooks ESLint plugins
 
 **Files:**
+
 - Modify: `eslint.config.js:1-6` (the whole file)
 - Modify: `package.json` (devDependencies)
 - Modify: `bughunt.md` (strip B27)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: a clean `npm run lint` (0 errors, 0 warnings) that every later task verifies against. Later React tasks (15, 16) will be checked by `react-hooks/exhaustive-deps` and `jsx-a11y`.
 
@@ -118,6 +121,7 @@ Run: `npm run lint`
 Expected: either clean, or a list of findings in `src/react/`.
 
 Triage rule:
+
 - Findings in `src/react/*.tsx` production source → **fix them**; they are in scope.
 - Findings in `src/react/__tests__/` → **add a scoped override**, do not rewrite the tests (sanctioned exception in the Global Constraints). Append to the config:
 
@@ -153,11 +157,13 @@ git commit -m "chore(lint): add jsx-a11y and react-hooks eslint plugins [B27]"
 ### Task 2: B17 — pass the real triggering event to a timed-out leaf-and-prefix handler
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts` — the leaf-AND-prefix branch, `if (leaf && hasCandidates)` (currently lines 88–106)
 - Test: `src/engine/__tests__/matcher.test.ts` (add new tests; tighten the existing `expect.any(KeyboardEvent)` at line 246)
 - Modify: `bughunt.md` (strip B17)
 
 **Interfaces:**
+
 - Consumes: `MatcherOptions.onFire(entry: ShortcutEntry, event: KeyboardEvent)` — unchanged signature.
 - Produces: the event handed to `onFire` from the timeout path is now the **same object** as the triggering `KeyboardEvent`, so `target`, `ctrlKey`/`shiftKey`/`altKey`/`metaKey`, and `cancelable` are all accurate.
 
@@ -226,42 +232,42 @@ git commit -m "test: characterize the leaf-and-prefix timeout event before fix [
 In `src/engine/matcher.ts`, in the `if (leaf && hasCandidates)` branch, capture the event alongside the target and pass it through. Change:
 
 ```ts
-      const fireTarget = eventTarget;
-      this.timer = setTimeout(() => {
-        if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
-          this.resetBuffer();
-          return;
-        }
-        const synthetic = new KeyboardEvent('keydown', { key });
-        try {
-          this.options.onFire(leaf, synthetic);
-        } finally {
-          this.resetBuffer();
-        }
-      }, this.options.timeoutMs);
+const fireTarget = eventTarget;
+this.timer = setTimeout(() => {
+  if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
+    this.resetBuffer();
+    return;
+  }
+  const synthetic = new KeyboardEvent('keydown', { key });
+  try {
+    this.options.onFire(leaf, synthetic);
+  } finally {
+    this.resetBuffer();
+  }
+}, this.options.timeoutMs);
 ```
 
 to:
 
 ```ts
-      const fireTarget = eventTarget;
-      // Fire the ORIGINAL event, never a synthesized one. A `new
-      // KeyboardEvent(...)` that is never dispatched has target === null,
-      // cancelable === false (so preventDefault() silently no-ops) and all
-      // modifier flags false — so an identical handler would behave
-      // differently purely because this shortcut also happens to be a prefix.
-      const fireEvent = event;
-      this.timer = setTimeout(() => {
-        if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
-          this.resetBuffer();
-          return;
-        }
-        try {
-          this.options.onFire(leaf, fireEvent);
-        } finally {
-          this.resetBuffer();
-        }
-      }, this.options.timeoutMs);
+const fireTarget = eventTarget;
+// Fire the ORIGINAL event, never a synthesized one. A `new
+// KeyboardEvent(...)` that is never dispatched has target === null,
+// cancelable === false (so preventDefault() silently no-ops) and all
+// modifier flags false — so an identical handler would behave
+// differently purely because this shortcut also happens to be a prefix.
+const fireEvent = event;
+this.timer = setTimeout(() => {
+  if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
+    this.resetBuffer();
+    return;
+  }
+  try {
+    this.options.onFire(leaf, fireEvent);
+  } finally {
+    this.resetBuffer();
+  }
+}, this.options.timeoutMs);
 ```
 
 Note `key` may now be unused in this branch — `noUnusedLocals` only flags declarations, and `key` is still used earlier in `handleKeyDown`, so no further change is needed. Verify with typecheck.
@@ -292,15 +298,17 @@ git commit -m "fix(correctness): pass the real triggering event to a timed-out l
 ### Task 3: B21 — refresh the popup when a leaf-and-prefix keystroke commits
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts` — the `if (leaf && hasCandidates)` branch (after Task 2's edit)
 - Test: `src/engine/__tests__/matcher.test.ts`
 - Modify: `bughunt.md` (strip B21)
 
 **Interfaces:**
+
 - Consumes: `MatcherOptions.onShowPopup(state: { currentSequence: string[] })`, and the private `this.popupVisible` / `this.bufferTouchedInput` fields.
 - Produces: no signature change. The popup snapshot now tracks the buffer through the leaf-and-prefix wait.
 
-**The bug:** the leaf-AND-prefix branch commits the new buffer but never calls `onShowPopup`, while the prefix-only branch *does* refresh when the popup is already visible. With `g h` (leaf) + `g h x` + `g p` registered and `timeoutMs=50`: after `g` + timeout the snapshot reads `visible=true seq=['g'] cands=['h','p']`; immediately after pressing `h` it is **still** `seq=['g'] cands=['h','p']` even though the buffer is now `[g,h]` and the only real continuation is `x`. The user sees the wrong prompt for the whole timeout window, and `p` is advertised as pressable when it will abort the sequence.
+**The bug:** the leaf-AND-prefix branch commits the new buffer but never calls `onShowPopup`, while the prefix-only branch _does_ refresh when the popup is already visible. With `g h` (leaf) + `g h x` + `g p` registered and `timeoutMs=50`: after `g` + timeout the snapshot reads `visible=true seq=['g'] cands=['h','p']`; immediately after pressing `h` it is **still** `seq=['g'] cands=['h','p']` even though the buffer is now `[g,h]` and the only real continuation is `x`. The user sees the wrong prompt for the whole timeout window, and `p` is advertised as pressable when it will abort the sequence.
 
 **Interaction you must respect:** the prefix-only branch guards its `onShowPopup` behind `if (this.bufferTouchedInput) { … return; }` — the input-echo latch that stops buffered keystrokes typed into a text field from being painted on screen (see the long comment at `matcher.ts:12-28` and `:34-41`). The new refresh must honour the same latch.
 
@@ -410,10 +418,12 @@ git commit -m "fix(correctness): refresh the popup when a leaf-and-prefix keystr
 ### Task 4: B38 — compute the prospective leaf once per event
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts:62-71` (the Escape guard and the `leaf` lookup below it)
 - Modify: `bughunt.md` (strip B38)
 
 **Interfaces:**
+
 - Consumes: `ShortcutRegistry.getActive(keys)`.
 - Produces: no behaviour change whatsoever. Pure de-duplication.
 
@@ -424,29 +434,29 @@ git commit -m "fix(correctness): refresh the popup when a leaf-and-prefix keystr
 Replace:
 
 ```ts
-    // Escape cancels a partial sequence unless an explicit Escape leaf is registered for the prospective.
-    if (this.buffer.length > 0 && key === 'Escape') {
-      const escapeLeaf = this.registry.getActive(prospectiveKeys);
-      if (!escapeLeaf) {
-        this.cancel();
-        return;
-      }
-    }
+// Escape cancels a partial sequence unless an explicit Escape leaf is registered for the prospective.
+if (this.buffer.length > 0 && key === 'Escape') {
+  const escapeLeaf = this.registry.getActive(prospectiveKeys);
+  if (!escapeLeaf) {
+    this.cancel();
+    return;
+  }
+}
 
-    const leaf = this.registry.getActive(prospectiveKeys);
+const leaf = this.registry.getActive(prospectiveKeys);
 ```
 
 with:
 
 ```ts
-    const leaf = this.registry.getActive(prospectiveKeys);
+const leaf = this.registry.getActive(prospectiveKeys);
 
-    // Escape cancels a partial sequence unless an explicit Escape leaf is
-    // registered for the prospective sequence.
-    if (this.buffer.length > 0 && key === 'Escape' && !leaf) {
-      this.cancel();
-      return;
-    }
+// Escape cancels a partial sequence unless an explicit Escape leaf is
+// registered for the prospective sequence.
+if (this.buffer.length > 0 && key === 'Escape' && !leaf) {
+  this.cancel();
+  return;
+}
 ```
 
 - [ ] **Step 2: Verify behaviour is unchanged**
@@ -474,10 +484,12 @@ git commit -m "perf(matcher): compute the prospective leaf once per event [B38]"
 ### Task 5: B42 — clear the fired timer handle in the popup-show callback
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts` — the `setTimeout` callback in the prefix-only branch (currently line 133)
 - Modify: `bughunt.md` (strip B42)
 
 **Interfaces:**
+
 - Consumes/Produces: nothing public. Restores the internal invariant that `this.timer !== null` means "a timer is pending".
 
 **The bug:** the prefix-only branch assigns `this.timer = setTimeout(...)`, but the callback sets `popupVisible` and calls `onShowPopup` without clearing `this.timer`. Unlike the leaf-and-prefix branch (which ends in `resetBuffer` → `clearTimer`), this path leaves an already-fired Timeout object referenced by the Matcher for as long as the popup stays open. No correctness bug and no unbounded growth — at most one stale handle — but it makes `this.timer !== null` an unreliable signal, which blocks using that condition in any future guard.
@@ -487,22 +499,22 @@ git commit -m "perf(matcher): compute the prospective leaf once per event [B38]"
 Change:
 
 ```ts
-        this.timer = setTimeout(() => {
-          this.popupVisible = true;
-          this.options.onShowPopup({ currentSequence: [...this.buffer] });
-        }, this.options.timeoutMs);
+this.timer = setTimeout(() => {
+  this.popupVisible = true;
+  this.options.onShowPopup({ currentSequence: [...this.buffer] });
+}, this.options.timeoutMs);
 ```
 
 to:
 
 ```ts
-        this.timer = setTimeout(() => {
-          // Maintain clearTimer()'s invariant: a non-null this.timer means a
-          // timer is still pending. This one just fired.
-          this.timer = null;
-          this.popupVisible = true;
-          this.options.onShowPopup({ currentSequence: [...this.buffer] });
-        }, this.options.timeoutMs);
+this.timer = setTimeout(() => {
+  // Maintain clearTimer()'s invariant: a non-null this.timer means a
+  // timer is still pending. This one just fired.
+  this.timer = null;
+  this.popupVisible = true;
+  this.options.onShowPopup({ currentSequence: [...this.buffer] });
+}, this.options.timeoutMs);
 ```
 
 - [ ] **Step 2: Verify nothing regressed**
@@ -522,6 +534,7 @@ git commit -m "fix(matcher): clear the fired timer handle in the popup-show call
 ```
 
 > ### 🚩 Milestone after Task 5
+>
 > Run the full suite: `npm test`. Expected green with all four matcher findings landed. On red: bisect within Tasks 2–5, revert the offender, surface the diagnosis before continuing.
 
 ---
@@ -531,15 +544,18 @@ git commit -m "fix(matcher): clear the fired timer handle in the popup-show call
 ### Task 6: B20 — merge colliding leaf and deeper-sequence candidates
 
 **Files:**
+
 - Modify: `src/engine/registry.ts:129-152` (`getActiveCandidates`)
 - Test: `src/engine/__tests__/registry.test.ts`
 - Modify: `bughunt.md` (strip B20)
 
 **Interfaces:**
+
 - Consumes: `WhichKeyCandidate` from `src/engine/types.ts` — `{ keys: string; nextKey: string; description: string | undefined; isGroup: boolean }`.
 - Produces: `getActiveCandidates(prefix)` output is now **registration-order independent**. For a `nextKey` that is both a leaf and the head of a deeper sequence, exactly one candidate is emitted with `isGroup: true`, `keys` set to the sub-prefix, and a description that prefers the registered group label, then the previously-seen candidate's description, then the leaf's own.
 
 **The bug (empirically confirmed):** `candidateKey` is the full key string for a leaf but `prefix + ' ' + nextKey` for a deeper sequence — so for a leaf `g h` and a deeper `g h i` both evaluate to `'g h'`, the `seen` Map drops whichever arrives second, and **registration order decides the output**:
+
 - `['g h','g h i']` → `[{keys:'g h', nextKey:'h', isGroup:false}]` — the whole `g h i` subtree is invisible and the row looks like a terminal action.
 - `['g h i','g h']` → `[{keys:'g h', nextKey:'h', isGroup:true}]` — the leaf's own description is silently lost.
 
@@ -552,13 +568,20 @@ describe('ShortcutRegistry.getActiveCandidates — leaf/deeper collisions [B20]'
   const build = (order: Array<[string, string]>) => {
     const registry = new ShortcutRegistry();
     order.forEach(([keys, description], i) =>
-      registry.register(entry({ id: `e${i}`, keys, description })));
+      registry.register(entry({ id: `e${i}`, keys, description })),
+    );
     return registry;
   };
 
   it('emits one merged group candidate regardless of registration order', () => {
-    const forward = build([['g h', 'Leaf label'], ['g h i', 'Deeper']]);
-    const reverse = build([['g h i', 'Deeper'], ['g h', 'Leaf label']]);
+    const forward = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    const reverse = build([
+      ['g h i', 'Deeper'],
+      ['g h', 'Leaf label'],
+    ]);
 
     for (const registry of [forward, reverse]) {
       const candidates = registry.getActiveCandidates('g');
@@ -573,8 +596,17 @@ describe('ShortcutRegistry.getActiveCandidates — leaf/deeper collisions [B20]'
   });
 
   it('prefers a registered group label over the leaf description', () => {
-    const registry = build([['g h', 'Leaf label'], ['g h i', 'Deeper']]);
-    registry.registerGroup({ id: 'grp', prefix: 'g h', description: 'Group label', priority: 0, level: 0 });
+    const registry = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    registry.registerGroup({
+      id: 'grp',
+      prefix: 'g h',
+      description: 'Group label',
+      priority: 0,
+      level: 0,
+    });
     expect(registry.getActiveCandidates('g')[0].description).toBe('Group label');
   });
 
@@ -661,11 +693,13 @@ git commit -m "fix(correctness): merge colliding leaf and deeper-sequence candid
 ### Task 7: B19 — cache blockLevel and invalidate on layer changes
 
 **Files:**
+
 - Modify: `src/engine/registry.ts:6-28` (fields, `activateLayer`, `deactivateLayer`, `blockLevel`)
 - Test: `src/engine/__tests__/registry.test.ts` or `src/engine/__tests__/layers.test.ts`
 - Modify: `bughunt.md` (strip B19)
 
 **Interfaces:**
+
 - Consumes: the private `this.layers` Map.
 - Produces: `blockLevel()` is O(1) after the first call per layer-configuration. No public signature change.
 
@@ -681,7 +715,7 @@ Expected hits only in the field declaration, `activateLayer` (`.set`), `deactiva
 
 - [ ] **Step 1: Write the failing test**
 
-The risk this fix introduces is a *stale* cache, so the test must pin invalidation, not speed. Add to `src/engine/__tests__/layers.test.ts` (read its existing helpers first):
+The risk this fix introduces is a _stale_ cache, so the test must pin invalidation, not speed. Add to `src/engine/__tests__/layers.test.ts` (read its existing helpers first):
 
 ```ts
 describe('ShortcutRegistry.blockLevel caching [B19]', () => {
@@ -779,11 +813,13 @@ git commit -m "perf(registry): cache blockLevel and invalidate on layer changes 
 ### Task 8: B14 — soft-fail register() on an invalid key string or non-function handler
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:164-179` (`engine.register`)
 - Test: `src/engine/__tests__/controller.test.ts`, `src/react/__tests__/useShortcut.test.tsx`
 - Modify: `bughunt.md` (strip B14)
 
 **Interfaces:**
+
 - Consumes: `parseSequence(keys)` from `src/engine/keys.ts` — throws plain `Error` for empty/whitespace-only strings, unknown modifiers (e.g. `'Hyper+K'`), and dangling `+`.
 - Produces: `engine.register(keys, handler, options?) => () => void` — **signature unchanged**. On invalid input it now warns and returns a no-op unregister instead of throwing. `LayerHandle.register` inherits this because it delegates to `engine.register`.
 
@@ -799,8 +835,12 @@ describe('createWhichKey.register — soft failure on misuse [B14]', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const wk = createWhichKey();
     let unregister: (() => void) | undefined;
-    expect(() => { unregister = wk.register('Hyper+K', vi.fn()); }).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid key string "Hyper+K"'));
+    expect(() => {
+      unregister = wk.register('Hyper+K', vi.fn());
+    }).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] invalid key string "Hyper+K"'),
+    );
     expect(() => unregister!()).not.toThrow();
     warn.mockRestore();
   });
@@ -819,7 +859,9 @@ describe('createWhichKey.register — soft failure on misuse [B14]', () => {
     // Deliberate misuse from untyped JS — the whole point of the guard.
     const notAFunction = 'nope' as unknown as ShortcutHandler;
     expect(() => wk.register('a', notAFunction)).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] handler for "a" is not a function'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] handler for "a" is not a function'),
+    );
     expect(wk.registry.getActive('a')).toBeUndefined();
     warn.mockRestore();
   });
@@ -925,11 +967,13 @@ git commit -m "fix(api-surface): soft-fail register() on an invalid key string o
 ### Task 9: B22 — canonicalize the registerGroup prefix
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:180-184` (`engine.registerGroup`)
 - Test: `src/engine/__tests__/controller.test.ts`
 - Modify: `bughunt.md` (strip B22)
 
 **Interfaces:**
+
 - Consumes: `parseSequence(prefix)` — the same canonicalizer `register` uses (after Task 8).
 - Produces: `engine.registerGroup(prefix, options) => () => void` — signature unchanged. Group prefixes now live in the **same canonical namespace** as shortcut keys. Empty/unparseable prefixes soft-fail with a warn (Task 8's convention), not a throw.
 
@@ -1029,12 +1073,14 @@ git commit -m "fix(api-surface): canonicalize the registerGroup prefix [B22]"
 ### Task 10: B23 — soft-fail an invalid helpKey instead of throwing from the factory
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:146-158` (the `if (helpKey)` block)
 - Test: `src/engine/__tests__/controller.test.ts`, `src/react/__tests__/WhichKeyProvider.test.tsx`
 - Modify: `docs/API.md:45` (the `helpKey` row)
 - Modify: `bughunt.md` (strip B23)
 
 **Interfaces:**
+
 - Consumes: `parseKey(helpKey)`.
 - Produces: `createWhichKey(options?)` never throws for a bad `helpKey`. The returned engine is fully functional, just without the `?` binding.
 
@@ -1049,8 +1095,12 @@ describe('createWhichKey — invalid helpKey [B23]', () => {
   it('warns and returns a working engine instead of throwing', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     let wk: ReturnType<typeof createWhichKey> | undefined;
-    expect(() => { wk = createWhichKey({ helpKey: 'Hyper+/' }); }).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'));
+    expect(() => {
+      wk = createWhichKey({ helpKey: 'Hyper+/' });
+    }).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'),
+    );
 
     // The engine still works — only the help binding is gone.
     wk!.register('a', vi.fn(), { description: 'Alpha' });
@@ -1094,27 +1144,27 @@ Expected: FAIL — `createWhichKey({ helpKey: 'Hyper+/' })` throws, and the prov
 - [ ] **Step 3: Apply the fix**
 
 ```ts
-  if (helpKey) {
-    // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
-    // a throw here unmounts the consumer's entire tree with no error boundary
-    // in between. Matches useShortcut's missing-provider warn convention.
-    try {
-      registry.register({
-        id: DEFAULT_HELP_ID,
-        keys: parseKey(helpKey),
-        handler: () => toggleCheatsheet(),
-        description: 'Toggle keyboard shortcuts',
-        enableOnInputs: false,
-        priority: -1,
-        enabled: true,
-        level: 0,
-        global: true,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
-    }
+if (helpKey) {
+  // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
+  // a throw here unmounts the consumer's entire tree with no error boundary
+  // in between. Matches useShortcut's missing-provider warn convention.
+  try {
+    registry.register({
+      id: DEFAULT_HELP_ID,
+      keys: parseKey(helpKey),
+      handler: () => toggleCheatsheet(),
+      description: 'Toggle keyboard shortcuts',
+      enableOnInputs: false,
+      priority: -1,
+      enabled: true,
+      level: 0,
+      global: true,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
   }
+}
 ```
 
 - [ ] **Step 4: Run tests to verify GREEN**
@@ -1142,6 +1192,7 @@ git commit -m "fix(api-surface): soft-fail an invalid helpKey instead of throwin
 ```
 
 > ### 🚩 Milestone after Task 10
+>
 > Run the full suite: `npm test`. Expected green. On red: bisect within Tasks 6–10, revert the offender, surface the diagnosis.
 
 ---
@@ -1149,12 +1200,14 @@ git commit -m "fix(api-surface): soft-fail an invalid helpKey instead of throwin
 ### Task 11: B30 — clamp a non-finite or negative timeoutMs to the default
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:81` (the options destructure in `createWhichKey`)
 - Test: `src/engine/__tests__/controller.test.ts`
 - Modify: `docs/API.md:44` (the `timeoutMs` row)
 - Modify: `bughunt.md` (strip B30)
 
 **Interfaces:**
+
 - Consumes: `WhichKeyOptions.timeoutMs?: number` — **signature unchanged**.
 - Produces: the value handed to `new Matcher(...)` is always a finite, non-negative number.
 
@@ -1230,17 +1283,17 @@ git commit -m "test: characterize timeoutMs coercion before fix [B30]"
 Replace the destructure at `src/engine/controller.ts:81`:
 
 ```ts
-  const { helpKey = '?', sortKeys } = options;
-  // setTimeout silently coerces NaN / negative / overflow to 0, which turns
-  // "wait before showing the popup" into "fire instantly" with no diagnostic.
-  // Validate at the boundary; the public timeoutMs?: number stays unchanged.
-  const timeoutMs = ((): number => {
-    const raw = options.timeoutMs;
-    if (raw === undefined) return 500;
-    if (Number.isFinite(raw) && raw >= 0) return raw;
-    console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
-    return 500;
-  })();
+const { helpKey = '?', sortKeys } = options;
+// setTimeout silently coerces NaN / negative / overflow to 0, which turns
+// "wait before showing the popup" into "fire instantly" with no diagnostic.
+// Validate at the boundary; the public timeoutMs?: number stays unchanged.
+const timeoutMs = ((): number => {
+  const raw = options.timeoutMs;
+  if (raw === undefined) return 500;
+  if (Number.isFinite(raw) && raw >= 0) return raw;
+  console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
+  return 500;
+})();
 ```
 
 Note `timeoutMs` is removed from the destructure so `options.timeoutMs` can be read directly and `undefined` distinguished from a supplied bad value.
@@ -1274,12 +1327,14 @@ git commit -m "fix(api-surface): clamp a non-finite or negative timeoutMs to the
 ### Task 12: B34 — validate an explicit pushLayer level
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:197-215` (`engine.pushLayer`)
 - Test: `src/engine/__tests__/layers.test.ts`
 - Modify: `docs/API.md` (the `pushLayer` section added in Task 25 — for now just note it; Task 25 folds it in)
 - Modify: `bughunt.md` (strip B34)
 
 **Interfaces:**
+
 - Consumes: `registry.nextLevel()`.
 - Produces: `engine.pushLayer(options?: { exclusive?: boolean; level?: number }) => LayerHandle` — signature unchanged. `handle.level` is now always a non-negative finite integer.
 
@@ -1299,7 +1354,9 @@ describe('pushLayer — explicit level validation [B34]', () => {
     const layer = wk.pushLayer({ level: bad });
     layer.register('z', vi.fn(), { description: 'Zed' });
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid pushLayer level'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] invalid pushLayer level'),
+    );
     expect(layer.level).toBe(1);
     expect(wk.registry.getActive('z')).toBeDefined();
     layer.pop();
@@ -1318,16 +1375,18 @@ describe('pushLayer — explicit level validation [B34]', () => {
   it('warns when an explicit level undercuts the next free level', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const wk = createWhichKey();
-    const outer = wk.pushLayer({ exclusive: true });   // level 1
-    const inner = wk.pushLayer({ exclusive: true });   // level 2
+    const outer = wk.pushLayer({ exclusive: true }); // level 1
+    const inner = wk.pushLayer({ exclusive: true }); // level 2
     warn.mockClear();
 
     // nextLevel() is now 3, so level 1 undercuts by more than one.
     const undercut = wk.pushLayer({ level: 1 });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] pushLayer level 1'));
-    expect(undercut.level).toBe(1);   // still honoured, just flagged
+    expect(undercut.level).toBe(1); // still honoured, just flagged
 
-    undercut.pop(); inner.pop(); outer.pop();
+    undercut.pop();
+    inner.pop();
+    outer.pop();
     warn.mockRestore();
   });
 });
@@ -1416,11 +1475,13 @@ git commit -m "fix(api-surface): validate an explicit pushLayer level [B34]"
 ### Task 13: B37 — keep a group label on a single-entry cheatsheet prefix
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:65-71` (`buildCheatsheetModel`'s bucket partition)
 - Test: `src/engine/__tests__/controller.test.ts`
 - Modify: `bughunt.md` (strip B37)
 
 **Interfaces:**
+
 - Consumes: `registry.getActiveGroup(prefix)`.
 - Produces: `getCheatsheetModel()` — a prefix that has a registered group label always renders as a group section, even when it holds exactly one entry whose keys equal the prefix.
 
@@ -1467,17 +1528,17 @@ Expected: the first test FAILS — `standalone` holds `g` and `groups` is empty,
 In `buildCheatsheetModel`:
 
 ```ts
-  for (const [prefix, entries] of buckets) {
-    // A single entry whose keys ARE the prefix is a standalone shortcut —
-    // unless the consumer registered a group label for that prefix, in which
-    // case standalone would silently drop the label (standalone entries carry
-    // no group description).
-    if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix)) {
-      standalone.push(entries[0]);
-    } else {
-      groups.push({ prefix, description: registry.getActiveGroup(prefix)?.description, entries });
-    }
+for (const [prefix, entries] of buckets) {
+  // A single entry whose keys ARE the prefix is a standalone shortcut —
+  // unless the consumer registered a group label for that prefix, in which
+  // case standalone would silently drop the label (standalone entries carry
+  // no group description).
+  if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix)) {
+    standalone.push(entries[0]);
+  } else {
+    groups.push({ prefix, description: registry.getActiveGroup(prefix)?.description, entries });
   }
+}
 ```
 
 - [ ] **Step 4: Run tests to verify GREEN**
@@ -1501,11 +1562,13 @@ git commit -m "fix(correctness): keep a group label on a single-entry cheatsheet
 ### Task 14: B31 — guard isMacPlatform against an absent navigator
 
 **Files:**
+
 - Modify: `src/engine/keys.ts:20` (`isMacPlatform`)
 - Test: `src/engine/__tests__/keys.test.ts`
 - Modify: `bughunt.md` (strip B31)
 
 **Interfaces:**
+
 - Consumes: the `navigator` global (may be absent).
 - Produces: `isMacPlatform(): boolean` — never throws. Returns `false` when `navigator` is undefined, so `Mod` resolves to `Ctrl` on a headless runtime.
 
@@ -1598,6 +1661,7 @@ git commit -m "fix(correctness): guard isMacPlatform against an absent navigator
 ### Task 15: B24 — warn once when a renderer is mounted outside WhichKeyProvider
 
 **Files:**
+
 - Modify: `src/react/context.ts` (add `warnNoProvider`)
 - Modify: `src/react/useWhichKeyState.ts:12-25`
 - Modify: `src/react/ShortcutCheatsheet.tsx:12-53`
@@ -1608,6 +1672,7 @@ git commit -m "fix(correctness): guard isMacPlatform against an absent navigator
 - Modify: `bughunt.md` (strip B24)
 
 **Interfaces:**
+
 - Produces: `warnNoProvider(what: string): void` exported from `src/react/context.ts` — **internal**, do NOT add it to `src/react/index.ts`. Dedupes per `what` via a module-level `Set<string>`, so a component that re-renders warns once per distinct message for the lifetime of the module.
 - Also produces: `resetNoProviderWarnings(): void` from the same module, exported for test isolation only. Also NOT in `index.ts`.
 - **Public signature change:** `useWhichKeyState()` gains an optional `what?: string` parameter so `<WhichKeyPopup>` can name itself in the diagnostic. This is additive and non-breaking, but `useWhichKeyState` is a public export (`src/react/index.ts:8`), so per CLAUDE.md the parameter **must be documented in `docs/API.md`** — Step 8 does that. The alternative (a separate internal warn hook in `WhichKeyPopup`) was rejected because it emits two warnings for one mistake, since the hook and the component dedupe under different keys.
@@ -1617,6 +1682,7 @@ git commit -m "fix(correctness): guard isMacPlatform against an absent navigator
 **RISK: HIGH — write the RED test first and commit it separately.**
 
 **Two hard constraints:**
+
 1. **SSR safety.** `useWhichKeyState` supplies a `getServerSnapshot` and both React components must render nothing on the server. The warn must therefore fire from a `useEffect` — never during render, never on the server. `src/react/__tests__/ssr.test.tsx` will catch a violation; run it.
 2. **Test isolation.** Module-level dedupe state leaks across tests in a file. Export `resetNoProviderWarnings()` and call it in a `beforeEach` in every test that asserts on these warnings.
 
@@ -1719,18 +1785,23 @@ export const useWhichKeyState = (what = 'useWhichKeyState()'): WhichKeyState => 
   const engine = useContext(WhichKeyContext);
   // From an effect, not render: this hook backs SSR-safe components that must
   // produce no output (and no console noise) on the server.
-  useEffect(() => { if (!engine) warnNoProvider(what); }, [engine, what]);
+  useEffect(() => {
+    if (!engine) warnNoProvider(what);
+  }, [engine, what]);
   const snapshot = useSyncExternalStore(
     engine ? engine.subscribe : noopSubscribe,
     engine ? engine.getSnapshot : getEmptySnapshot,
     getEmptySnapshot,
   );
-  return useMemo<WhichKeyState>(() => ({
-    visible: snapshot.popup.visible,
-    currentSequence: snapshot.popup.currentSequence,
-    candidates: snapshot.popup.candidates,
-    cancel: engine ? engine.cancel : () => {},
-  }), [snapshot, engine]);
+  return useMemo<WhichKeyState>(
+    () => ({
+      visible: snapshot.popup.visible,
+      currentSequence: snapshot.popup.currentSequence,
+      candidates: snapshot.popup.candidates,
+      cancel: engine ? engine.cancel : () => {},
+    }),
+    [snapshot, engine],
+  );
 };
 ```
 
@@ -1739,13 +1810,15 @@ The optional `what` parameter defaults to the hook's own name and lets `<WhichKe
 `src/react/WhichKeyPopup.tsx` — pass the component name through:
 
 ```ts
-  const state = useWhichKeyState('<WhichKeyPopup>');
+const state = useWhichKeyState('<WhichKeyPopup>');
 ```
 
 `src/react/ShortcutCheatsheet.tsx` — add an effect alongside the existing one. Insert **before** the existing focus-trap `useEffect` (hooks must run unconditionally, and the component early-returns `null` after them):
 
 ```ts
-  useEffect(() => { if (!engine) warnNoProvider('<ShortcutCheatsheet>'); }, [engine]);
+useEffect(() => {
+  if (!engine) warnNoProvider('<ShortcutCheatsheet>');
+}, [engine]);
 ```
 
 and add `warnNoProvider` to the existing `./context` import.
@@ -1753,15 +1826,20 @@ and add `warnNoProvider` to the existing `./context` import.
 `src/react/useShortcut.ts` — replace the inline warn:
 
 ```ts
-  useEffect(() => {
-    if (!engine) {
-      warnNoProvider('useShortcut()');
-      return;
-    }
-    return engine.register(keys, (event) => handlerRef.current(event), {
-      description, enableOnInputs, priority, enabled, global, level,
-    });
-  }, [engine, keys, description, enableOnInputs, priority, enabled, global, level]);
+useEffect(() => {
+  if (!engine) {
+    warnNoProvider('useShortcut()');
+    return;
+  }
+  return engine.register(keys, (event) => handlerRef.current(event), {
+    description,
+    enableOnInputs,
+    priority,
+    enabled,
+    global,
+    level,
+  });
+}, [engine, keys, description, enableOnInputs, priority, enabled, global, level]);
 ```
 
 and import `warnNoProvider` from `./context`.
@@ -1786,8 +1864,8 @@ Expected: PASS across all nine React test files — including `ssr.test.tsx`, wh
 `useWhichKeyState` is a public export, so its new optional parameter has to appear in the reference. In `docs/API.md` under `### useWhichKeyState()` (line 248), change the heading to `### useWhichKeyState(what?)` , update the matching TOC entry, and add:
 
 ```markdown
-| Parameter | Type     | Default                | Description                                                                                     |
-|-----------|----------|------------------------|-------------------------------------------------------------------------------------------------|
+| Parameter | Type     | Default                | Description                                                                                                                                                   |
+| --------- | -------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `what`    | `string` | `'useWhichKeyState()'` | Label used in the "used outside `<WhichKeyProvider>`" console warning. Set by `<WhichKeyPopup>` so the warning names the component; consumers rarely need it. |
 ```
 
@@ -1804,6 +1882,7 @@ git commit -m "fix(observability): warn once when a renderer is mounted outside 
 ```
 
 > ### 🚩 Milestone after Task 15
+>
 > Run the full suite: `npm test`. Expected green. On red: bisect within Tasks 11–15, revert the offender, surface the diagnosis.
 
 ---
@@ -1811,6 +1890,7 @@ git commit -m "fix(observability): warn once when a renderer is mounted outside 
 ### Task 16: B29 — make clamp01 and clampRows total over NaN and share one copy
 
 **Files:**
+
 - Create: `src/shared/clamp.ts`
 - Modify: `src/react/WhichKeyPopup.tsx:12-13` (delete the local copies, import instead)
 - Modify: `src/vanilla/popup.ts:5-6` (same)
@@ -1818,6 +1898,7 @@ git commit -m "fix(observability): warn once when a renderer is mounted outside 
 - Modify: `bughunt.md` (strip B29)
 
 **Interfaces:**
+
 - Produces: `src/shared/clamp.ts` exporting
   - `DEFAULT_BACKGROUND_OPACITY = 0.95`
   - `DEFAULT_MAX_ROWS = 5`
@@ -1928,11 +2009,14 @@ import { clamp01, clampRows } from '../shared/clamp';
 ```ts
 import { DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
 // ...
-  const popupOpts: PopupOptions | null = opts.popup === false ? null : {
-    layout: opts.popup?.layout ?? 'vertical',
-    maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
-    backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
-  };
+const popupOpts: PopupOptions | null =
+  opts.popup === false
+    ? null
+    : {
+        layout: opts.popup?.layout ?? 'vertical',
+        maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
+        backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
+      };
 ```
 
 - [ ] **Step 5: Run tests to verify GREEN**
@@ -1970,22 +2054,25 @@ git commit -m "fix(api-surface): make clamp01 and clampRows total over NaN and s
 ### Task 17: B18 — keep a stable vanilla popup host instead of rebuilding it per emit
 
 **Files:**
+
 - Modify: `src/vanilla/mount.ts:24-70` (`render`, and `unmount`)
 - Test: `src/vanilla/__tests__/mount.test.ts`
 - Modify: `bughunt.md` (strip B18)
 
 **Interfaces:**
+
 - Consumes: `renderPopup(prefix, snapshot, opts): HTMLElement | null` from `./popup` — unchanged.
 - Produces: the popup lives inside a stable host element appended once at mount, **before** any cheatsheet backdrop. The rendered popup node keeps its existing `data-testid="whichkey-popup"`, `data-layout`, `role="status"`, `aria-live`, `aria-atomic` and `aria-label` contract exactly.
 
-**The bug:** `render()` unconditionally does `popupNode?.remove(); popupNode = null;` then re-`appendChild`s a freshly built node on every engine emit, while the cheatsheet backdrop is appended once on open and left in place. Since `.wk-popup` and `.wk-backdrop` share `z-index: 50`, painting order falls to **DOM order** — so once the cheatsheet is open, the next popup render lands *after* the backdrop and the popup paints on top of the full-screen overlay. React reconciles in place and honours the JSX order, so there the backdrop correctly covers the popup: a renderer divergence. While the popup is open, each continuation keypress also discards the entire panel and allocates a fresh subtree (full detach/reattach, style recalc, visible flicker).
+**The bug:** `render()` unconditionally does `popupNode?.remove(); popupNode = null;` then re-`appendChild`s a freshly built node on every engine emit, while the cheatsheet backdrop is appended once on open and left in place. Since `.wk-popup` and `.wk-backdrop` share `z-index: 50`, painting order falls to **DOM order** — so once the cheatsheet is open, the next popup render lands _after_ the backdrop and the popup paints on top of the full-screen overlay. React reconciles in place and honours the JSX order, so there the backdrop correctly covers the popup: a renderer divergence. While the popup is open, each continuation keypress also discards the entire panel and allocates a fresh subtree (full detach/reattach, style recalc, visible flicker).
 
 **RISK: HIGH — write the RED test first and commit it separately.**
 
 **Constraints:**
+
 - The host must use `${prefix}-`, never a hardcoded `wk-` — `classPrefix` threads through every vanilla class write.
 - `unmount()` must remove the host.
-- The host is a **wrapper**, so give it no `wk-popup` class of its own (that class carries `position: fixed` and the panel styling). Use a neutral `${prefix}-popup-host` and leave the styling on the inner node. Since the host is a positioning-neutral empty wrapper around a `position: fixed` child, it needs no CSS rule — but **note it for Task 19**, whose mechanical class-contract test will otherwise flag it. Task 19's test should scan only classes on *rendered content* elements, or the host class gets an explicit rule.
+- The host is a **wrapper**, so give it no `wk-popup` class of its own (that class carries `position: fixed` and the panel styling). Use a neutral `${prefix}-popup-host` and leave the styling on the inner node. Since the host is a positioning-neutral empty wrapper around a `position: fixed` child, it needs no CSS rule — but **note it for Task 19**, whose mechanical class-contract test will otherwise flag it. Task 19's test should scan only classes on _rendered content_ elements, or the host class gets an explicit rule.
 
 - [ ] **Step 1: Write the failing characterization test**
 
@@ -2000,8 +2087,8 @@ describe('mountWhichKey — stable popup host [B18]', () => {
     const ui = mountWhichKey(wk);
     wk.start();
 
-    press('?');                                   // open the cheatsheet
-    press('g');                                   // then start a sequence
+    press('?'); // open the cheatsheet
+    press('g'); // then start a sequence
     vi.advanceTimersByTime(500);
 
     const popup = document.querySelector('.wk-popup')!;
@@ -2066,54 +2153,58 @@ git commit -m "test: characterize vanilla popup stacking and churn before fix [B
 In `src/vanilla/mount.ts`, replace the `popupNode` state and the popup half of `render` with a stable host created and appended at mount time:
 
 ```ts
-  // A stable host appended ONCE, before any cheatsheet backdrop. The previous
-  // code removed and re-appended the popup on every emit, so once the
-  // cheatsheet was open the popup landed AFTER the backdrop in DOM order —
-  // and since both share a z-index, DOM order decides painting, so the popup
-  // drew on top of the full-screen overlay. React reconciles in place and
-  // does not have this bug; this keeps the two renderers in agreement. It
-  // also stops a full detach/reattach + style recalc on every keystroke.
-  const popupHost = document.createElement('div');
-  popupHost.className = `${prefix}-popup-host`;
-  popupHost.hidden = true;
-  if (popupOpts) container.appendChild(popupHost);
+// A stable host appended ONCE, before any cheatsheet backdrop. The previous
+// code removed and re-appended the popup on every emit, so once the
+// cheatsheet was open the popup landed AFTER the backdrop in DOM order —
+// and since both share a z-index, DOM order decides painting, so the popup
+// drew on top of the full-screen overlay. React reconciles in place and
+// does not have this bug; this keeps the two renderers in agreement. It
+// also stops a full detach/reattach + style recalc on every keystroke.
+const popupHost = document.createElement('div');
+popupHost.className = `${prefix}-popup-host`;
+popupHost.hidden = true;
+if (popupOpts) container.appendChild(popupHost);
 
-  let cheatsheetNode: HTMLElement | null = null;
-  let cheatsheetDestroy: (() => void) | null = null;
+let cheatsheetNode: HTMLElement | null = null;
+let cheatsheetDestroy: (() => void) | null = null;
 
-  const onEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') engine.closeCheatsheet(); };
+const onEscape = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') engine.closeCheatsheet();
+};
 
-  const render = () => {
-    const snap = engine.getSnapshot();
-    // Popup — replace children in place; never move the host.
-    if (popupOpts) {
-      const node = renderPopup(prefix, snap, popupOpts);
-      if (node) {
-        popupHost.replaceChildren(node);
-        popupHost.hidden = false;
-      } else {
-        popupHost.replaceChildren();
-        popupHost.hidden = true;
-      }
+const render = () => {
+  const snap = engine.getSnapshot();
+  // Popup — replace children in place; never move the host.
+  if (popupOpts) {
+    const node = renderPopup(prefix, snap, popupOpts);
+    if (node) {
+      popupHost.replaceChildren(node);
+      popupHost.hidden = false;
+    } else {
+      popupHost.replaceChildren();
+      popupHost.hidden = true;
     }
-    // Cheatsheet — unchanged from here down.
-    if (showCheatsheet) {
-      if (snap.cheatsheet.visible && !cheatsheetNode) {
-        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () => engine.closeCheatsheet());
-        cheatsheetNode = sheet.element;
-        cheatsheetDestroy = sheet.destroy;
-        container.appendChild(cheatsheetNode);
-        (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
-        document.addEventListener('keydown', onEscape);
-      } else if (!snap.cheatsheet.visible && cheatsheetNode) {
-        cheatsheetNode.remove();
-        cheatsheetNode = null;
-        cheatsheetDestroy?.();
-        cheatsheetDestroy = null;
-        document.removeEventListener('keydown', onEscape);
-      }
+  }
+  // Cheatsheet — unchanged from here down.
+  if (showCheatsheet) {
+    if (snap.cheatsheet.visible && !cheatsheetNode) {
+      const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () =>
+        engine.closeCheatsheet(),
+      );
+      cheatsheetNode = sheet.element;
+      cheatsheetDestroy = sheet.destroy;
+      container.appendChild(cheatsheetNode);
+      (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
+      document.addEventListener('keydown', onEscape);
+    } else if (!snap.cheatsheet.visible && cheatsheetNode) {
+      cheatsheetNode.remove();
+      cheatsheetNode = null;
+      cheatsheetDestroy?.();
+      cheatsheetDestroy = null;
+      document.removeEventListener('keydown', onEscape);
     }
-  };
+  }
+};
 ```
 
 and in `unmount()` replace `popupNode?.remove();` with `popupHost.remove();`.
@@ -2141,15 +2232,17 @@ git commit -m "fix(frontend): keep a stable vanilla popup host instead of rebuil
 ### Task 18: B26 — expose the overlay z-index as a CSS custom property
 
 **Files:**
+
 - Modify: `src/styles.css:16` (`.wk-popup`) and `:40` (`.wk-backdrop`)
 - Create: `src/__tests__/styles-contract.test.ts`
 - Modify: `README.md` (Styling section, around line 216)
 - Modify: `bughunt.md` (strip B26)
 
 **Interfaces:**
+
 - Produces: two documented CSS custom properties — `--wk-z-index` (default `1000`) and `--wk-z-index-backdrop` (defaults to `--wk-z-index`). Consumers set them on `:root` or any ancestor.
 
-**The bug:** `.wk-popup` and `.wk-backdrop` both use a literal `z-index: 50`. This library renders *over* someone else's app, but 50 is below the stacking layer every major UI kit uses for modals (Bootstrap `.modal` 1055, MUI modal 1300, Ant Design 1000). A consumer who presses `?` while any such dialog is open gets the cheatsheet rendered behind it and unreachable. Because both which-key layers use the identical value, DOM order alone decides popup-vs-backdrop ordering — which is what made B18 observable. There is no custom property, so overriding requires out-specifying two selectors from the shipped sheet.
+**The bug:** `.wk-popup` and `.wk-backdrop` both use a literal `z-index: 50`. This library renders _over_ someone else's app, but 50 is below the stacking layer every major UI kit uses for modals (Bootstrap `.modal` 1055, MUI modal 1300, Ant Design 1000). A consumer who presses `?` while any such dialog is open gets the cheatsheet rendered behind it and unreachable. Because both which-key layers use the identical value, DOM order alone decides popup-vs-backdrop ordering — which is what made B18 observable. There is no custom property, so overriding requires out-specifying two selectors from the shipped sheet.
 
 **RISK: HIGH — write the RED test first and commit it separately.**
 
@@ -2170,7 +2263,10 @@ const css = readFileSync(join(root, 'src/styles.css'), 'utf8');
 /** Body of the first rule whose selector list exactly matches `selector`. */
 const ruleBody = (selector: string): string => {
   const match = css.match(
-    new RegExp(`(^|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm'),
+    new RegExp(
+      `(^|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
+      'm',
+    ),
   );
   if (!match) throw new Error(`No rule found for selector ${selector}`);
   return match[2];
@@ -2217,13 +2313,15 @@ git commit -m "test: characterize the hardcoded overlay z-index before fix [B26]
 In `src/styles.css`, change `.wk-popup`'s `z-index: 50;` to:
 
 ```css
-  z-index: var(--wk-z-index, 1000);
+z-index: var(--wk-z-index, 1000);
 ```
 
 and `.wk-backdrop`'s line to:
 
 ```css
-  position: fixed; inset: 0; z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));
+position: fixed;
+inset: 0;
+z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));
 ```
 
 Add a short comment above `.wk-popup` explaining the default:
@@ -2238,24 +2336,26 @@ Add a short comment above `.wk-popup` explaining the default:
 
 In the Styling section of `README.md` (around line 216), after the class table, add:
 
-```markdown
+````markdown
 ### Stacking order
 
 The overlay's `z-index` is exposed as a CSS custom property so you can place which-key relative to your own modal layer without out-specifying the shipped selectors:
 
-| Property                 | Default             | Applies to     |
-|--------------------------|---------------------|----------------|
-| `--wk-z-index`           | `1000`              | `.wk-popup`, and `.wk-backdrop` unless overridden |
-| `--wk-z-index-backdrop`  | `var(--wk-z-index)` | `.wk-backdrop` only |
+| Property                | Default             | Applies to                                        |
+| ----------------------- | ------------------- | ------------------------------------------------- |
+| `--wk-z-index`          | `1000`              | `.wk-popup`, and `.wk-backdrop` unless overridden |
+| `--wk-z-index-backdrop` | `var(--wk-z-index)` | `.wk-backdrop` only                               |
 
 ```css
 :root {
   --wk-z-index: 1400; /* above MUI's modal layer (1300) */
 }
 ```
+````
 
 The default of `1000` clears Ant Design's modal layer but sits below Bootstrap's `.modal` (1055) and MUI's modal (1300) — raise it if you need the cheatsheet over one of those.
-```
+
+````
 
 - [ ] **Step 6: Run tests to verify GREEN**
 
@@ -2272,22 +2372,24 @@ Confirm `dist/styles.css` was copied with the change: `grep -n 'wk-z-index' dist
 ```bash
 git add src/styles.css src/__tests__/styles-contract.test.ts README.md bughunt.md
 git commit -m "fix(frontend): expose the overlay z-index as a CSS custom property [B26]"
-```
+````
 
 ---
 
-### Task 19: B40 — define the missing wk-cheatsheet__section rule
+### Task 19: B40 — define the missing wk-cheatsheet\_\_section rule
 
 **Files:**
+
 - Modify: `src/styles.css` (add `.wk-cheatsheet__section` next to `.wk-cheatsheet__sections` at line 51)
 - Modify: `src/__tests__/styles-contract.test.ts` (extend with the mechanical emitted-vs-defined check)
 - Modify: `bughunt.md` (strip B40)
 
 **Interfaces:**
+
 - Consumes: the class literals emitted by `src/react/**` and `src/vanilla/**`.
 - Produces: a stylesheet where every emitted `wk-*` content class has a rule — and a test that keeps it that way.
 
-**The bug:** both `ShortcutCheatsheet.tsx:75` and `vanilla/cheatsheet.ts:65` emit `wk-cheatsheet__section` on the per-group `<section>`, but `src/styles.css` has no `.wk-cheatsheet__section` selector — it defines the *plural* `.wk-cheatsheet__sections` container at line 51 and every other cheatsheet child. It is the only class either renderer emits that the shipped theme does not define, so the theme is contractually incomplete: a consumer inspecting the DOM finds a hook the default theme silently ignores. Visually benign today because the flex-column parent supplies the spacing.
+**The bug:** both `ShortcutCheatsheet.tsx:75` and `vanilla/cheatsheet.ts:65` emit `wk-cheatsheet__section` on the per-group `<section>`, but `src/styles.css` has no `.wk-cheatsheet__section` selector — it defines the _plural_ `.wk-cheatsheet__sections` container at line 51 and every other cheatsheet child. It is the only class either renderer emits that the shipped theme does not define, so the theme is contractually incomplete: a consumer inspecting the DOM finds a hook the default theme silently ignores. Visually benign today because the flex-column parent supplies the spacing.
 
 **Already done, verify don't duplicate:** `wk-cheatsheet__section` is **already listed** in both class tables (`README.md` Styling and `docs/API.md` "CSS class contract"). Check before editing — the finding's proposed doc change is already satisfied. Only the CSS rule and the guard test are missing.
 
@@ -2325,8 +2427,8 @@ const emittedClasses = (): Set<string> => {
 describe('styles.css — every emitted class has a rule [B40]', () => {
   // Structural wrappers that deliberately carry no styling.
   const EXEMPT = new Set([
-    'wk-popup-host',       // positioning-neutral wrapper added in B18; the
-                           // styled node is its `.wk-popup` child.
+    'wk-popup-host', // positioning-neutral wrapper added in B18; the
+    // styled node is its `.wk-popup` child.
     'wk-cheatsheet-title', // an id, not a class (aria-labelledby target).
   ]);
 
@@ -2350,7 +2452,10 @@ Expected: FAIL with `missing` containing `wk-cheatsheet__section`. If it also li
 In `src/styles.css`, immediately after the `.wk-cheatsheet__sections` rule (line 51), add:
 
 ```css
-.wk-cheatsheet__section { display: block; break-inside: avoid; }
+.wk-cheatsheet__section {
+  display: block;
+  break-inside: avoid;
+}
 ```
 
 `break-inside: avoid` keeps a group's heading and its list together if a consumer ever prints the sheet or lays it out in columns — a deliberate rule rather than a placeholder, which is what makes the class a real hook.
@@ -2388,12 +2493,14 @@ git commit -m "fix(frontend): define the missing wk-cheatsheet__section rule [B4
 ### Task 20: B32 — warn and no-op on a duplicate mountWhichKey for one container
 
 **Files:**
+
 - Modify: `src/vanilla/mount.ts` (module scope + `mountWhichKey` head + `unmount`)
 - Test: `src/vanilla/__tests__/mount.test.ts`
 - Modify: `docs/API.md` (the `mountWhichKey` section, around line 293)
 - Modify: `bughunt.md` (strip B32)
 
 **Interfaces:**
+
 - Produces: `mountWhichKey(engine, options?)` — **return type unchanged**. A second mount on a container that already has a live mount warns and returns a **no-op handle** (`{ unmount() {} }`), leaving the first mount untouched. `unmount()` is idempotent and clears the container's entry.
 
 **The bug:** nothing tracks whether a container already has a renderer attached. Calling `mountWhichKey(wk)` twice — a hot-reload re-run, a component that mounts on route change without unmounting, two modules wiring the same engine — yields two subscriptions and two nodes appended to `document.body`, both carrying `data-testid="whichkey-popup"` and `role="dialog" aria-label="Keyboard shortcuts"`. Two same-labelled dialogs is an a11y defect, the escape listener is registered twice, and the first `unmount()` leaves the second renderer live.
@@ -2417,12 +2524,14 @@ describe('mountWhichKey — double-mount guard [B32]', () => {
     const second = mountWhichKey(wk);
     wk.start();
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] mountWhichKey called twice'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] mountWhichKey called twice'),
+    );
     press('g');
     vi.advanceTimersByTime(500);
     expect(document.querySelectorAll('[data-testid="whichkey-popup"]')).toHaveLength(1);
 
-    second.unmount();   // the no-op handle must not tear down the live mount
+    second.unmount(); // the no-op handle must not tear down the live mount
     press('?');
     expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
 
@@ -2483,34 +2592,34 @@ const mountedContainers = new WeakSet<HTMLElement>();
 At the top of `mountWhichKey`, right after `const container = ...`:
 
 ```ts
-  if (mountedContainers.has(container)) {
-    console.warn(
-      '[whichkey] mountWhichKey called twice for the same container; ' +
-        'the previous mount is still active. Call unmount() on it first. ' +
-        'This call is a no-op.',
-    );
-    return { unmount() {} };
-  }
-  mountedContainers.add(container);
+if (mountedContainers.has(container)) {
+  console.warn(
+    '[whichkey] mountWhichKey called twice for the same container; ' +
+      'the previous mount is still active. Call unmount() on it first. ' +
+      'This call is a no-op.',
+  );
+  return { unmount() {} };
+}
+mountedContainers.add(container);
 ```
 
 Make `unmount` idempotent and release the container:
 
 ```ts
-  let unmounted = false;
-  return {
-    unmount() {
-      if (unmounted) return;
-      unmounted = true;
-      mountedContainers.delete(container);
-      unsubscribe();
-      popupHost.remove();
-      cheatsheetNode?.remove();
-      cheatsheetDestroy?.();
-      cheatsheetDestroy = null;
-      document.removeEventListener('keydown', onEscape);
-    },
-  };
+let unmounted = false;
+return {
+  unmount() {
+    if (unmounted) return;
+    unmounted = true;
+    mountedContainers.delete(container);
+    unsubscribe();
+    popupHost.remove();
+    cheatsheetNode?.remove();
+    cheatsheetDestroy?.();
+    cheatsheetDestroy = null;
+    document.removeEventListener('keydown', onEscape);
+  },
+};
 ```
 
 Note the guard must sit **after** `container` is resolved but **before** any DOM is created or any subscription is taken, so a rejected call allocates nothing.
@@ -2518,7 +2627,7 @@ Note the guard must sit **after** `container` is resolved but **before** any DOM
 - [ ] **Step 5: Run tests to verify GREEN**
 
 Run: `npx vitest run src/vanilla/__tests__/mount.test.ts`
-Expected: PASS. Note the existing suite mounts repeatedly across tests into `document.body`, which the `afterEach` clears via `document.body.innerHTML = ''` — that does *not* clear the WeakSet. Every existing test already calls `ui.unmount()`, which does. If any test does not, add the `unmount()` call to it (a missing teardown, not a test refactor).
+Expected: PASS. Note the existing suite mounts repeatedly across tests into `document.body`, which the `afterEach` clears via `document.body.innerHTML = ''` — that does _not_ clear the WeakSet. Every existing test already calls `ui.unmount()`, which does. If any test does not, add the `unmount()` call to it (a missing teardown, not a test refactor).
 
 - [ ] **Step 6: Document it**
 
@@ -2545,6 +2654,7 @@ and makes the duplicate strictly inert rather than half-live."
 ```
 
 > ### 🚩 Milestone after Task 20
+>
 > Run the full suite: `npm test`. Expected green. On red: bisect within Tasks 16–20, revert the offender, surface the diagnosis.
 
 ---
@@ -2552,12 +2662,14 @@ and makes the duplicate strictly inert rather than half-live."
 ### Task 21: B36 — validate classPrefix and fall back to "wk"
 
 **Files:**
+
 - Modify: `src/vanilla/mount.ts:16` (the `prefix` resolution)
 - Test: `src/vanilla/__tests__/mount.test.ts`
 - Modify: `docs/API.md` (the `classPrefix` row, around line 325)
 - Modify: `bughunt.md` (strip B36)
 
 **Interfaces:**
+
 - Consumes: `MountOptions.classPrefix?: string`.
 - Produces: `prefix` is always a valid CSS identifier stem. An invalid value warns and falls back to `'wk'`.
 
@@ -2618,24 +2730,24 @@ Expected: FAIL — no warning, and `.wk-popup` is absent because the popup carri
 Replace `src/vanilla/mount.ts:16`:
 
 ```ts
-  // The prefix is interpolated raw into every className, so a space splits one
-  // class into several ('my app' -> "my app-popup"), and a leading digit or a
-  // '.'/'#'/':' produces a class that is valid HTML but unselectable without
-  // escaping — either way the consumer's stylesheet silently never applies.
-  const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
-  const requestedPrefix = opts.classPrefix;
-  let prefix = 'wk';
-  if (requestedPrefix !== undefined) {
-    if (CLASS_PREFIX_RE.test(requestedPrefix)) {
-      prefix = requestedPrefix;
-    } else {
-      console.warn(
-        `[whichkey] invalid classPrefix "${requestedPrefix}"; ` +
-          'must be a valid CSS identifier stem (letters, digits, "-", "_"; not starting with a digit). ' +
-          'Falling back to "wk".',
-      );
-    }
+// The prefix is interpolated raw into every className, so a space splits one
+// class into several ('my app' -> "my app-popup"), and a leading digit or a
+// '.'/'#'/':' produces a class that is valid HTML but unselectable without
+// escaping — either way the consumer's stylesheet silently never applies.
+const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
+const requestedPrefix = opts.classPrefix;
+let prefix = 'wk';
+if (requestedPrefix !== undefined) {
+  if (CLASS_PREFIX_RE.test(requestedPrefix)) {
+    prefix = requestedPrefix;
+  } else {
+    console.warn(
+      `[whichkey] invalid classPrefix "${requestedPrefix}"; ` +
+        'must be a valid CSS identifier stem (letters, digits, "-", "_"; not starting with a digit). ' +
+        'Falling back to "wk".',
+    );
   }
+}
 ```
 
 Hoist `CLASS_PREFIX_RE` to module scope rather than reallocating it per call.
@@ -2669,6 +2781,7 @@ git commit -m "fix(api-surface): validate classPrefix and fall back to \"wk\" [B
 ### Task 22: B25 — export PopupOptions and WhichKeyMountHandle from which-key/vanilla
 
 **Files:**
+
 - Modify: `src/vanilla/mount.ts` (add and use the `WhichKeyMountHandle` type)
 - Modify: `src/vanilla/index.ts:1-2`
 - Test: `src/engine/__tests__/package-exports.test.ts` or a new assertion in the vanilla suite
@@ -2676,12 +2789,13 @@ git commit -m "fix(api-surface): validate classPrefix and fall back to \"wk\" [B
 - Modify: `bughunt.md` (strip B25)
 
 **Interfaces:**
+
 - Produces, from `which-key/vanilla`:
   - `export type { PopupOptions }` — `{ layout: 'vertical' | 'horizontal'; maxRows: number; backgroundOpacity: number }`
   - `export type WhichKeyMountHandle = { unmount(): void }`, and `mountWhichKey`'s declared return type becomes `WhichKeyMountHandle`.
 - Both **additive** — existing structural usage keeps compiling.
 
-**The bug:** `docs/API.md` types the `popup` option as `Partial<PopupOptions> | false` and gives `PopupOptions` its own table, but `src/vanilla/index.ts` only re-exports `mountWhichKey` and `MountOptions`. Confirmed in the shipped declarations: `dist/vanilla/index.d.ts` *declares* `type PopupOptions` (it must, since `MountOptions` references it) but the terminal export list leaves it unnamed. A consumer writing `function popupCfg(): Partial<PopupOptions>` cannot import the type and must retype it by hand. Same gap for the return: an inline anonymous `{ unmount(): void }` with no exported alias, so a consumer cannot annotate the handle they hold.
+**The bug:** `docs/API.md` types the `popup` option as `Partial<PopupOptions> | false` and gives `PopupOptions` its own table, but `src/vanilla/index.ts` only re-exports `mountWhichKey` and `MountOptions`. Confirmed in the shipped declarations: `dist/vanilla/index.d.ts` _declares_ `type PopupOptions` (it must, since `MountOptions` references it) but the terminal export list leaves it unnamed. A consumer writing `function popupCfg(): Partial<PopupOptions>` cannot import the type and must retype it by hand. Same gap for the return: an inline anonymous `{ unmount(): void }` with no exported alias, so a consumer cannot annotate the handle they hold.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2754,19 +2868,21 @@ In `docs/API.md`, change the `mountWhichKey` heading and signature to name the h
 
 Update the TOC entry to match, and add after the `PopupOptions` table:
 
-```markdown
+````markdown
 **`WhichKeyMountHandle`** (the return value):
 
 ```ts
 type WhichKeyMountHandle = { unmount(): void };
 ```
+````
 
 Both `PopupOptions` and `WhichKeyMountHandle` are exported as types from `which-key/vanilla`:
 
 ```ts
 import type { MountOptions, PopupOptions, WhichKeyMountHandle } from 'which-key/vanilla';
 ```
-```
+
+````
 
 - [ ] **Step 7: Full verification**
 
@@ -2777,7 +2893,7 @@ Run: `npm run lint && npm run typecheck && npm test && npm run build`
 ```bash
 git add src/vanilla docs/API.md bughunt.md
 git commit -m "fix(api-surface): export PopupOptions and WhichKeyMountHandle from which-key/vanilla [B25]"
-```
+````
 
 ---
 
@@ -2786,10 +2902,12 @@ git commit -m "fix(api-surface): export PopupOptions and WhichKeyMountHandle fro
 ### Task 23: B39 — correct the vanilla example's cheatsheet selectors
 
 **Files:**
+
 - Modify: `examples/vanilla/index.html` (inline `<style>` around lines 42–52; unpkg specifiers at 108–109)
 - Modify: `bughunt.md` (strip B39)
 
 **Interfaces:**
+
 - Consumes: the class names emitted by `src/vanilla/cheatsheet.ts` and `src/vanilla/popup.ts`.
 - Produces: a demo whose inline stylesheet matches the real class contract.
 
@@ -2849,16 +2967,18 @@ git commit -m "fix(frontend): correct the vanilla example's cheatsheet selectors
 ### Task 24: B43 — drop the dead .npmignore and fix the README API link
 
 **Files:**
+
 - Delete: `.npmignore`
 - Modify: `README.md:254` (the `docs/API.md` link)
 - Modify: `bughunt.md` (strip B43)
 
 **Interfaces:**
+
 - Produces: `package.json` `files` is the single source of truth for tarball contents; the README's "full reference" link resolves from a `node_modules` copy and from npmjs.com.
 
 **The bug:** both `.npmignore` and `package.json` `files` are present; **`files` wins**, so `.npmignore` is dead config a future maintainer will edit expecting an effect. Verified via `npm pack --dry-run`: the tarball is exactly LICENSE, README.md, package.json and `dist/**` (18 files), so nothing needed is dropped. But `README.md:254` links `[docs/API.md](./docs/API.md)` and `docs/` is **not** in `files`, so the reference the README calls "the full reference" ships as a dangling relative link in the installed package and on npmjs.com.
 
-**Choice, made deliberately:** use an absolute GitHub URL rather than adding `"docs"` to `files`. It keeps the tarball lean *and* fixes rendering on npmjs.com, which a bundled file would not — npmjs.com renders the README but does not serve sibling files from the tarball.
+**Choice, made deliberately:** use an absolute GitHub URL rather than adding `"docs"` to `files`. It keeps the tarball lean _and_ fixes rendering on npmjs.com, which a bundled file would not — npmjs.com renders the README but does not serve sibling files from the tarball.
 
 - [ ] **Step 1: Record the baseline tarball contents**
 
@@ -2900,7 +3020,7 @@ Use the actual owner/repo from `package.json` `repository`, not a guess. Then ch
 grep -n '](\./\|](docs/' README.md
 ```
 
-Fix each the same way. Relative links to files that *are* in `files` (there are none beyond the README itself) may stay.
+Fix each the same way. Relative links to files that _are_ in `files` (there are none beyond the README itself) may stay.
 
 - [ ] **Step 4: Verify the tarball is unchanged**
 
@@ -2929,10 +3049,12 @@ git commit -m "chore(packaging): drop the dead .npmignore and fix the README API
 ### Task 25: B16 — document the layers API and correct ShortcutOptions drift
 
 **Files:**
+
 - Modify: `docs/API.md` — TOC (lines 3–22), `WhichKeyEngine` section (53–147), React section (194–290), `MountOptions` table (322)
 - Modify: `bughunt.md` (strip B16)
 
 **Interfaces:**
+
 - Consumes: the real signatures in `src/engine/controller.ts` and `src/engine/types.ts` — **read them, do not trust the prose already in the file**.
 - Produces: `docs/API.md` documents the complete public surface.
 
@@ -2948,29 +3070,30 @@ cat src/engine/types.ts                      # ShortcutOptions and friends
 sed -n '1,25p' src/react/WhichKeyLayer.tsx   # WhichKeyLayerProps
 ```
 
-Every signature you write must match these. The design rationale for layers lives in `docs/superpowers/specs/2026-06-17-keybinding-layers-design.md` — read it for the *why* to put in the prose.
+Every signature you write must match these. The design rationale for layers lives in `docs/superpowers/specs/2026-06-17-keybinding-layers-design.md` — read it for the _why_ to put in the prose.
 
 - [ ] **Step 2: Add the two engine methods and the LayerHandle type**
 
 In the `WhichKeyEngine` section, after `#### engine.registerGroup(...)` and before `#### engine.start()`, add:
 
-```markdown
+````markdown
 #### `engine.pushLayer(options?) => LayerHandle`
 
 Pushes a new keybinding layer and returns a handle that owns everything registered through it. This is the recommended way to scope shortcuts to a modal, drawer, or focused pane: `pop()` unregisters every shortcut and group the handle created **and** deactivates the layer, so there is no teardown bookkeeping to get wrong.
 
-| Property    | Type      | Default                | Description                                                                                                  |
-|-------------|-----------|------------------------|--------------------------------------------------------------------------------------------------------------|
+| Property    | Type      | Default                | Description                                                                                                     |
+| ----------- | --------- | ---------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `exclusive` | `boolean` | `false`                | When `true`, this layer raises the block level: entries at a lower level are unreachable unless `global: true`. |
-| `level`     | `number`  | `registry.nextLevel()` | Explicit level ordinal. Must be a non-negative integer; an invalid value warns and falls back to the default.  |
+| `level`     | `number`  | `registry.nextLevel()` | Explicit level ordinal. Must be a non-negative integer; an invalid value warns and falls back to the default.   |
 
 ```ts
 const layer = engine.pushLayer({ exclusive: true });
 layer.register('Escape', close, { description: 'Close dialog' });
 layer.registerGroup('g', { description: 'Go to' });
 // later:
-layer.pop();   // unregisters both, then deactivates the layer
+layer.pop(); // unregisters both, then deactivates the layer
 ```
+````
 
 **`LayerHandle`**
 
@@ -2978,7 +3101,10 @@ layer.pop();   // unregisters both, then deactivates the layer
 type LayerHandle = {
   readonly level: number;
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
-  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  registerGroup(
+    prefix: string,
+    options: { description: string; priority?: number; level?: number },
+  ): () => void;
   pop(): void;
 };
 ```
@@ -2994,6 +3120,7 @@ const deactivate = engine.activateLayer(1, true);
 // ... later
 deactivate();
 ```
+
 ```
 
 - [ ] **Step 3: Correct the ShortcutOptions table**
@@ -3001,8 +3128,10 @@ deactivate();
 In the `engine.register` section, add the two missing rows to the `ShortcutOptions` table (match the existing column layout exactly, and confirm the types against `src/engine/types.ts`):
 
 ```
-| `global`  | `boolean` | `false` | When `true`, this shortcut stays reachable even under an active exclusive layer. |
-| `level`   | `number`  | `0`     | Layer level this registration belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. |
+
+| `global` | `boolean` | `false` | When `true`, this shortcut stays reachable even under an active exclusive layer. |
+| `level` | `number` | `0` | Layer level this registration belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. |
+
 ```
 
 - [ ] **Step 4: Correct the registerGroup table**
@@ -3010,8 +3139,10 @@ In the `engine.register` section, add the two missing rows to the `ShortcutOptio
 Add to the `engine.registerGroup` options table:
 
 ```
+
 | `level` | `number` | `0` | Layer level this group belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. |
-```
+
+````
 
 - [ ] **Step 5: Add the `<WhichKeyLayer>` React section**
 
@@ -3026,16 +3157,17 @@ Scopes every `useShortcut` / `useShortcutGroup` call in its subtree to a nested 
 <WhichKeyLayer exclusive>
   <Dialog />
 </WhichKeyLayer>
-```
+````
 
 **Props** (`WhichKeyLayerProps`):
 
-| Prop        | Type        | Default    | Description                                                                                            |
-|-------------|-------------|------------|----------------------------------------------------------------------------------------------------|
-| `children`  | `ReactNode` | (required) | Subtree whose shortcuts belong to this layer.                                                          |
-| `exclusive` | `boolean`   | `false`    | When `true`, shortcuts at lower levels become unreachable unless registered with `global: true`.       |
+| Prop        | Type        | Default    | Description                                                                                      |
+| ----------- | ----------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| `children`  | `ReactNode` | (required) | Subtree whose shortcuts belong to this layer.                                                    |
+| `exclusive` | `boolean`   | `false`    | When `true`, shortcuts at lower levels become unreachable unless registered with `global: true`. |
 
 The layer's level is derived from React tree depth (`parent.level + 1`), so nesting `<WhichKeyLayer>` components stacks levels. Note that two **sibling** layers under the same parent share a level and therefore do not isolate from each other.
+
 ```
 
 That last sentence is factual and matters to consumers — it is the behaviour recorded in one of the `decision-needed` markers in `bughunt.md`. Document the current behaviour; do not change it.
@@ -3045,12 +3177,16 @@ That last sentence is factual and matters to consumers — it is the behaviour r
 Add to the TOC (lines 3–22), keeping the existing anchor-slug style:
 
 ```
-   - [`engine.pushLayer(options?)`](#enginepushlayeroptions--layerhandle)
-   - [`engine.activateLayer(level, exclusive)`](#engineactivatelayerlevel-exclusive---void)
+
+- [`engine.pushLayer(options?)`](#enginepushlayeroptions--layerhandle)
+- [`engine.activateLayer(level, exclusive)`](#engineactivatelayerlevel-exclusive---void)
+
 ```
 under the Engine group, and:
 ```
-   - [`<WhichKeyLayer>`](#whichkeylayer)
+
+- [`<WhichKeyLayer>`](#whichkeylayer)
+
 ```
 under the React group. Verify each anchor by the heading text it targets — GitHub slugs lowercase the heading, drop punctuation other than hyphens, and replace spaces with hyphens.
 
@@ -3059,8 +3195,10 @@ under the React group. Verify each anchor by the heading text it targets — Git
 In the `MountOptions` table (around line 322), change the `popup` row's Default cell from `{}` to:
 
 ```
+
 `{ layout: 'vertical', maxRows: 5, backgroundOpacity: 0.95 }`
-```
+
+````
 
 Confirm against `src/vanilla/mount.ts` (after Task 16 those defaults come from `DEFAULT_MAX_ROWS`/`DEFAULT_BACKGROUND_OPACITY`, with the same values).
 
@@ -3076,7 +3214,7 @@ Tasks 8, 10, 11, 12 each added a soft-failure. Re-read those sections and confir
 
 ```bash
 grep -n 'export ' src/engine/index.ts src/react/index.ts src/vanilla/index.ts
-```
+````
 
 Every named export in those three files must appear in `docs/API.md` — that is the CLAUDE.md rule. Anything that does not is either a doc gap to fill here or a deliberate "advanced/unstable" item covered by a `decision-needed` marker; if you find one not covered by either, note it in the commit body rather than silently skipping it.
 
@@ -3095,6 +3233,7 @@ git commit -m "docs(api): document the layers API and correct ShortcutOptions dr
 ```
 
 > ### 🚩 Milestone after Task 25
+>
 > Run the full suite: `npm test`. Expected green. On red: bisect within Tasks 21–25, revert the offender, surface the diagnosis.
 
 ---
@@ -3102,16 +3241,18 @@ git commit -m "docs(api): document the layers API and correct ShortcutOptions dr
 ### Task 26: B28 — document the key-canonicalization debugging exports
 
 **Files:**
+
 - Modify: `docs/API.md` (add a Debugging section; expand `engine.registry` at line 142; add a TOC entry)
 - Modify: `bughunt.md` (strip B28)
 
 **Interfaces:**
+
 - Consumes: `parseKey`, `parseSequence`, `eventToCanonical` — **already exported** from `src/engine/index.ts:2` and re-exported through `which-key/react`. No code change.
 - Produces: a Debugging section other docs can link to (Task 28's Troubleshooting checklist points at it).
 
 **The bug:** the three things that silently kill a shortcut — a canonicalization mismatch, an exclusive layer raising `blockLevel`, and a higher-level entry winning `findActive` — are all unobservable from the public API. `docs/API.md:142-144` documents `engine.registry` as nothing more than "Read-only reference to the underlying ShortcutRegistry. Advanced use only." with no members listed, so a developer cannot tell whether `getAllActive()` is supported or internal. Meanwhile `parseKey` and `eventToCanonical` are already exported and are exactly the tool needed — `parseKey('Shift+/')` immediately reveals a `/` mismatch — but neither appears anywhere in `docs/API.md` or `README.md`, so nobody knows they exist.
 
-**Explicitly out of scope:** a richer `registry.explain(keys)` returning *why* a binding is unreachable. That is a new public method, not a doc fix.
+**Explicitly out of scope:** a richer `registry.explain(keys)` returning _why_ a binding is unreachable. That is a new public method, not a doc fix.
 
 - [ ] **Step 1: Verify the exports and their real signatures**
 
@@ -3126,7 +3267,7 @@ Write the documented signatures from these, not from memory.
 
 Add a new top-level section to `docs/API.md`, after "Key-string syntax" and before "CSS class contract":
 
-```markdown
+````markdown
 ## Debugging
 
 When a shortcut "just doesn't fire", it is almost always one of three things: the key string canonicalizes differently than the runtime event, an exclusive layer is blocking it, or another registration is winning. These exports let you check each from the console.
@@ -3138,11 +3279,12 @@ Canonicalize a key string exactly the way registration does. `parseKey` handles 
 ```ts
 import { parseKey, parseSequence } from 'which-key';
 
-parseKey('Shift+/');        // '?'   — the shifted glyph IS the base char
-parseKey('n');              // 'N'
-parseKey('Mod+k');          // 'Cmd+K' on macOS, 'Ctrl+K' elsewhere
-parseSequence('g h');       // ['g', 'h']
+parseKey('Shift+/'); // '?'   — the shifted glyph IS the base char
+parseKey('n'); // 'N'
+parseKey('Mod+k'); // 'Cmd+K' on macOS, 'Ctrl+K' elsewhere
+parseSequence('g h'); // ['g', 'h']
 ```
+````
 
 Both throw for an unparseable string, which is how you tell a typo from a mismatch. (The engine's own `register` catches that and warns instead — see [`engine.register`](#engine-register).)
 
@@ -3165,13 +3307,19 @@ If those two strings differ, that is your bug.
 Lists every shortcut currently winning its bucket — i.e. what would actually fire right now, after level, priority and layer blocking are resolved. Use it to confirm a binding is live and to see which entry won a collision:
 
 ```ts
-console.table(engine.registry.getAllActive().map((e) => ({
-  keys: e.keys, description: e.description, level: e.level, priority: e.priority,
-})));
+console.table(
+  engine.registry.getAllActive().map((e) => ({
+    keys: e.keys,
+    description: e.description,
+    level: e.level,
+    priority: e.priority,
+  })),
+);
 ```
 
 A shortcut you registered that is **absent** from this list is being blocked by an active exclusive layer (register it with `global: true` to punch through) or has lost its bucket to a higher-level or higher-priority entry.
-```
+
+````
 
 - [ ] **Step 3: Expand the `engine.registry` entry**
 
@@ -3181,7 +3329,7 @@ At `docs/API.md:142`, replace the bare "Advanced use only." prose with a pointer
 #### `engine.registry`
 
 Reference to the underlying `ShortcutRegistry`. Advanced use only — treat it as read-only. The supported read method is `getAllActive()`, documented under [Debugging](#debugging). The mutating methods (`register`, `unregister`, `activateLayer`) exist on the class but are driven by the engine; calling them directly bypasses the engine's bookkeeping.
-```
+````
 
 - [ ] **Step 4: Add the TOC entry**
 
@@ -3211,6 +3359,7 @@ git commit -m "docs(api): document the key-canonicalization debugging exports [B
 ### Task 27: B33 — document that classPrefix opts out of the shipped stylesheet
 
 **Files:**
+
 - Modify: `README.md` (Styling section, around line 243)
 - Modify: `docs/API.md` (the `classPrefix` row, around line 325)
 - Modify: `bughunt.md` (strip B33)
@@ -3243,7 +3392,7 @@ Setting it opts out of `which-key/styles.css` (which hardcodes `.wk-*`) — supp
 grep -n 'classPrefix' README.md docs/API.md
 ```
 
-Every mention must be consistent with the new note. In particular, if the Styling intro says classes use "the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`)", that phrasing implies the shipped sheet follows the prefix — reword it to make clear the *contract* follows the prefix while the *shipped stylesheet* does not.
+Every mention must be consistent with the new note. In particular, if the Styling intro says classes use "the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`)", that phrasing implies the shipped sheet follows the prefix — reword it to make clear the _contract_ follows the prefix while the _shipped stylesheet_ does not.
 
 - [ ] **Step 4: Verify**
 
@@ -3261,11 +3410,13 @@ git commit -m "docs(styling): document that classPrefix opts out of the shipped 
 ### Task 28: B35 — add a README troubleshooting section and warning reference
 
 **Files:**
+
 - Modify: `README.md` (new `## Troubleshooting` section, before `## API` at line 263)
 - Modify: `docs/API.md` (a warnings subsection under Debugging)
 - Modify: `bughunt.md` (strip B35)
 
 **Interfaces:**
+
 - Consumes: **every** `console.warn` in `src/` as it exists after Tasks 1–27.
 - Produces: the documentation entry point for "nothing happens".
 
@@ -3287,7 +3438,7 @@ Expect roughly ten sites after this batch: the pre-existing same-level collision
 
 Insert before `## API` (line 263):
 
-```markdown
+````markdown
 ## Troubleshooting
 
 which-key's failure mode is almost always "nothing happens". Work down this list.
@@ -3308,6 +3459,7 @@ document.addEventListener('keydown', (e) => {
   console.log('pressed:', eventToCanonical(e), 'registered:', parseKey('Shift+/'));
 });
 ```
+````
 
 If those two differ, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped when the shifted glyph is already the base char (`'Shift+/'` → `'?'`); and special key names being **case-sensitive and exact** — `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. Use the exact `KeyboardEvent.key` spelling.
 
@@ -3320,7 +3472,8 @@ Multiple components may bind the same key. The winner is decided by **level, the
 ### Console warnings
 
 which-key writes diagnostics to the console prefixed with `[whichkey]`. They are advisory — none of them throws. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
-```
+
+````
 
 Use the real repository URL from `package.json` for that last link, matching the form Task 24 established.
 
@@ -3352,7 +3505,7 @@ Every diagnostic is prefixed `[whichkey]`. All of them are advisory — the libr
 - A key string that canonicalizes differently than the runtime event (see [`eventToCanonical`](#eventtocanonicalevent)). In particular, special-key base names are case-sensitive and exact: `'escape'`, `'esc'`, `'up'`, `'f1'` register successfully but can never match a real event.
 - A binding shadowed by an active exclusive layer (see [`engine.registry.getAllActive()`](#engineregistrygetallactive)).
 - A shortcut suppressed because focus is in a text field and `enableOnInputs` is `false`.
-```
+````
 
 Every row's text must match the real message from Step 1. If a message you wrote in an earlier task reads badly here, **fix the message in the source** and re-run that task's tests — this is the last chance to make the consumer-facing copy coherent.
 
@@ -3413,6 +3566,7 @@ npm run lint && npm run typecheck && npm test && npm run build && npm pack --dry
 ```
 
 Expected:
+
 - lint: 0 errors, 0 warnings
 - typecheck: clean
 - tests: all passing, with **more** than the 244 baseline (this batch adds roughly 40 tests)

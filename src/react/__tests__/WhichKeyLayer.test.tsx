@@ -102,7 +102,13 @@ describe('<WhichKeyLayer> outside a provider [B24]', () => {
 
   it('warns and does not throw outside a provider', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(() => render(<WhichKeyLayer><span /></WhichKeyLayer>)).not.toThrow();
+    expect(() =>
+      render(
+        <WhichKeyLayer>
+          <span />
+        </WhichKeyLayer>,
+      ),
+    ).not.toThrow();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyLayer>'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
     warn.mockRestore();

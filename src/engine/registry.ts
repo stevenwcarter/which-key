@@ -53,7 +53,8 @@ export class ShortcutRegistry {
     // own level, independent of which one findActive ends up crowning.
     const block = this.blockLevel();
     const rival = bucket.find(
-      (e) => e.id !== entry.id && e.level === entry.level && e.enabled && this.isReachable(e, block),
+      (e) =>
+        e.id !== entry.id && e.level === entry.level && e.enabled && this.isReachable(e, block),
     );
     if (rival !== undefined) {
       const winner = this.findActive(bucket);

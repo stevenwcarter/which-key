@@ -10,7 +10,10 @@ export type WhichKeyProviderProps = {
 };
 
 export const WhichKeyProvider = ({
-  children, timeoutMs = 500, helpKey = '?', sortKeys,
+  children,
+  timeoutMs = 500,
+  helpKey = '?',
+  sortKeys,
 }: WhichKeyProviderProps) => {
   // Lazy initializer runs once on mount and is ignored thereafter, same as the
   // former ref-based lazy-init — but doesn't read a ref during render, which

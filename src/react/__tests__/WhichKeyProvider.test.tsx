@@ -40,7 +40,11 @@ describe('WhichKeyProvider', () => {
     // ADAPTED: engine.registry replaces ctx.registry
     expect(captured!.registry).toBeDefined();
     // ADAPTED: engine.getSnapshot().popup replaces ctx.popupState
-    expect(captured!.getSnapshot().popup).toEqual({ visible: false, currentSequence: [], candidates: [] });
+    expect(captured!.getSnapshot().popup).toEqual({
+      visible: false,
+      currentSequence: [],
+      candidates: [],
+    });
     // ADAPTED: engine.cancel replaces ctx.cancel
     expect(typeof captured!.cancel).toBe('function');
   });
@@ -81,7 +85,12 @@ describe('WhichKeyProvider', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -142,8 +151,15 @@ describe('WhichKeyProvider', () => {
 
   it('starts the engine on mount and stops it on unmount', () => {
     const fn = vi.fn();
-    const P = () => { useShortcut('x', fn); return null; };
-    const { unmount } = render(<WhichKeyProvider><P /></WhichKeyProvider>);
+    const P = () => {
+      useShortcut('x', fn);
+      return null;
+    };
+    const { unmount } = render(
+      <WhichKeyProvider>
+        <P />
+      </WhichKeyProvider>,
+    );
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
     expect(fn).toHaveBeenCalledTimes(1);
     unmount();
@@ -173,7 +189,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -204,7 +225,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>;
     };
@@ -229,7 +255,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>;
     };
@@ -251,7 +282,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -297,7 +333,9 @@ describe('WhichKeyProvider — invalid helpKey [B23]', () => {
     let result: ReturnType<typeof render> | undefined;
     expect(() => {
       result = render(
-        <WhichKeyProvider helpKey="Hyper+/"><div data-testid="alive">ok</div></WhichKeyProvider>,
+        <WhichKeyProvider helpKey="Hyper+/">
+          <div data-testid="alive">ok</div>
+        </WhichKeyProvider>,
       );
     }).not.toThrow();
     expect(result!.getByTestId('alive')).toBeInTheDocument();

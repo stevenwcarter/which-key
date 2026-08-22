@@ -26,7 +26,8 @@ const mountedContainers = new WeakSet<HTMLElement>();
 const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
 
 export const mountWhichKey = (
-  engine: WhichKeyEngine, opts: MountOptions = {},
+  engine: WhichKeyEngine,
+  opts: MountOptions = {},
 ): WhichKeyMountHandle => {
   const container = opts.container ?? document.body;
 
@@ -55,11 +56,14 @@ export const mountWhichKey = (
     }
   }
   const showCheatsheet = opts.cheatsheet ?? true;
-  const popupOpts: PopupOptions | null = opts.popup === false ? null : {
-    layout: opts.popup?.layout ?? 'vertical',
-    maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
-    backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
-  };
+  const popupOpts: PopupOptions | null =
+    opts.popup === false
+      ? null
+      : {
+          layout: opts.popup?.layout ?? 'vertical',
+          maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
+          backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
+        };
 
   // A stable host appended ONCE, before any cheatsheet backdrop. The previous
   // code removed and re-appended the popup on every emit, so once the
@@ -76,7 +80,9 @@ export const mountWhichKey = (
   let cheatsheetNode: HTMLElement | null = null;
   let cheatsheetDestroy: (() => void) | null = null;
 
-  const onEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') engine.closeCheatsheet(); };
+  const onEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') engine.closeCheatsheet();
+  };
 
   const render = () => {
     const snap = engine.getSnapshot();
@@ -94,7 +100,9 @@ export const mountWhichKey = (
     // Cheatsheet
     if (showCheatsheet) {
       if (snap.cheatsheet.visible && !cheatsheetNode) {
-        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () => engine.closeCheatsheet());
+        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () =>
+          engine.closeCheatsheet(),
+        );
         cheatsheetNode = sheet.element;
         cheatsheetDestroy = sheet.destroy;
         container.appendChild(cheatsheetNode);

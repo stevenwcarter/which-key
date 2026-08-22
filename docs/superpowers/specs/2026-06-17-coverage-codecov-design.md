@@ -14,15 +14,15 @@ Replace the plain Vitest test run with a coverage-enabled run that:
 
 ## Decisions (locked during brainstorming)
 
-| Decision | Choice |
-|----------|--------|
-| Coverage provider | `@vitest/coverage-v8` (V8 native, the Vitest default) |
-| Gated metrics | All four — lines, statements, functions, branches — at 80% |
-| Threshold scope | **Global** (a single "limit", not per-file) |
-| Coverage denominator | `all: true` over `src/**` — untested real code counts |
-| Exceed-80 handling | Clear the gated metrics with real tests; do **not** lower the gate to fit current coverage. No mandated buffer above 80. |
-| Codecov upload | Once per CI run; `fail_ci_if_error: false` (local gate already fails the build) |
-| CI Node version | **Node 24 only** — Node 20 job removed (past EOL); matrix dropped |
+| Decision             | Choice                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Coverage provider    | `@vitest/coverage-v8` (V8 native, the Vitest default)                                                                    |
+| Gated metrics        | All four — lines, statements, functions, branches — at 80%                                                               |
+| Threshold scope      | **Global** (a single "limit", not per-file)                                                                              |
+| Coverage denominator | `all: true` over `src/**` — untested real code counts                                                                    |
+| Exceed-80 handling   | Clear the gated metrics with real tests; do **not** lower the gate to fit current coverage. No mandated buffer above 80. |
+| Codecov upload       | Once per CI run; `fail_ci_if_error: false` (local gate already fails the build)                                          |
+| CI Node version      | **Node 24 only** — Node 20 job removed (past EOL); matrix dropped                                                        |
 
 ## Changes
 

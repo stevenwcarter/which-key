@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { render, act } from '@testing-library/react';
 import { createWhichKey } from '../engine';
 import { mountWhichKey } from '../vanilla';
-import { WhichKeyProvider, useShortcut, useShortcutGroup, WhichKeyPopup, ShortcutCheatsheet } from '../react';
+import {
+  WhichKeyProvider,
+  useShortcut,
+  useShortcutGroup,
+  WhichKeyPopup,
+  ShortcutCheatsheet,
+} from '../react';
 
 // NB: not fileURLToPath(new URL('../../', import.meta.url)) — under this
 // project's jsdom test environment, `URL` is jsdom's global implementation,
@@ -17,14 +23,31 @@ const root = join(import.meta.dirname, '../../') + '/';
 /** The documented CSS class contract. Adding a class to a renderer means adding it here AND to both doc tables. */
 const CONTRACT = [
   'wk-kbd',
-  'wk-popup', 'wk-popup-host', 'wk-popup--vertical', 'wk-popup--horizontal',
-  'wk-popup__header', 'wk-popup__body', 'wk-popup__list', 'wk-popup__grid',
-  'wk-row', 'wk-row--group', 'wk-row__label',
-  'wk-sequence', 'wk-sequence__ellipsis',
-  'wk-backdrop', 'wk-cheatsheet', 'wk-cheatsheet__close', 'wk-cheatsheet__title',
-  'wk-cheatsheet__sections', 'wk-cheatsheet__section',
-  'wk-cheatsheet__list', 'wk-cheatsheet__list--nested', 'wk-cheatsheet__item',
-  'wk-cheatsheet__group-title', 'wk-cheatsheet__group-label', 'wk-cheatsheet__hint',
+  'wk-popup',
+  'wk-popup-host',
+  'wk-popup--vertical',
+  'wk-popup--horizontal',
+  'wk-popup__header',
+  'wk-popup__body',
+  'wk-popup__list',
+  'wk-popup__grid',
+  'wk-row',
+  'wk-row--group',
+  'wk-row__label',
+  'wk-sequence',
+  'wk-sequence__ellipsis',
+  'wk-backdrop',
+  'wk-cheatsheet',
+  'wk-cheatsheet__close',
+  'wk-cheatsheet__title',
+  'wk-cheatsheet__sections',
+  'wk-cheatsheet__section',
+  'wk-cheatsheet__list',
+  'wk-cheatsheet__list--nested',
+  'wk-cheatsheet__item',
+  'wk-cheatsheet__group-title',
+  'wk-cheatsheet__group-label',
+  'wk-cheatsheet__hint',
 ] as const;
 
 /**
@@ -100,22 +123,33 @@ const renderReactEverything = (layout: 'vertical' | 'horizontal') => {
       <ReactFixture layout={layout} />
     </WhichKeyProvider>,
   );
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' })); });
-  act(() => { vi.advanceTimersByTime(20); });
+  act(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+  });
+  act(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+  });
+  act(() => {
+    vi.advanceTimersByTime(20);
+  });
   return utils;
 };
 
 describe('CSS class contract', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('vanilla renderer emits exactly the documented class set across both popup layouts', () => {
     const emitted = new Set<string>();
     for (const layout of ['vertical', 'horizontal'] as const) {
       const { wk, ui } = renderEverything(layout);
       for (const c of collectClasses()) emitted.add(c);
-      ui.unmount(); wk.stop(); document.body.innerHTML = '';
+      ui.unmount();
+      wk.stop();
+      document.body.innerHTML = '';
     }
     expect([...emitted].sort()).toEqual([...CONTRACT].sort());
   });
@@ -163,7 +197,9 @@ describe('CSS class contract', () => {
     for (const layout of ['vertical', 'horizontal'] as const) {
       const { wk, ui } = renderEverything(layout);
       for (const c of collectClasses()) emitted.add(c);
-      ui.unmount(); wk.stop(); document.body.innerHTML = '';
+      ui.unmount();
+      wk.stop();
+      document.body.innerHTML = '';
     }
     for (const layout of ['vertical', 'horizontal'] as const) {
       const utils = renderReactEverything(layout);

@@ -1,99 +1,163 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>which-key vanilla example</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>which-key vanilla example</title>
 
-  <!--
+    <!--
     In a real project, import the styles via your bundler:
       import 'which-key/styles.css';
 
     For this standalone HTML file we inline a minimal style to keep it self-contained.
     See which-key/styles.css for the full prebuilt stylesheet.
   -->
-  <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    kbd {
-      display: inline-block;
-      padding: 2px 6px;
-      background: #eee;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      font-size: 0.85em;
-    }
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+      }
+      kbd {
+        display: inline-block;
+        padding: 2px 6px;
+        background: #eee;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 0.85em;
+      }
 
-    /* Minimal which-key popup styles (wk-* classes) */
-    .wk-popup {
-      position: fixed;
-      z-index: 9999;
-      background: rgba(17,24,39,0.95);
-      color: #f9fafb;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 14px;
-    }
-    .wk-popup--vertical { bottom: 16px; right: 16px; min-width: 200px; }
-    .wk-popup--horizontal { bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; }
-    .wk-popup__body { display: flex; align-items: flex-start; gap: 12px; }
-    .wk-popup__grid { display: grid; grid-auto-flow: column; gap: 4px 16px; }
-    .wk-popup__list { list-style: none; margin: 4px 0 0; padding: 0; }
-    .wk-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-    .wk-kbd { background: #374151; border: 1px solid #6b7280; border-radius: 4px; padding: 2px 6px; font-family: monospace; }
-    .wk-sequence { display: flex; align-items: center; gap: 4px; }
-    .wk-sequence__ellipsis { opacity: 0.6; }
-    .wk-backdrop {
-      position: fixed; inset: 0; z-index: 10000;
-      background: rgba(0,0,0,0.8);
-      display: flex; align-items: center; justify-content: center;
-      color: #f9fafb;
-    }
-    .wk-cheatsheet {
-      background: #1f2937;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 600px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-  </style>
-</head>
-<body>
-  <div id="app">
-    <h2>which-key vanilla example</h2>
-    <p>
-      Press <kbd>g</kbd> to see the leader popup, then <kbd>h</kbd> to navigate home.<br />
-      Press <kbd>s</kbd> to save.<br />
-      Press <kbd>?</kbd> to open the full cheatsheet.
-    </p>
-    <p><em>Shortcuts do not fire while a text input has focus (default behaviour).</em></p>
-    <textarea placeholder="Type here… shortcuts are suppressed inside inputs." rows="4" cols="60"></textarea>
-
-    <p style="margin-top:1.5rem;">
-      <button id="open-modal-btn">Open modal (or press <kbd>m</kbd>)</button>
-    </p>
-  </div>
-
-  <!-- Modal — hidden by default; shown via JS below -->
-  <div id="modal" role="dialog" aria-modal="true" aria-label="Item picker" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:8px; padding:2rem; min-width:300px; color:#111;">
-      <h3 style="margin-top:0;">Item picker</h3>
+      /* Minimal which-key popup styles (wk-* classes) */
+      .wk-popup {
+        position: fixed;
+        z-index: 9999;
+        background: rgba(17, 24, 39, 0.95);
+        color: #f9fafb;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      .wk-popup--vertical {
+        bottom: 16px;
+        right: 16px;
+        min-width: 200px;
+      }
+      .wk-popup--horizontal {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 8px 8px 0 0;
+      }
+      .wk-popup__body {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .wk-popup__grid {
+        display: grid;
+        grid-auto-flow: column;
+        gap: 4px 16px;
+      }
+      .wk-popup__list {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+      }
+      .wk-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+      }
+      .wk-kbd {
+        background: #374151;
+        border: 1px solid #6b7280;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: monospace;
+      }
+      .wk-sequence {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .wk-sequence__ellipsis {
+        opacity: 0.6;
+      }
+      .wk-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #f9fafb;
+      }
+      .wk-cheatsheet {
+        background: #1f2937;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <h2>which-key vanilla example</h2>
       <p>
-        Press <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Escape</kbd> to close.<br />
-        Page shortcuts are blocked — try <kbd>s</kbd>; it will not fire.<br />
-        Press <kbd>?</kbd> to open the cheatsheet (global — still works).
+        Press <kbd>g</kbd> to see the leader popup, then <kbd>h</kbd> to navigate home.<br />
+        Press <kbd>s</kbd> to save.<br />
+        Press <kbd>?</kbd> to open the full cheatsheet.
       </p>
-      <ul id="modal-items">
-        <li>Alpha</li>
-        <li>Beta</li>
-        <li>Gamma</li>
-      </ul>
-      <button id="close-modal-btn">Close</button>
-    </div>
-  </div>
+      <p><em>Shortcuts do not fire while a text input has focus (default behaviour).</em></p>
+      <textarea
+        placeholder="Type here… shortcuts are suppressed inside inputs."
+        rows="4"
+        cols="60"
+      ></textarea>
 
-  <!--
+      <p style="margin-top: 1.5rem">
+        <button id="open-modal-btn">Open modal (or press <kbd>m</kbd>)</button>
+      </p>
+    </div>
+
+    <!-- Modal — hidden by default; shown via JS below -->
+    <div
+      id="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Item picker"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="background: #fff; border-radius: 8px; padding: 2rem; min-width: 300px; color: #111"
+      >
+        <h3 style="margin-top: 0">Item picker</h3>
+        <p>
+          Press <kbd>j</kbd>/<kbd>k</kbd> to move, <kbd>Escape</kbd> to close.<br />
+          Page shortcuts are blocked — try <kbd>s</kbd>; it will not fire.<br />
+          Press <kbd>?</kbd> to open the cheatsheet (global — still works).
+        </p>
+        <ul id="modal-items">
+          <li>Alpha</li>
+          <li>Beta</li>
+          <li>Gamma</li>
+        </ul>
+        <button id="close-modal-btn">Close</button>
+      </div>
+    </div>
+
+    <!--
     In a real project use a bundler (Vite, esbuild, webpack, etc.) and import:
 
       import { createWhichKey } from 'which-key';
@@ -102,89 +166,97 @@
 
     This inline script uses unpkg for a zero-setup demo.
   -->
-  <script type="module">
-    // ESM imports from unpkg (replace with local bundler imports in production)
-    import { createWhichKey } from 'https://unpkg.com/which-key@latest?module';
-    import { mountWhichKey } from 'https://unpkg.com/which-key@latest/vanilla?module';
+    <script type="module">
+      // ESM imports from unpkg (replace with local bundler imports in production)
+      import { createWhichKey } from 'https://unpkg.com/which-key@latest?module';
+      import { mountWhichKey } from 'https://unpkg.com/which-key@latest/vanilla?module';
 
-    function save() {
-      console.log('Saved!');
-      alert('Saved!');
-    }
-
-    // 1. Create the engine
-    const wk = createWhichKey({ sortKeys: 'alphabetical' });
-
-    // 2. Register base-layer groups and shortcuts
-    wk.registerGroup('g', { description: 'Go to' });
-    wk.register('g h', () => location.assign('/'), { description: 'Home' });
-    wk.register('s', () => save(), { description: 'Save' });
-    wk.register('Ctrl+s', () => save(), { description: 'Save (Ctrl+S)' });
-
-    // 3. Mount the DOM renderer (does NOT start the engine)
-    mountWhichKey(wk, {
-      popup: { layout: 'horizontal' },
-      cheatsheet: true,
-      container: document.body,
-    });
-
-    // 4. Start the engine (attach the keydown listener)
-    wk.start();
-
-    // -------------------------------------------------------------------------
-    // Modal demo — keybinding layers
-    // -------------------------------------------------------------------------
-    const modal = document.getElementById('modal');
-    const modalItems = document.getElementById('modal-items');
-    let activeLayer = null;
-    let selectedIndex = 0;
-
-    function updateSelection() {
-      const items = modalItems.querySelectorAll('li');
-      items.forEach((li, i) => {
-        li.style.fontWeight = i === selectedIndex ? 'bold' : 'normal';
-      });
-    }
-
-    function openModal() {
-      if (activeLayer) return;
-      selectedIndex = 0;
-      updateSelection();
-      modal.style.display = 'flex';
-
-      // Push an exclusive layer: base-layer shortcuts (s, g h, …) are blocked
-      // while this layer is active. The ? help shortcut is global and still fires.
-      activeLayer = wk.pushLayer({ exclusive: true });
-      const items = modalItems.querySelectorAll('li');
-
-      activeLayer.register('j', () => {
-        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-        updateSelection();
-      }, { description: 'Select next' });
-
-      activeLayer.register('k', () => {
-        selectedIndex = Math.max(selectedIndex - 1, 0);
-        updateSelection();
-      }, { description: 'Select previous' });
-
-      activeLayer.register('Escape', closeModal, { description: 'Close modal' });
-    }
-
-    function closeModal() {
-      modal.style.display = 'none';
-      // Pop the layer: all shortcuts registered on it are removed and the layer
-      // is deactivated; base-layer shortcuts become reachable again.
-      if (activeLayer) {
-        activeLayer.pop();
-        activeLayer = null;
+      function save() {
+        console.log('Saved!');
+        alert('Saved!');
       }
-    }
 
-    // Register the base-layer shortcut that opens the modal
-    wk.register('m', openModal, { description: 'Open modal' });
+      // 1. Create the engine
+      const wk = createWhichKey({ sortKeys: 'alphabetical' });
 
-    document.getElementById('open-modal-btn').addEventListener('click', openModal);
-    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-  </script>
-</body>
+      // 2. Register base-layer groups and shortcuts
+      wk.registerGroup('g', { description: 'Go to' });
+      wk.register('g h', () => location.assign('/'), { description: 'Home' });
+      wk.register('s', () => save(), { description: 'Save' });
+      wk.register('Ctrl+s', () => save(), { description: 'Save (Ctrl+S)' });
+
+      // 3. Mount the DOM renderer (does NOT start the engine)
+      mountWhichKey(wk, {
+        popup: { layout: 'horizontal' },
+        cheatsheet: true,
+        container: document.body,
+      });
+
+      // 4. Start the engine (attach the keydown listener)
+      wk.start();
+
+      // -------------------------------------------------------------------------
+      // Modal demo — keybinding layers
+      // -------------------------------------------------------------------------
+      const modal = document.getElementById('modal');
+      const modalItems = document.getElementById('modal-items');
+      let activeLayer = null;
+      let selectedIndex = 0;
+
+      function updateSelection() {
+        const items = modalItems.querySelectorAll('li');
+        items.forEach((li, i) => {
+          li.style.fontWeight = i === selectedIndex ? 'bold' : 'normal';
+        });
+      }
+
+      function openModal() {
+        if (activeLayer) return;
+        selectedIndex = 0;
+        updateSelection();
+        modal.style.display = 'flex';
+
+        // Push an exclusive layer: base-layer shortcuts (s, g h, …) are blocked
+        // while this layer is active. The ? help shortcut is global and still fires.
+        activeLayer = wk.pushLayer({ exclusive: true });
+        const items = modalItems.querySelectorAll('li');
+
+        activeLayer.register(
+          'j',
+          () => {
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection();
+          },
+          { description: 'Select next' },
+        );
+
+        activeLayer.register(
+          'k',
+          () => {
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            updateSelection();
+          },
+          { description: 'Select previous' },
+        );
+
+        activeLayer.register('Escape', closeModal, { description: 'Close modal' });
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+        // Pop the layer: all shortcuts registered on it are removed and the layer
+        // is deactivated; base-layer shortcuts become reachable again.
+        if (activeLayer) {
+          activeLayer.pop();
+          activeLayer = null;
+        }
+      }
+
+      // Register the base-layer shortcut that opens the modal
+      wk.register('m', openModal, { description: 'Open modal' });
+
+      document.getElementById('open-modal-btn').addEventListener('click', openModal);
+      document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    </script>
+  </body>
 </html>

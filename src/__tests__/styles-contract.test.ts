@@ -16,7 +16,10 @@ const css = readFileSync(join(root, 'src/styles.css'), 'utf8');
 /** Body of the first rule whose selector list exactly matches `selector`. */
 const ruleBody = (selector: string): string => {
   const match = css.match(
-    new RegExp(`(^|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm'),
+    new RegExp(
+      `(^|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
+      'm',
+    ),
   );
   if (!match) throw new Error(`No rule found for selector ${selector}`);
   return match[2];

@@ -27,6 +27,9 @@ describe('server-side rendering', () => {
 
   it('start() is a no-op when there is no document and no explicit target', () => {
     const wk = createWhichKey();
-    expect(() => { wk.start(); wk.stop(); }).not.toThrow();
+    expect(() => {
+      wk.start();
+      wk.stop();
+    }).not.toThrow();
   });
 });

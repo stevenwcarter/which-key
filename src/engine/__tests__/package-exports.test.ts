@@ -30,12 +30,19 @@ describe('package exports', () => {
     const targets: string[] = [];
     for (const sub of SUBPATHS) {
       const entry = pkg.exports[sub] as Record<string, Record<string, string>>;
-      targets.push(entry.import.types, entry.import.default, entry.require.types, entry.require.default);
+      targets.push(
+        entry.import.types,
+        entry.import.default,
+        entry.require.types,
+        entry.require.default,
+      );
     }
     targets.push(pkg.exports['./styles.css'] as string);
     for (const t of targets) {
-      expect({ target: t, exists: existsSync(root + t.replace(/^\.\//, '')) })
-        .toEqual({ target: t, exists: true });
+      expect({ target: t, exists: existsSync(root + t.replace(/^\.\//, '')) }).toEqual({
+        target: t,
+        exists: true,
+      });
     }
   });
 });

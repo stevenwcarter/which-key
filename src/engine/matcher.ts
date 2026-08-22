@@ -52,7 +52,9 @@ export class Matcher {
     // `event.target` would hide the real <input>. composedPath()[0] is the
     // un-retargeted origin, and equals event.target outside shadow DOM.
     const eventTarget =
-      typeof event.composedPath === 'function' ? (event.composedPath()[0] ?? event.target) : event.target;
+      typeof event.composedPath === 'function'
+        ? (event.composedPath()[0] ?? event.target)
+        : event.target;
 
     const key = eventToCanonical(event);
     const prospective = [...this.buffer, key];
