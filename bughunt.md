@@ -52,16 +52,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: validate `opts.level` in `register`/`registerGroup` the same way B34 validates `pushLayer`'s — if supplied and not a non-negative integer, `console.warn` and fall back to `0`. Reuse B34's message shape. Do NOT reject the value outright; soft-fail per the batch convention.
 - [ ] execute   [ ] skip
 
-### B25. PopupOptions is documented as a public type but is not exported from which-key/vanilla: `PopupOptions` (src/vanilla/index.ts:2)
-- Category: api-surface
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: S
-- Risk: low
-- Evidence: docs/API.md:322 types the `popup` option as `Partial<PopupOptions> | false` and :327 gives `PopupOptions` its own table, but src/vanilla/index.ts only re-exports `mountWhichKey` and `MountOptions`. Confirmed in the shipped declarations: `dist/vanilla/index.d.ts` *declares* `type PopupOptions` (it must, since `MountOptions` references it) but the terminal export list leaves it unnamed. A consumer writing `function popupCfg(): Partial<PopupOptions>` cannot import the type and must retype it by hand. Same gap: `mountWhichKey`'s return is an inline anonymous `{ unmount(): void }` with no exported alias, so a consumer cannot annotate the handle they hold.
-- Blast radius: src/vanilla/index.ts:2; src/vanilla/popup.ts:3; src/vanilla/mount.ts:6,14; docs/API.md:322,327
-- Proposed fix: add `export type { PopupOptions } from './popup';` to src/vanilla/index.ts and export a named `WhichKeyMountHandle = { unmount(): void }` from mount.ts, using it as `mountWhichKey`'s declared return type. Both additive — existing structural usage keeps compiling.
-- [x] execute   [ ] skip
-
 ### B28. The debugging exports that answer "why doesn't my shortcut fire" are undocumented: `parseKey` / `eventToCanonical` / `registry` (docs/API.md:142)
 - Category: observability
 - Impact: 6 (severity 2 × blast-radius 3)

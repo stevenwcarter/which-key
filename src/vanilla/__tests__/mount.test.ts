@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../../engine';
 import { mountWhichKey } from '../mount';
+import type { PopupOptions, WhichKeyMountHandle } from '../index';
 
 const press = (key: string) => document.dispatchEvent(new KeyboardEvent('keydown', { key }));
 
@@ -385,5 +386,19 @@ describe('mountWhichKey — classPrefix validation [B36]', () => {
     ui.unmount();
     wk.stop();
     warn.mockRestore();
+  });
+});
+
+describe('which-key/vanilla type exports [B25]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+
+  it('exposes PopupOptions and WhichKeyMountHandle to consumers', () => {
+    const popup: Partial<PopupOptions> = { layout: 'horizontal', maxRows: 3 };
+    const wk = createWhichKey();
+    const handle: WhichKeyMountHandle = mountWhichKey(wk, { popup });
+    expect(typeof handle.unmount).toBe('function');
+    handle.unmount();
+    wk.stop();
   });
 });

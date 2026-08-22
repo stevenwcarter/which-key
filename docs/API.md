@@ -15,7 +15,7 @@
    - [`<WhichKeyPopup>`](#whichkeypopup)
    - [`<ShortcutCheatsheet>`](#shortcutcheatsheet)
 3. [Vanilla — `which-key/vanilla`](#vanilla--which-keyvanilla)
-   - [`mountWhichKey(engine, options?)`](#mountwhichkeyengine-options)
+   - [`mountWhichKey(engine, options?) => WhichKeyMountHandle`](#mountwhichkey)
 4. [Key-string syntax](#key-string-syntax)
 5. [CSS class contract (`wk-*`)](#css-class-contract-wk-)
 
@@ -296,7 +296,7 @@ import { ShortcutCheatsheet } from 'which-key/react';
 
 ## Vanilla — `which-key/vanilla`
 
-### `mountWhichKey(engine, options?) => { unmount() }`
+### <a id="mountwhichkey"></a>`mountWhichKey(engine, options?) => WhichKeyMountHandle`
 
 Subscribes a vanilla-DOM renderer to the engine. Returns an object with an `unmount()` method.
 
@@ -339,6 +339,18 @@ wk.stop();
 | `layout`            | `'vertical' \| 'horizontal'` | `'vertical'` | Popup layout.                      |
 | `maxRows`           | `number`                      | `5`          | Max rows in the horizontal grid.   |
 | `backgroundOpacity` | `number`                      | `0.95`       | Panel alpha (0–1).                 |
+
+**`WhichKeyMountHandle`** (the return value):
+
+```ts
+type WhichKeyMountHandle = { unmount(): void };
+```
+
+Both `PopupOptions` and `WhichKeyMountHandle` are exported as types from `which-key/vanilla`:
+
+```ts
+import type { MountOptions, PopupOptions, WhichKeyMountHandle } from 'which-key/vanilla';
+```
 
 ---
 

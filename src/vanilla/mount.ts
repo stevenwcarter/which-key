@@ -10,6 +10,8 @@ export type MountOptions = {
   classPrefix?: string;
 };
 
+export type WhichKeyMountHandle = { unmount(): void };
+
 // One live renderer per container. A second mount (hot reload, a route change
 // that remounts without unmounting, two modules wiring the same engine) used
 // to append a SECOND popup and cheatsheet — two nodes with the same
@@ -25,7 +27,7 @@ const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
 
 export const mountWhichKey = (
   engine: WhichKeyEngine, opts: MountOptions = {},
-): { unmount(): void } => {
+): WhichKeyMountHandle => {
   const container = opts.container ?? document.body;
 
   if (mountedContainers.has(container)) {
