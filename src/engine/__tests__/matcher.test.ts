@@ -271,6 +271,44 @@ describe('Matcher — sequences', () => {
   });
 });
 
+describe('Matcher — leaf-AND-prefix timeout event fidelity [B17]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('hands the handler the real triggering event, not a synthetic one', () => {
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire }, 500);
+    const leaf = entry({ id: 'leaf', keys: 'Ctrl+G' });
+    registry.register(leaf);
+    registry.register(entry({ id: 'deeper', keys: 'Ctrl+G h' }));
+
+    const target = document.createElement('div');
+    const triggering = ev({ key: 'g', ctrlKey: true, cancelable: true }, target);
+    matcher.handleKeyDown(triggering);
+    vi.advanceTimersByTime(500);
+
+    expect(onFire).toHaveBeenCalledOnce();
+    const fired = onFire.mock.calls[0][1];
+    expect(fired).toBe(triggering);
+    expect(fired.target).toBe(target);
+    expect(fired.ctrlKey).toBe(true);
+    expect(fired.cancelable).toBe(true);
+  });
+
+  it('lets the handler actually preventDefault the timed-out event', () => {
+    const onFire = vi.fn<FireFn>((_e, event) => event.preventDefault());
+    const { registry, matcher } = buildMatcher({ onFire }, 500);
+    registry.register(entry({ id: 'leaf', keys: 'g' }));
+    registry.register(entry({ id: 'deeper', keys: 'g h' }));
+
+    const triggering = ev({ key: 'g', cancelable: true }, document.createElement('div'));
+    matcher.handleKeyDown(triggering);
+    vi.advanceTimersByTime(500);
+
+    expect(triggering.defaultPrevented).toBe(true);
+  });
+});
+
 describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher half]', () => {
   // `Matcher`/`MatcherOptions` are exported public API (src/engine/index.ts).
   // createWhichKey's own `onFire` swallows every handler exception, so the
