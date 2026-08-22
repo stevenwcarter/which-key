@@ -287,3 +287,53 @@ describe('mountWhichKey — stable popup host [B18]', () => {
     wk.stop();
   });
 });
+
+describe('mountWhichKey — double-mount guard [B32]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+
+  it('warns and renders only one popup host for a repeated mount', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+
+    const first = mountWhichKey(wk);
+    const second = mountWhichKey(wk);
+    wk.start();
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] mountWhichKey called twice'));
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(document.querySelectorAll('[data-testid="whichkey-popup"]')).toHaveLength(1);
+
+    second.unmount();   // the no-op handle must not tear down the live mount
+    press('?');
+    expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
+
+    first.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+
+  it('allows a fresh mount after the first one unmounts', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const first = mountWhichKey(wk);
+    first.unmount();
+    warn.mockClear();
+
+    const second = mountWhichKey(wk);
+    expect(warn).not.toHaveBeenCalled();
+    second.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+
+  it('unmount is idempotent', () => {
+    const wk = createWhichKey();
+    const ui = mountWhichKey(wk);
+    ui.unmount();
+    expect(() => ui.unmount()).not.toThrow();
+    wk.stop();
+  });
+});
