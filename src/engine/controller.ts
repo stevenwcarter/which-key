@@ -322,7 +322,26 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
 
   const emit = (): void => {
     snapshot = computeSnapshot();
-    for (const l of listeners) l(snapshot);
+    // Guard each listener the way onFire guards consumer handlers below.
+    // emit() runs synchronously inside Matcher.handleKeyDown — the
+    // leaf-AND-prefix branch calls onShowPopup (matcher.ts:135) AFTER
+    // clearTimer() but BEFORE arming the fire timer (matcher.ts:150) — so an
+    // escaping throw leaves the buffer committed with no pending timer, the
+    // leaf never fires, the popup never appears, and every listener after the
+    // thrower misses the snapshot. One engine can drive both
+    // <WhichKeyProvider> and mountWhichKey, and a custom sortKeys comparator
+    // can throw inside the vanilla render subscriber, so this is reachable.
+    for (const l of listeners) {
+      try {
+        l(snapshot);
+      } catch (err) {
+        console.error(
+          '[whichkey] A subscriber threw while receiving a snapshot; ' +
+            'other subscribers were still notified.',
+          err,
+        );
+      }
+    }
   };
 
   const toggleCheatsheet = (): void => {

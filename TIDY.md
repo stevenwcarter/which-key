@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: decision-needed: CLAUDE.md requires snapshots to be "deeply immutable" but no public data shape carries `readonly`, so the invariant lives only in comments. Adding `readonly` to the published snapshot/candidate/cheatsheet types is a public-API signature change (`blocked_by: public-api-signature-change`) that can break consumers assigning into these shapes, so the tidy pass must not invent a fix here — decide the API direction first, alongside bughunt.md's open "public-API break" marker on the published engine internals.
 - [x] execute [ ] skip
 
-### T5. Unguarded subscriber fan-out lets one throwing listener strand the Matcher: `emit` (src/engine/controller.ts:165)
-
-- Lenses: opportunistic
-- Risk: low
-- Proposed fix: Wrap the per-listener call exactly the way `onFire` already is: `for (const l of listeners) { try { l(snapshot); } catch (err) { console.error('[whichkey] A subscriber threw while receiving a snapshot; other subscribers were still notified.', err); } }`. Today the throw propagates out of `emit()` → `onShowPopup` → `Matcher.handleKeyDown` at matcher.ts:107/159, which is _before_ `this.timer = setTimeout(...)` at matcher.ts:122/161 — so the leaf never fires, the popup never appears, the buffer stays committed with no pending timer, and every listener after the thrower in the Set misses that snapshot. Realistic triggers: one engine driving both `<WhichKeyProvider>` and `mountWhichKey`, a consumer `engine.subscribe(cb)` that throws, or a custom `sortKeys` comparator throwing inside `getCheatsheetModel` during the vanilla `render` subscriber. Add the new console.error to docs/API.md's Console warnings table.
-- [x] execute [ ] skip
-
 ### T7. Validation ladder, activation, ownership tracking and handle construction in one method: `pushLayer` (src/engine/controller.ts:308-353, 46 lines)
 
 - Lenses: long-methods

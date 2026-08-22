@@ -865,3 +865,47 @@ describe('createWhichKey — composed warning text is byte-exact [T6]', () => {
     warn.mockRestore();
   });
 });
+
+describe('createWhichKey — subscriber fan-out is guarded [T5]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('notifies later subscribers and logs when an earlier one throws', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const later = vi.fn();
+    wk.subscribe(() => {
+      throw new Error('boom');
+    });
+    wk.subscribe(later);
+    expect(() => wk.toggleCheatsheet()).not.toThrow();
+    expect(later).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith(
+      '[whichkey] A subscriber threw while receiving a snapshot; other subscribers were still notified.',
+      expect.any(Error),
+    );
+    error.mockRestore();
+  });
+
+  it('leaves the Matcher usable — a leaf-AND-prefix still fires after the timeout', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const leaf = vi.fn();
+    wk.register('g a b', vi.fn());
+    wk.register('g a', leaf);
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(wk.getSnapshot().popup.visible).toBe(true);
+    // Subscribe only now: the popup must already be visible so the next press
+    // takes the leaf-AND-prefix branch that emits BEFORE arming its timer.
+    wk.subscribe(() => {
+      throw new Error('boom');
+    });
+    press('a');
+    vi.advanceTimersByTime(500);
+    expect(leaf).toHaveBeenCalledTimes(1);
+    wk.stop();
+    error.mockRestore();
+  });
+});
