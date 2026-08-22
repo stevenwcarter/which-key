@@ -682,7 +682,7 @@ describe('createWhichKey — timeoutMs validation [B30]', () => {
     return visible;
   };
 
-  it.each([-1, NaN, -Infinity])('clamps %p to the 500ms default', (bad) => {
+  it.each([-1, NaN, -Infinity, 3e9])('clamps %p to the 500ms default', (bad) => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const wk = createWhichKey({ timeoutMs: bad });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid timeoutMs'));

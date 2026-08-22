@@ -94,10 +94,15 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   // setTimeout silently coerces NaN / negative / overflow to 0, which turns
   // "wait before showing the popup" into "fire instantly" with no diagnostic.
   // Validate at the boundary; the public timeoutMs?: number stays unchanged.
+  // MAX_SETTIMEOUT_DELAY_MS is the largest delay setTimeout honours: it
+  // stores the delay in a signed 32-bit int, so anything past this overflows
+  // and is coerced to fire almost immediately — the same silent-instant-fire
+  // failure as NaN/negative, just reached from the other direction.
+  const MAX_SETTIMEOUT_DELAY_MS = 2147483647;
   const timeoutMs = ((): number => {
     const raw = options.timeoutMs;
     if (raw === undefined) return 500;
-    if (Number.isFinite(raw) && raw >= 0) return raw;
+    if (Number.isFinite(raw) && raw >= 0 && raw <= MAX_SETTIMEOUT_DELAY_MS) return raw;
     console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
     return 500;
   })();
