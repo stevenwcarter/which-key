@@ -88,16 +88,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: mirror the prefix-only branch — when `this.bufferTouchedInput` is latched and `this.popupVisible` is true, set `popupVisible = false` and call `onHidePopup()` instead of merely skipping the refresh, so both branches share the same safety property rather than relying on eventual termination. Add a test registering a two-level leaf-AND-prefix chain and asserting the hide fires.
 - [ ] execute   [ ] skip
 
-### B32. mountWhichKey has no double-mount guard, so two calls silently duplicate the popup DOM: `mountWhichKey` (src/vanilla/mount.ts:12)
-- Category: api-surface
-- Impact: 4 (severity 2 × blast-radius 2)
-- Effort: S
-- Risk: high
-- Evidence: nothing tracks whether an engine or container already has a renderer attached. Calling `mountWhichKey(wk)` twice — a hot-reload re-run, a component that mounts on route change without unmounting, two modules wiring the same engine — yields two subscriptions and two nodes appended to `document.body`, both carrying `data-testid="whichkey-popup"` and `role="dialog" aria-label="Keyboard shortcuts"`. Two same-labelled dialogs is an a11y defect, the escape listener is registered twice, and the first `unmount()` leaves the second renderer live. mount.ts:32 and :59 are uncovered and mount.test.ts has no double-mount case.
-- Blast radius: src/vanilla/mount.ts:12,15,52,56; src/vanilla/popup.ts:42,46
-- Proposed fix: keep a module-level `WeakSet<HTMLElement>` of containers with a live mount; on a repeat mount `console.warn('[whichkey] mountWhichKey called twice for the same container; the previous mount is still active')`. Make `unmount()` idempotent by clearing the entry. Return type unchanged.
-- [x] execute   [ ] skip
-
 ### B33. classPrefix silently opts the consumer out of the shipped stylesheet, undocumented: `mountWhichKey` (src/vanilla/mount.ts:18)
 - Category: frontend
 - Impact: 4 (severity 2 × blast-radius 2)

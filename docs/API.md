@@ -302,6 +302,8 @@ Subscribes a vanilla-DOM renderer to the engine. Returns an object with an `unmo
 
 > **Important:** `mountWhichKey` does **not** call `engine.start()`. You must call `engine.start()` yourself to attach the keydown listener.
 
+> **One mount per container.** Calling `mountWhichKey` again for a container that already has a live renderer emits a `console.warn` and returns a no-op handle — the existing mount stays authoritative. Call `unmount()` before re-mounting. `unmount()` is idempotent.
+
 ```ts
 import { createWhichKey } from 'which-key';
 import { mountWhichKey } from 'which-key/vanilla';

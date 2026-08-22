@@ -307,6 +307,14 @@ describe('mountWhichKey — double-mount guard [B32]', () => {
     expect(document.querySelectorAll('[data-testid="whichkey-popup"]')).toHaveLength(1);
 
     second.unmount();   // the no-op handle must not tear down the live mount
+    // Reset the pending 'g' buffer before pressing '?'. Per the matcher
+    // (src/engine/matcher.ts, final branch — also documented at the
+    // ReactFixture comment in class-contract.test.tsx), an unrelated
+    // keystroke while a prefix is buffered doesn't fall back to a top-level
+    // match; it's treated as "nothing matches" and aborts the sequence. The
+    // brief's original test pressed '?' straight after 'g' timed out and so
+    // never actually exercised the cheatsheet open — corrected here.
+    wk.cancel();
     press('?');
     expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
 

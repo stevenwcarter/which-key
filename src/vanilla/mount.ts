@@ -10,10 +10,28 @@ export type MountOptions = {
   classPrefix?: string;
 };
 
+// One live renderer per container. A second mount (hot reload, a route change
+// that remounts without unmounting, two modules wiring the same engine) used
+// to append a SECOND popup and cheatsheet — two nodes with the same
+// data-testid and the same role="dialog" aria-label, an escape listener bound
+// twice, and a first unmount() that left the second renderer live.
+const mountedContainers = new WeakSet<HTMLElement>();
+
 export const mountWhichKey = (
   engine: WhichKeyEngine, opts: MountOptions = {},
 ): { unmount(): void } => {
   const container = opts.container ?? document.body;
+
+  if (mountedContainers.has(container)) {
+    console.warn(
+      '[whichkey] mountWhichKey called twice for the same container; ' +
+        'the previous mount is still active. Call unmount() on it first. ' +
+        'This call is a no-op.',
+    );
+    return { unmount() {} };
+  }
+  mountedContainers.add(container);
+
   const prefix = opts.classPrefix ?? 'wk';
   const showCheatsheet = opts.cheatsheet ?? true;
   const popupOpts: PopupOptions | null = opts.popup === false ? null : {
@@ -74,8 +92,12 @@ export const mountWhichKey = (
   const unsubscribe = engine.subscribe(render);
   render();
 
+  let unmounted = false;
   return {
     unmount() {
+      if (unmounted) return;
+      unmounted = true;
+      mountedContainers.delete(container);
       unsubscribe();
       popupHost.remove();
       cheatsheetNode?.remove();
