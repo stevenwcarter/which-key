@@ -213,6 +213,54 @@ describe('ShortcutRegistry — getActiveCandidates', () => {
   });
 });
 
+describe('ShortcutRegistry.getActiveCandidates — leaf/deeper collisions [B20]', () => {
+  const build = (order: Array<[string, string]>) => {
+    const registry = new ShortcutRegistry();
+    order.forEach(([keys, description], i) =>
+      registry.register(entry({ id: `e${i}`, keys, description })),
+    );
+    return registry;
+  };
+
+  it('emits one merged group candidate regardless of registration order', () => {
+    const forward = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    const reverse = build([
+      ['g h i', 'Deeper'],
+      ['g h', 'Leaf label'],
+    ]);
+
+    for (const registry of [forward, reverse]) {
+      const candidates = registry.getActiveCandidates('g');
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]).toEqual({
+        keys: 'g h',
+        nextKey: 'h',
+        description: 'Leaf label',
+        isGroup: true,
+      });
+    }
+  });
+
+  it('prefers a registered group label over the leaf description', () => {
+    const registry = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    registry.registerGroup(groupEntry({ id: 'grp', prefix: 'g h', description: 'Group label' }));
+    expect(registry.getActiveCandidates('g')[0].description).toBe('Group label');
+  });
+
+  it('still emits a plain leaf candidate when no deeper sequence exists', () => {
+    const registry = build([['g h', 'Leaf label']]);
+    expect(registry.getActiveCandidates('g')).toEqual([
+      { keys: 'g h', nextKey: 'h', description: 'Leaf label', isGroup: false },
+    ]);
+  });
+});
+
 describe('ShortcutRegistry — getAllActive', () => {
   it('returns one entry per registered key (the active one)', () => {
     const r = new ShortcutRegistry();

@@ -72,16 +72,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add `private blockLevelCache: number | null = null`, return it from `blockLevel()` when non-null, and reset to null in `activateLayer` and `deactivateLayer` — the only two mutators of `layers`, so invalidation is exhaustive.
 - [x] execute   [ ] skip
 
-### B20. getActiveCandidates dedup key collides between a leaf and a deeper sequence, dropping one and making isGroup order-dependent: `ShortcutRegistry.getActiveCandidates` (src/engine/registry.ts:127)
-- Category: correctness
-- Impact: 6 (severity 3 × blast-radius 2)
-- Effort: M
-- Risk: medium
-- Evidence: empirically confirmed. `candidateKey` is the full key string for a leaf but `prefix + ' ' + nextKey` for a deeper sequence — for a leaf `g h` and a deeper `g h i` both evaluate to `'g h'`, so the `seen` Map drops whichever arrives second, and **registration order decides the output**. Registering `['g h','g h i']` yields `[{keys:'g h', nextKey:'h', isGroup:false}]` — the whole `g h i` subtree is invisible in the popup and the row looks like a terminal action. Registering `['g h i','g h']` yields `[{keys:'g h', nextKey:'h', isGroup:true}]` — the leaf's own description is silently lost and `description` is undefined because no group was registered for `g h`. registry.test.ts covers leaf-only and group-only prefixes but never the mixed case.
-- Blast radius: src/engine/registry.ts:122,127,128; src/engine/controller.ts:94; src/react/WhichKeyPopup.tsx:37; src/vanilla/popup.ts:56
-- Proposed fix: key `seen` by `nextKey` only and merge rather than skip — on a collision promote the entry to `isGroup: true` (a deeper continuation exists) and keep `description = this.getActiveGroup(subPrefix)?.description ?? existing.description ?? top.description` so the leaf's label survives when no group label is registered.
-- [x] execute   [ ] skip
-
 ### B22. registerGroup never canonicalizes its prefix, so group labels silently vanish: `WhichKeyEngine.registerGroup` (src/engine/controller.ts:168)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)
