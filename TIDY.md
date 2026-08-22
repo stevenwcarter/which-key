@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Medium severity
 
-### T2. Core `eslint:recommended` rules are never enabled (eslint.config.js:7)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: `tseslint.configs.recommended` contributes TS rules plus the `eslint-recommended` _disable_ list only; it never pulls in `js.configs.recommended`. Verified with `npx eslint --print-config src/engine/matcher.ts`: 24 rules active, and `no-unreachable` explicitly `off`. Rules that would guard this code and currently never run: `no-unsafe-finally` (matcher.ts has two `try/finally` blocks at 80-84 and 127-131), `no-fallthrough` (the 5-case switch at keys.ts:208), `no-dupe-else-if` (the comparator ladders in registry.ts `findActive`/`getActiveGroup`), `no-constant-condition`, `no-self-compare`, `no-case-declarations`, `valid-typeof`, `no-useless-escape`. Add `import js from '@eslint/js';` and place `js.configs.recommended` before `...tseslint.configs.recommended` in the `tseslint.config(...)` call, and declare `"@eslint/js": "^9.17.0"` in devDependencies rather than relying on the transitive hoist from eslint. Land before T3, whose snippet assumes it.
-- [x] execute [ ] skip
-
 ### T3. No type-aware linting, so the project's own `any`/assertion conventions are unpoliced (eslint.config.js:7)
 
 - Lenses: idioms
