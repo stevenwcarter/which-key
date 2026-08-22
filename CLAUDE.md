@@ -12,6 +12,7 @@ npx vitest run -t "fires handler for a registered single-key"  # single test by 
 npm run typecheck              # tsc --noEmit
 npm run lint                   # eslint .
 npm run format                 # prettier --write .
+npm run format:check           # prettier --check . (what a pre-commit hook failure means)
 npm run build                  # tsup: dual ESM+CJS + .d.ts, copies src/styles.css → dist/styles.css
 ```
 
@@ -74,4 +75,5 @@ Both renderers emit the same `wk-*` class names consumed by `src/styles.css` (do
 - **TDD.** Write the failing test first, in the `__tests__/` directory beside the source. `src/engine/__tests__/` uses plain unit tests; `src/react/__tests__/` uses Testing Library with `act()` around dispatched `keydown` events and `vi.useFakeTimers()` for the sequence timeout.
 - **Named exports only** (examples excepted). Anything public must be added to the relevant `index.ts` _and_ to `docs/API.md`, which is the maintained full reference.
 - Strict TS with `noUnusedLocals`/`noUnusedParameters`; no `any` without justification.
+- **Formatting is enforced at commit time.** A husky `pre-commit` hook runs `lint-staged`, which `prettier --write`s the staged files and re-stages them — so a drifted commit is corrected rather than rejected. `npm run format:check` verifies the whole tree. Note CI does _not_ yet run this check.
 - **Conventional Commits** are enforced by the husky `commit-msg` hook. Releases are derived from them via `npm run release` (`commit-and-tag-version`); while pre-1.0, `feat:` bumps a patch and `feat!:`/`BREAKING CHANGE:` bumps a minor. `npm run release` neither pushes nor publishes.

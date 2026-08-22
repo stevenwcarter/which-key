@@ -10,14 +10,15 @@ npm i
 
 ### Useful commands
 
-| Command              | Description                                         |
-| -------------------- | --------------------------------------------------- |
-| `npm test`           | Run all tests with Vitest (single run)              |
-| `npm run test:watch` | Re-run tests on file change                         |
-| `npm run build`      | Compile with tsup (dual CJS+ESM, type declarations) |
-| `npm run typecheck`  | `tsc --noEmit` — catch type errors without building |
-| `npm run lint`       | ESLint                                              |
-| `npm run format`     | Prettier                                            |
+| Command                | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `npm test`             | Run all tests with Vitest (single run)              |
+| `npm run test:watch`   | Re-run tests on file change                         |
+| `npm run build`        | Compile with tsup (dual CJS+ESM, type declarations) |
+| `npm run typecheck`    | `tsc --noEmit` — catch type errors without building |
+| `npm run lint`         | ESLint                                              |
+| `npm run format`       | Prettier — rewrite files in place                   |
+| `npm run format:check` | Prettier — verify without writing                   |
 
 ### TDD workflow
 
@@ -50,9 +51,10 @@ src/
    npm run lint && npm run typecheck && npm test && npm run build
    ```
 
-4. Write [Conventional Commit](https://www.conventionalcommits.org/) messages (`feat:`, `fix:`, `docs:`, `test:`, `build:`, `chore:`, …). A husky `commit-msg` hook enforces the format; the version bump and changelog are derived from these messages at release time.
+4. A husky `pre-commit` hook runs `lint-staged`, which formats your staged files with Prettier and re-stages them — you should not need to run `npm run format` by hand.
+5. Write [Conventional Commit](https://www.conventionalcommits.org/) messages (`feat:`, `fix:`, `docs:`, `test:`, `build:`, `chore:`, …). A husky `commit-msg` hook enforces the format; the version bump and changelog are derived from these messages at release time.
 
-5. Push and open a PR against `main`. CI will run lint, typecheck, tests, build, and `npm pack --dry-run`.
+6. Push and open a PR against `main`. CI will run lint, typecheck, tests, build, and `npm pack --dry-run`.
 
 ## Releasing (maintainers)
 
