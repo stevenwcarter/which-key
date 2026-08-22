@@ -54,3 +54,28 @@ describe('styles.css — overlay stacking contract [B26]', () => {
     expect(readme).toContain('--wk-z-index-backdrop');
   });
 });
+
+describe('styles.css — theming contract [D2]', () => {
+  it('defines the palette as --wk-* custom properties', () => {
+    expect(css).toMatch(/--wk-panel-bg\s*:/);
+    expect(css).toMatch(/--wk-text\s*:/);
+  });
+
+  it('supplies a light palette under prefers-color-scheme: light', () => {
+    expect(css).toMatch(/@media\s*\(prefers-color-scheme:\s*light\)/);
+  });
+
+  it('lets an author force either theme with data-wk-theme', () => {
+    expect(css).toMatch(/\[data-wk-theme=['"]light['"]\]/);
+    expect(css).toMatch(/\[data-wk-theme=['"]dark['"]\]/);
+  });
+
+  it('leaves no raw hex colour outside a custom-property declaration', () => {
+    const offenders = css
+      .split('\n')
+      .filter((line) => /#[0-9a-fA-F]{3,8}\b/.test(line))
+      .filter((line) => !/--wk-[\w-]+\s*:/.test(line))
+      .filter((line) => !line.trim().startsWith('/*') && !line.trim().startsWith('*'));
+    expect(offenders).toEqual([]);
+  });
+});
