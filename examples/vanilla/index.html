@@ -39,17 +39,16 @@
     .wk-popup__grid { display: grid; grid-auto-flow: column; gap: 4px 16px; }
     .wk-popup__list { list-style: none; margin: 4px 0 0; padding: 0; }
     .wk-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-    .wk-row--group .wk-row__label::before { content: '+'; margin-right: 2px; }
     .wk-kbd { background: #374151; border: 1px solid #6b7280; border-radius: 4px; padding: 2px 6px; font-family: monospace; }
     .wk-sequence { display: flex; align-items: center; gap: 4px; }
     .wk-sequence__ellipsis { opacity: 0.6; }
-    .wk-cheatsheet {
+    .wk-backdrop {
       position: fixed; inset: 0; z-index: 10000;
       background: rgba(0,0,0,0.8);
       display: flex; align-items: center; justify-content: center;
       color: #f9fafb;
     }
-    .wk-cheatsheet__panel {
+    .wk-cheatsheet {
       background: #1f2937;
       border-radius: 8px;
       padding: 24px;
@@ -105,8 +104,8 @@
   -->
   <script type="module">
     // ESM imports from unpkg (replace with local bundler imports in production)
-    import { createWhichKey } from 'https://unpkg.com/which-key@0.1.0?module';
-    import { mountWhichKey } from 'https://unpkg.com/which-key@0.1.0/vanilla?module';
+    import { createWhichKey } from 'https://unpkg.com/which-key@latest?module';
+    import { mountWhichKey } from 'https://unpkg.com/which-key@latest/vanilla?module';
 
     function save() {
       console.log('Saved!');

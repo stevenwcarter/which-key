@@ -98,16 +98,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a `## Troubleshooting` section to README.md with a checklist — (1) is `<WhichKeyProvider>` an ancestor / did you call `engine.start()`; (2) is focus in an input — set `enableOnInputs: true`; (3) compare `parseKey('<your key>')` against `eventToCanonical(e)` from a raw keydown listener; (4) is an exclusive layer active — use `global: true`; (5) is another registration winning — check level then priority. Add a matching subsection to docs/API.md listing each warning verbatim with its meaning.
 - [x] execute   [ ] skip
 
-### B39. Vanilla example styles a class the renderer never emits, so the demo cheatsheet renders broken: inline stylesheet (examples/vanilla/index.html:52)
-- Category: frontend
-- Impact: 2 (severity 2 × blast-radius 1)
-- Effort: S
-- Risk: low
-- Evidence: the inline demo CSS defines `.wk-cheatsheet__panel` (line 52) — a class no renderer emits — and styles `.wk-cheatsheet` (line 46) as the full-screen overlay. The actual markup is `.wk-backdrop > .wk-cheatsheet`, and `.wk-backdrop` gets no rule at all, so pressing `?` in this demo produces an unpositioned backdrop in normal flow containing a full-viewport black box with top-left-aligned unstyled text. Two smaller defects in the same file: line 42 adds `content: '+'` via `::before` on `.wk-row--group .wk-row__label` but the renderer already prepends `+` to the label text, so group rows show `++`; and lines 108-109 pin `which-key@0.1.0` from unpkg while package.json is at 0.1.1. Unpublished and eslint-ignored, but it is the copy-paste starting point the file advertises.
-- Blast radius: examples/vanilla/index.html:42,46,52,108,109; src/vanilla/cheatsheet.ts:26; src/vanilla/popup.ts:22
-- Proposed fix: rename `.wk-cheatsheet` → `.wk-backdrop` and `.wk-cheatsheet__panel` → `.wk-cheatsheet` in the inline `<style>`, delete the `::before { content: '+' }` rule at line 42, and change the two unpkg specifiers to `which-key@latest`.
-- [x] execute   [ ] skip
-
 ### B41. CI job runs an unpinned third-party action while holding CODECOV_TOKEN under a default-scoped GITHUB_TOKEN: build job (.github/workflows/ci.yml:20)
 - Category: security
 - Impact: 2 (severity 2 × blast-radius 1)
