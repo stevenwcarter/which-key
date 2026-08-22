@@ -17,6 +17,12 @@ export type MountOptions = {
 // twice, and a first unmount() that left the second renderer live.
 const mountedContainers = new WeakSet<HTMLElement>();
 
+// The prefix is interpolated raw into every className, so a space splits one
+// class into several ('my app' -> "my app-popup"), and a leading digit or a
+// '.'/'#'/':' produces a class that is valid HTML but unselectable without
+// escaping — either way the consumer's stylesheet silently never applies.
+const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
+
 export const mountWhichKey = (
   engine: WhichKeyEngine, opts: MountOptions = {},
 ): { unmount(): void } => {
@@ -32,7 +38,19 @@ export const mountWhichKey = (
   }
   mountedContainers.add(container);
 
-  const prefix = opts.classPrefix ?? 'wk';
+  const requestedPrefix = opts.classPrefix;
+  let prefix = 'wk';
+  if (requestedPrefix !== undefined) {
+    if (CLASS_PREFIX_RE.test(requestedPrefix)) {
+      prefix = requestedPrefix;
+    } else {
+      console.warn(
+        `[whichkey] invalid classPrefix "${requestedPrefix}"; ` +
+          'must be a valid CSS identifier stem (letters, digits, "-", "_"; not starting with a digit). ' +
+          'Falling back to "wk".',
+      );
+    }
+  }
   const showCheatsheet = opts.cheatsheet ?? true;
   const popupOpts: PopupOptions | null = opts.popup === false ? null : {
     layout: opts.popup?.layout ?? 'vertical',

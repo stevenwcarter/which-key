@@ -330,7 +330,7 @@ wk.stop();
 | `popup`       | `Partial<PopupOptions> \| false`  | `{}`            | Popup renderer options. Pass `false` to suppress the popup.        |
 | `cheatsheet`  | `boolean`                         | `true`          | Whether to render the cheatsheet.                                  |
 | `container`   | `HTMLElement`                     | `document.body` | DOM node into which rendered elements are appended.                |
-| `classPrefix` | `string`                          | `'wk'`          | CSS class prefix (replaces `wk-` with `<classPrefix>-`).           |
+| `classPrefix` | `string`                          | `'wk'`          | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. |
 
 **`PopupOptions`** (values inside `popup: {}`):
 

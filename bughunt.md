@@ -108,16 +108,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a `## Troubleshooting` section to README.md with a checklist — (1) is `<WhichKeyProvider>` an ancestor / did you call `engine.start()`; (2) is focus in an input — set `enableOnInputs: true`; (3) compare `parseKey('<your key>')` against `eventToCanonical(e)` from a raw keydown listener; (4) is an exclusive layer active — use `global: true`; (5) is another registration winning — check level then priority. Add a matching subsection to docs/API.md listing each warning verbatim with its meaning.
 - [x] execute   [ ] skip
 
-### B36. classPrefix is interpolated into className with no validation, so a prefix with spaces splits the class: `MountOptions.classPrefix` (src/vanilla/mount.ts:16)
-- Category: api-surface
-- Impact: 2 (severity 2 × blast-radius 1)
-- Effort: S
-- Risk: medium
-- Evidence: `const prefix = opts.classPrefix ?? 'wk';` is interpolated raw into every className. A prefix containing a space (`'my app'`) produces `class="my app-popup my app-popup--vertical"` — four unrelated classes, none matching the consumer's stylesheet, so the popup renders completely unstyled with no diagnostic. Prefixes starting with a digit or containing `.`/`#`/`:` produce classes that are valid HTML but unselectable without escaping, so `.1x-popup { … }` silently never applies. docs/API.md:325 and README.md:243 advertise the option with no stated constraint.
-- Blast radius: src/vanilla/mount.ts:16; src/vanilla/popup.ts:11,17,44; src/vanilla/cheatsheet.ts:5,12; docs/API.md:325; README.md:243
-- Proposed fix: validate against `/^-?[A-Za-z_][A-Za-z0-9_-]*$/`; on failure `console.warn('[whichkey] invalid classPrefix "…"; falling back to "wk"')` and use `'wk'`. Document the constraint in docs/API.md:325.
-- [x] execute   [ ] skip
-
 ### B39. Vanilla example styles a class the renderer never emits, so the demo cheatsheet renders broken: inline stylesheet (examples/vanilla/index.html:52)
 - Category: frontend
 - Impact: 2 (severity 2 × blast-radius 1)

@@ -345,3 +345,45 @@ describe('mountWhichKey — double-mount guard [B32]', () => {
     wk.stop();
   });
 });
+
+describe('mountWhichKey — classPrefix validation [B36]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+
+  it.each(['my app', '1x', 'a.b', 'a#b', 'a:b', ''])(
+    'warns and falls back to "wk" for %p',
+    (bad) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const wk = createWhichKey();
+      wk.register('g a', vi.fn(), { description: 'Alpha' });
+      const ui = mountWhichKey(wk, { classPrefix: bad });
+      wk.start();
+      press('g');
+      vi.advanceTimersByTime(500);
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid classPrefix'));
+      expect(document.querySelector('.wk-popup')).not.toBeNull();
+
+      ui.unmount();
+      wk.stop();
+      warn.mockRestore();
+    },
+  );
+
+  it('accepts a valid custom prefix without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, { classPrefix: 'my-app_1' });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(document.querySelector('.my-app_1-popup')).not.toBeNull();
+
+    ui.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+});
