@@ -347,6 +347,30 @@ describe('registry layers', () => {
   });
 });
 
+describe('ShortcutRegistry.blockLevel caching [B19]', () => {
+  it('reflects a layer activated after an earlier lookup', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'base', keys: 'z', level: 0 }));
+    expect(registry.getActive('z')).toBeDefined();
+
+    registry.activateLayer('modal', 1, true);
+    expect(registry.getActive('z')).toBeUndefined();
+
+    registry.deactivateLayer('modal');
+    expect(registry.getActive('z')).toBeDefined();
+  });
+
+  it('reflects a layer whose exclusivity changes under the same id', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'base', keys: 'z', level: 0 }));
+    registry.activateLayer('l', 1, false);
+    expect(registry.getActive('z')).toBeDefined();
+
+    registry.activateLayer('l', 1, true);
+    expect(registry.getActive('z')).toBeUndefined();
+  });
+});
+
 describe('hasCandidates', () => {
   const build = () => new ShortcutRegistry();
 

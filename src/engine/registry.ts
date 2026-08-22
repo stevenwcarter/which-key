@@ -4,13 +4,20 @@ export class ShortcutRegistry {
   private shortcuts = new Map<string, ShortcutEntry[]>();
   private groups = new Map<string, GroupEntry[]>();
   private layers = new Map<string, { level: number; exclusive: boolean }>();
+  // blockLevel() is invariant between layer mutations but is called once per
+  // bucket from findActive/getActiveGroup — so a single getAllActive() over N
+  // keys used to cost N full layer scans. activateLayer and deactivateLayer
+  // are the only two writers of `layers`, so nulling here is exhaustive.
+  private blockLevelCache: number | null = null;
 
   activateLayer(id: string, level: number, exclusive: boolean): void {
     this.layers.set(id, { level, exclusive });
+    this.blockLevelCache = null;
   }
 
   deactivateLayer(id: string): void {
     this.layers.delete(id);
+    this.blockLevelCache = null;
   }
 
   nextLevel(): number {
@@ -20,10 +27,12 @@ export class ShortcutRegistry {
   }
 
   private blockLevel(): number {
+    if (this.blockLevelCache !== null) return this.blockLevelCache;
     let block = 0;
     for (const { level, exclusive } of this.layers.values()) {
       if (exclusive && level > block) block = level;
     }
+    this.blockLevelCache = block;
     return block;
   }
 

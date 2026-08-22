@@ -62,16 +62,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: create a stable popup host element once at mount, append it once, and replace only its children each render (`host.replaceChildren(...)`), toggling `host.hidden` when the snapshot has no visible popup. Fixes both the stacking order and the churn in one change to mount.ts:31-37.
 - [x] execute   [ ] skip
 
-### B19. blockLevel() rescans the entire layers Map once per bucket instead of once per query: `ShortcutRegistry.blockLevel` (src/engine/registry.ts:22)
-- Category: caching
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: S
-- Risk: medium
-- Evidence: `blockLevel()` iterates all active layers and is called from `findActive` (registry.ts:141) and `getActiveGroup` (:87), both invoked in loops. `getActiveCandidates` calls `findActive` per matching bucket and `getActiveGroup` per group candidate; `getAllActive` calls `findActive` for every bucket. So one `getAllActive` over N keys costs N full layer scans, and `buildCheatsheetModel` adds one more per group. The value is invariant for the whole call — it changes only on `activateLayer`/`deactivateLayer` — yet is recomputed O(N) times. Small in absolute terms, but it multiplies the per-keystroke work in B6.
-- Blast radius: src/engine/registry.ts:9,13,22,87,106,115,141
-- Proposed fix: add `private blockLevelCache: number | null = null`, return it from `blockLevel()` when non-null, and reset to null in `activateLayer` and `deactivateLayer` — the only two mutators of `layers`, so invalidation is exhaustive.
-- [x] execute   [ ] skip
-
 ### B22. registerGroup never canonicalizes its prefix, so group labels silently vanish: `WhichKeyEngine.registerGroup` (src/engine/controller.ts:168)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)
