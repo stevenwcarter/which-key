@@ -517,3 +517,27 @@ describe('modifier parsing is a single pass over the leading segments [T10]', ()
     expect(parseKey('control+option+shift+cmd+k')).toBe('Ctrl+Alt+Shift+Cmd+K');
   });
 });
+
+describe('parseKey/eventToCanonical pairing around "+" [T12 characterization]', () => {
+  // Pins the splitting rule that D1 deliberately does NOT change, and the
+  // runtime half that already emits '+'. All of these pass before the fix and
+  // must keep passing after it.
+  it('rejects a bare "+" registration string — the split leaves no base', () => {
+    expect(() => parseKey('+')).toThrow(/missing key after modifier/);
+  });
+
+  it('rejects "Ctrl++" — the trailing "+" is consumed by the split, not read as a base', () => {
+    expect(() => parseKey('Ctrl++')).toThrow(/missing key after modifier/);
+  });
+
+  it('canonicalizes a real "+" keypress, with or without the Shift that produced it', () => {
+    expect(eventToCanonical(ev({ key: '+' }))).toBe('+');
+    expect(eventToCanonical(ev({ key: '+', shiftKey: true }))).toBe('+');
+    expect(eventToCanonical(ev({ key: '+', ctrlKey: true }))).toBe('Ctrl++');
+  });
+
+  it('leaves the neighbouring punctuation bases round-tripping as before', () => {
+    expect(parseKey('Ctrl+-')).toBe(eventToCanonical(ev({ key: '-', ctrlKey: true })));
+    expect(parseKey('Ctrl+=')).toBe(eventToCanonical(ev({ key: '=', ctrlKey: true })));
+  });
+});
