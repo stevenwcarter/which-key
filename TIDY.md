@@ -48,13 +48,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: `document.activeElement` is `Element | null`; the cast asserts something the runtime does not guarantee (an `SVGElement` or bare `Element` both reach here), which is why the restore call at line 75 is written `restoreRef.current?.focus?.()`. An `instanceof` narrow removes both: `const active = document.activeElement; restoreRef.current = active instanceof HTMLElement ? active : null;` and then plain `restoreRef.current?.focus();`. The identical two-line pattern at src/vanilla/cheatsheet.ts:94 and :121 should be changed in the same pass — that pair is the save/restore half T16 deliberately leaves in each renderer.
 - [x] execute [ ] skip
 
-### T34. Shared preamble followed by two large inline layout branches: `renderPopup` (src/vanilla/popup.ts:40-84, 45 lines)
-
-- Lenses: long-methods
-- Risk: medium
-- Proposed fix: Extract the two branch bodies into module-private builders alongside the existing `kbd`/`row`/`sequence` helpers: `const horizontalBody = (p: string, snap: WhichKeySnapshot, maxRows: number): HTMLElement` (lines 59-68) and `const verticalBody = (p: string, snap: WhichKeySnapshot): DocumentFragment` (70-81). `renderPopup` becomes the visibility guard, the shared attribute block, and a one-line ternary append. `renderPopup` is not re-exported from src/vanilla/index.ts, so nothing public moves. If T23 lands first, write the new builders against `el()`.
-- [x] execute [ ] skip
-
 ### T35. `CLAUDE.md` misdescribes the deferred-fire event as synthetic (CLAUDE.md:42)
 
 - Lenses: comments

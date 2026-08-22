@@ -30,6 +30,36 @@ const sequence = (p: string, seq: readonly string[]): HTMLElement => {
   return wrap;
 };
 
+/** Sequence and a row grid side by side, inside one `__body` wrapper. */
+const horizontalBody = (p: string, snap: WhichKeySnapshot, maxRows: number): HTMLElement => {
+  const body = el('div', `${p}-popup__body`);
+  body.appendChild(sequence(p, snap.popup.currentSequence));
+  const grid = el('div', `${p}-popup__grid`);
+  grid.dataset.testid = 'whichkey-popup-grid';
+  grid.style.gridTemplateRows = `repeat(${clampRows(maxRows)}, auto)`;
+  snap.popup.candidates.forEach((c) => grid.appendChild(row(p, c)));
+  body.appendChild(grid);
+  return body;
+};
+
+// A fragment, not a wrapper element: the vertical layout puts the header and
+// the list side by side as direct children of the popup root, and adding a
+// wrapper would change the emitted DOM the class contract pins.
+const verticalBody = (p: string, snap: WhichKeySnapshot): DocumentFragment => {
+  const frag = document.createDocumentFragment();
+  const header = el('div', `${p}-popup__header`);
+  header.appendChild(sequence(p, snap.popup.currentSequence));
+  frag.appendChild(header);
+  const list = el('ul', `${p}-popup__list`);
+  snap.popup.candidates.forEach((c) => {
+    const li = document.createElement('li');
+    li.appendChild(row(p, c));
+    list.appendChild(li);
+  });
+  frag.appendChild(list);
+  return frag;
+};
+
 export const renderPopup = (
   p: string,
   snap: WhichKeySnapshot,
@@ -47,26 +77,8 @@ export const renderPopup = (
   root.setAttribute('aria-live', 'polite');
   root.setAttribute('aria-atomic', 'true');
   root.setAttribute('aria-label', SHORTCUTS_LABEL);
-  if (opts.layout === 'horizontal') {
-    const body = el('div', `${p}-popup__body`);
-    body.appendChild(sequence(p, snap.popup.currentSequence));
-    const grid = el('div', `${p}-popup__grid`);
-    grid.dataset.testid = 'whichkey-popup-grid';
-    grid.style.gridTemplateRows = `repeat(${clampRows(opts.maxRows)}, auto)`;
-    snap.popup.candidates.forEach((c) => grid.appendChild(row(p, c)));
-    body.appendChild(grid);
-    root.appendChild(body);
-  } else {
-    const header = el('div', `${p}-popup__header`);
-    header.appendChild(sequence(p, snap.popup.currentSequence));
-    root.appendChild(header);
-    const list = el('ul', `${p}-popup__list`);
-    snap.popup.candidates.forEach((c) => {
-      const li = document.createElement('li');
-      li.appendChild(row(p, c));
-      list.appendChild(li);
-    });
-    root.appendChild(list);
-  }
+  root.appendChild(
+    opts.layout === 'horizontal' ? horizontalBody(p, snap, opts.maxRows) : verticalBody(p, snap),
+  );
   return root;
 };
