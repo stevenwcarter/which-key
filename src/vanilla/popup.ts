@@ -1,9 +1,8 @@
 import type { WhichKeyCandidate, WhichKeySnapshot } from '../engine';
+import { clamp01, clampRows } from '../shared/clamp';
 
 export type PopupOptions = { layout: 'vertical' | 'horizontal'; maxRows: number; backgroundOpacity: number };
 const PANEL_BG_RGB = '17, 24, 39';
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
-const clampRows = (n: number) => Math.max(1, Math.floor(n));
 
 const kbd = (p: string, text: string): HTMLElement => {
   const el = document.createElement('kbd');

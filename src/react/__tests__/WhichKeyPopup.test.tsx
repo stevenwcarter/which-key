@@ -427,3 +427,41 @@ describe('WhichKeyPopup outside a provider [B24]', () => {
     warn.mockRestore();
   });
 });
+
+describe('WhichKeyPopup — non-finite props [B29]', () => {
+  it('falls back to the default opacity instead of emitting rgba(..., NaN)', () => {
+    vi.useFakeTimers();
+    const { getByTestId } = render(
+      <WhichKeyProvider timeoutMs={50}>
+        <Setup />
+        <WhichKeyPopup backgroundOpacity={NaN} />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    const popup = getByTestId('whichkey-popup');
+    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.getAttribute('style')).not.toContain('NaN');
+  });
+
+  it('falls back to the default row count instead of repeat(NaN, auto)', () => {
+    vi.useFakeTimers();
+    const { getByTestId } = render(
+      <WhichKeyProvider timeoutMs={50}>
+        <Setup />
+        <WhichKeyPopup layout="horizontal" maxRows={NaN} />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    expect(getByTestId('whichkey-popup-grid').style.gridTemplateRows).toBe('repeat(5, auto)');
+  });
+});

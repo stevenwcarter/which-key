@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useWhichKeyState } from './useWhichKeyState';
 import type { WhichKeyCandidate, WhichKeyState } from '../engine';
+import { clamp01, clampRows, DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
 
 export type WhichKeyPopupLayout = 'vertical' | 'horizontal';
 export type WhichKeyPopupProps = {
@@ -9,8 +10,6 @@ export type WhichKeyPopupProps = {
   backgroundOpacity?: number;
 };
 
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
-const clampRows = (n: number) => Math.max(1, Math.floor(n));
 const PANEL_BG_RGB = '17, 24, 39';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
@@ -53,7 +52,7 @@ const HorizontalBar = ({ state, bg, rows }: { state: WhichKeyState; bg: string; 
 );
 
 export const WhichKeyPopup = ({
-  layout = 'vertical', maxRows = 5, backgroundOpacity = 0.95,
+  layout = 'vertical', maxRows = DEFAULT_MAX_ROWS, backgroundOpacity = DEFAULT_BACKGROUND_OPACITY,
 }: WhichKeyPopupProps = {}) => {
   const state = useWhichKeyState('<WhichKeyPopup>');
   if (!state.visible) return null;

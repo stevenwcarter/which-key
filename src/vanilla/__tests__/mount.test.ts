@@ -198,4 +198,25 @@ describe('mountWhichKey', () => {
     ui.unmount();
     wk.stop();
   });
+
+  it('vanilla popup falls back to defaults for non-finite options [B29]', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, {
+      popup: { layout: 'horizontal', maxRows: NaN, backgroundOpacity: NaN },
+    });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+
+    const popup = document.querySelector('.wk-popup') as HTMLElement;
+    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.getAttribute('style')).not.toContain('NaN');
+    const grid = document.querySelector('.wk-popup__grid') as HTMLElement;
+    expect(grid.style.gridTemplateRows).toBe('repeat(5, auto)');
+
+    ui.unmount();
+    wk.stop();
+  });
 });

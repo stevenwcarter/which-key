@@ -108,16 +108,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: mirror the prefix-only branch — when `this.bufferTouchedInput` is latched and `this.popupVisible` is true, set `popupVisible = false` and call `onHidePopup()` instead of merely skipping the refresh, so both branches share the same safety property rather than relying on eventual termination. Add a test registering a two-level leaf-AND-prefix chain and asserting the hide fires.
 - [ ] execute   [ ] skip
 
-### B29. clamp01 and clampRows pass NaN straight through, emitting invalid CSS in both renderers: `clamp01` / `clampRows` (src/react/WhichKeyPopup.tsx:12)
-- Category: api-surface
-- Impact: 4 (severity 2 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: `clamp01 = n => Math.min(1, Math.max(0, n))` and `clampRows = n => Math.max(1, Math.floor(n))` are both identity for NaN (`Math.max(0, NaN) === NaN`). The pair is duplicated verbatim in src/vanilla/popup.ts:5-6, so both renderers share the hole. A consumer computing the value from config or user input (`backgroundOpacity={Number(cfg.opacity)}`) gets `rgba(17, 24, 39, NaN)`, which the CSSOM rejects — so `backgroundColor` is never set and the popup renders with no background at all, leaving `#f3f4f6` text on the bare host page: invisible on any light background. `maxRows={NaN}` similarly yields `repeat(NaN, auto)` and the horizontal grid collapses. These helpers exist purely to be defensive and are not. Existing tests cover 0, 1, 0.5, 0.7 and negative/overflow rows but never NaN.
-- Blast radius: src/react/WhichKeyPopup.tsx:12,13,59,62; src/vanilla/popup.ts:5,6,40,55; src/vanilla/mount.ts:20,21
-- Proposed fix: make both total — `Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.95` and `Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 5`. Better still, hoist the pair into a shared internal module so the two copies cannot drift again.
-- [x] execute   [ ] skip
-
 ### B32. mountWhichKey has no double-mount guard, so two calls silently duplicate the popup DOM: `mountWhichKey` (src/vanilla/mount.ts:12)
 - Category: api-surface
 - Impact: 4 (severity 2 × blast-radius 2)

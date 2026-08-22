@@ -1,6 +1,7 @@
 import type { WhichKeyEngine } from '../engine';
 import { renderPopup, type PopupOptions } from './popup';
 import { renderCheatsheet } from './cheatsheet';
+import { DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
 
 export type MountOptions = {
   popup?: Partial<PopupOptions> | false;
@@ -17,8 +18,8 @@ export const mountWhichKey = (
   const showCheatsheet = opts.cheatsheet ?? true;
   const popupOpts: PopupOptions | null = opts.popup === false ? null : {
     layout: opts.popup?.layout ?? 'vertical',
-    maxRows: opts.popup?.maxRows ?? 5,
-    backgroundOpacity: opts.popup?.backgroundOpacity ?? 0.95,
+    maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
+    backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
   };
 
   let popupNode: HTMLElement | null = null;
