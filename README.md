@@ -221,7 +221,7 @@ Import the prebuilt stylesheet:
 import 'which-key/styles.css';
 ```
 
-Or bring your own by targeting the `wk-*` CSS class contract. All classes use the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`). Most of these carry the default theme's styling and can be overridden to customize appearance; a few (like `wk-popup-host`) are deliberately unstyled structural hooks the theme leaves alone:
+Or bring your own by targeting the `wk-*` CSS class contract. The class *contract* uses the `wk-` prefix, or whatever you pass as `classPrefix` to `mountWhichKey` (vanilla only) — but the *shipped stylesheet* (`which-key/styles.css`) is always written against `wk-` regardless of `classPrefix`; see the warning below the custom-prefix example. Most of these carry the default theme's styling and can be overridden to customize appearance; a few (like `wk-popup-host`) are deliberately unstyled structural hooks the theme leaves alone:
 
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|
@@ -258,6 +258,10 @@ Custom `classPrefix` example (vanilla only):
 mountWhichKey(wk, { classPrefix: 'myapp' });
 // produces: myapp-popup, myapp-kbd, etc.
 ```
+
+> **`classPrefix` opts you out of `which-key/styles.css` entirely.** The shipped stylesheet hardcodes `.wk-*` in every selector, so a custom prefix matches none of it — the popup and backdrop lose even their `position: fixed`, and everything renders inline in the body flow. This also swallows the `--wk-z-index`/`--wk-z-index-backdrop` custom properties described below: they only take effect inside the same `.wk-popup`/`.wk-backdrop` rules a custom prefix bypasses, so they don't offer a partial override either. If you set `classPrefix`, supply your own stylesheet covering the whole class table above. Do not import `which-key/styles.css` alongside it and expect a partial effect; there is none.
+>
+> `classPrefix` is **vanilla-only**. The React components always emit `wk-`.
 
 ### Stacking order
 

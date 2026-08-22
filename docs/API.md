@@ -398,7 +398,7 @@ wk.stop();
 | `popup`       | `Partial<PopupOptions> \| false`  | `{ layout: 'vertical', maxRows: 5, backgroundOpacity: 0.95 }` | Popup renderer options. Pass `false` to suppress the popup. |
 | `cheatsheet`  | `boolean`                         | `true`          | Whether to render the cheatsheet.                                  |
 | `container`   | `HTMLElement`                     | `document.body` | DOM node into which rendered elements are appended.                |
-| `classPrefix` | `string`                          | `'wk'`          | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. |
+| `classPrefix` | `string`                          | `'wk'`          | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. Setting it opts out of `which-key/styles.css` (which hardcodes `.wk-*` selectors, including the ones that read the `--wk-z-index`/`--wk-z-index-backdrop` custom properties) — supply your own stylesheet covering the class contract; importing the shipped sheet alongside a custom prefix has no partial effect. Vanilla only; the React components always emit `wk-`. |
 
 **`PopupOptions`** (values inside `popup: {}`):
 

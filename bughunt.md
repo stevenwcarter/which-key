@@ -68,16 +68,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: mirror the prefix-only branch — when `this.bufferTouchedInput` is latched and `this.popupVisible` is true, set `popupVisible = false` and call `onHidePopup()` instead of merely skipping the refresh, so both branches share the same safety property rather than relying on eventual termination. Add a test registering a two-level leaf-AND-prefix chain and asserting the hide fires.
 - [ ] execute   [ ] skip
 
-### B33. classPrefix silently opts the consumer out of the shipped stylesheet, undocumented: `mountWhichKey` (src/vanilla/mount.ts:18)
-- Category: frontend
-- Impact: 4 (severity 2 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: `classPrefix` threads correctly through every vanilla class (verified: all 23 class writes use the `${p}-` template, none hardcoded), but src/styles.css hardcodes `.wk-*` in all 24 selectors. So `mountWhichKey(wk, { classPrefix: 'myapp' })` plus the README's own `import 'which-key/styles.css'` yields a completely unstyled overlay: the backdrop loses `position:fixed; inset:0`, the popup loses `position:fixed`, and both render inline in the body flow. README.md:243-247 shows the two side by side with no warning they are mutually exclusive; the only hint is docs/API.md:386. Separately the React renderer hardcodes `wk-` in all 18 className literals with no prop to change it.
-- Blast radius: src/vanilla/mount.ts:18; src/vanilla/popup.ts:10; src/vanilla/cheatsheet.ts:5; src/styles.css:2; README.md:243; docs/API.md:325,386
-- Proposed fix: add an explicit note at README.md:243 and docs/API.md:325 — "Using `classPrefix` opts out of `which-key/styles.css` entirely; you must supply your own stylesheet for the whole class contract." Also state that `classPrefix` is vanilla-only and the React components always emit `wk-`.
-- [x] execute   [ ] skip
-
 ### B35. No troubleshooting section documenting the emitted warnings or the silent failure modes: `README.md` (README.md:252)
 - Category: observability
 - Impact: 3 (severity 1 × blast-radius 3)
