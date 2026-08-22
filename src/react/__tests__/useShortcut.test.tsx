@@ -128,4 +128,22 @@ describe('useShortcut', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
     warn.mockRestore();
   });
+
+  it('does not tear down the consumer tree when the key string is invalid [B14]', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const Child = () => {
+      useShortcut('Hyper+K', () => {});
+      return <div data-testid="alive">ok</div>;
+    };
+    let result: ReturnType<typeof render> | undefined;
+    expect(() => {
+      result = render(
+        <WhichKeyProvider>
+          <Child />
+        </WhichKeyProvider>,
+      );
+    }).not.toThrow();
+    expect(result!.getByTestId('alive')).toBeInTheDocument();
+    warn.mockRestore();
+  });
 });

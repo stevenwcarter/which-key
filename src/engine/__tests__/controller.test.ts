@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../controller';
+import type { ShortcutHandler } from '../types';
 
 const press = (key: string, target: EventTarget = document.body) => {
   // Dispatch on the real target (not document with a faked `.target`) so
@@ -535,5 +536,50 @@ describe('controller layers', () => {
     expect(wk.getSnapshot().cheatsheet.visible).toBe(false);
 
     wk.stop();
+  });
+});
+
+describe('createWhichKey.register — soft failure on misuse [B14]', () => {
+  it('warns and no-ops on an unparseable key string instead of throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    let unregister: (() => void) | undefined;
+    expect(() => { unregister = wk.register('Hyper+K', vi.fn()); }).not.toThrow();
+    // Pin the exact composed text: keys.ts's thrown Error is already prefixed
+    // "whichkey: " on its own, so this also guards against that prefix
+    // doubling up with the "[whichkey] " tag this warning adds.
+    expect(warn).toHaveBeenCalledWith(
+      '[whichkey] invalid key string "Hyper+K": unknown modifier "Hyper" in "Hyper+K"; shortcut not registered.',
+    );
+    expect(warn.mock.calls[0][0]).not.toContain(': whichkey:');
+    expect(() => unregister!()).not.toThrow();
+    warn.mockRestore();
+  });
+
+  it('warns and no-ops on an empty key string', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    expect(() => wk.register('   ', vi.fn())).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid key string'));
+    warn.mockRestore();
+  });
+
+  it('warns and no-ops when the handler is not a function', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    // Deliberate misuse from untyped JS — the whole point of the guard.
+    const notAFunction = 'nope' as unknown as ShortcutHandler;
+    expect(() => wk.register('a', notAFunction)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] handler for "a" is not a function'));
+    expect(wk.registry.getActive('a')).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it('still registers a valid shortcut normally', () => {
+    const wk = createWhichKey();
+    const off = wk.register('a', vi.fn(), { description: 'Alpha' });
+    expect(wk.registry.getActive('a')?.description).toBe('Alpha');
+    off();
+    expect(wk.registry.getActive('a')).toBeUndefined();
   });
 });

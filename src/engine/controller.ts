@@ -162,10 +162,32 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   const engine: WhichKeyEngine = {
     registry,
     register(keys, h, opts) {
+      // Soft-fail on consumer misuse, matching useShortcut's missing-provider
+      // warn. register() runs inside a useEffect in the React binding, where a
+      // throw is unrecoverable and unmounts the consumer's whole subtree.
+      if (typeof h !== 'function') {
+        console.warn(`[whichkey] handler for "${keys}" is not a function; shortcut not registered.`);
+        return () => {};
+      }
+      let canonical: string;
+      try {
+        canonical = parseSequence(keys).join(' ');
+      } catch (err) {
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        // keys.ts's thrown Errors are already prefixed "whichkey: " (correct
+        // for that Error surfacing on its own, unwrapped). Strip it here so
+        // composing it into this [whichkey]-prefixed warning doesn't double
+        // the tag (was: '[whichkey] invalid key string "...": whichkey: ...').
+        // Any later soft-fail site that composes another module's Error
+        // message into a [whichkey] warning should strip the same way.
+        const message = rawMessage.replace(/^whichkey:\s*/, '');
+        console.warn(`[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`);
+        return () => {};
+      }
       const id = `wk_${idCounter++}`;
       const entry: ShortcutEntry = {
         id,
-        keys: parseSequence(keys).join(' '),
+        keys: canonical,
         handler: h,
         description: opts?.description,
         enableOnInputs: opts?.enableOnInputs ?? false,

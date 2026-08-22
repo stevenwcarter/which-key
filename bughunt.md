@@ -22,16 +22,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 
 ## Medium
 
-### B14. useShortcut with a bad key string throws inside an effect and takes down the consumer's tree: `useShortcut` (src/react/useShortcut.ts:22)
-- Category: api-surface
-- Impact: 9 (severity 3 × blast-radius 3)
-- Effort: S
-- Risk: medium
-- Evidence: `engine.register(keys, …)` is called from inside `useEffect`; `register` runs `parseSequence(keys)` which throws for empty/whitespace-only strings, unknown modifiers (e.g. `'Hyper+K'`; note `'ctrl+s'` is now accepted, since B11 made modifier names case-insensitive), and dangling `+`. A throw from a passive effect is not recoverable by the hook and propagates to the nearest error boundary, unmounting the consumer's subtree. docs/API.md:227-236 documents `useShortcut` with no mention that it can throw, and the surrounding code deliberately soft-fails the *other* misuse (missing provider → `console.warn` at useShortcut.ts:19), so the failure modes are inconsistent. Same exposure via `LayerHandle.register`. Separately, `register` does no `typeof handler === 'function'` check, so a non-function handler is accepted and only blows up much later inside `matcher.handleKeyDown`.
-- Blast radius: src/react/useShortcut.ts:22; src/engine/controller.ts:152,156,196; src/engine/matcher.ts:47; docs/API.md:227
-- Proposed fix: validate up front in `createWhichKey.register` — if `typeof h !== 'function'`, warn and return a no-op unregister; wrap `parseSequence` in try/catch, `console.warn('[whichkey] invalid key string "<keys>": <msg>; shortcut not registered')` and return a no-op unregister. Purely internal, return type unchanged. Document the soft-failure in docs/API.md:57.
-- [x] execute   [ ] skip
-
 ### B15. Lowercase or aliased special-key names register silently dead bindings: `parseKey` (src/engine/keys.ts:105)
 - Category: correctness
 - Impact: 9 (severity 3 × blast-radius 3)

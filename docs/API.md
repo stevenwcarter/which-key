@@ -70,6 +70,8 @@ const off = wk.register('Ctrl+s', (event) => save(), {
 off(); // unregister
 ```
 
+> **Invalid input soft-fails.** If `keys` cannot be parsed (empty string, unknown modifier, dangling `+`) or `handler` is not a function, `register` emits a `console.warn` and returns a no-op unregister function rather than throwing. This keeps `useShortcut` — which calls `register` from inside an effect — from tearing down the consumer's React tree on a typo.
+
 **Options** (`ShortcutOptions`):
 
 | Property        | Type      | Default | Description                                                                    |
