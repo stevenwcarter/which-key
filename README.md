@@ -226,7 +226,7 @@ Or bring your own by targeting the `wk-*` CSS class contract. The class *contrac
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|
 | `wk-popup`                    | Popup container                                  |
-| `wk-popup-host`               | Structural wrapper holding the popup; unstyled   |
+| `wk-popup-host`               | Structural wrapper holding the popup; unstyled; **vanilla only** |
 | `wk-popup--vertical`          | Modifier: corner popup layout                    |
 | `wk-popup--horizontal`        | Modifier: bottom-bar layout                      |
 | `wk-popup__header`            | Header area (vertical layout)                    |
@@ -313,7 +313,7 @@ Multiple components may bind the same key. The winner is decided by **level, the
 
 ### Console warnings
 
-which-key writes diagnostics to the console prefixed with `[whichkey]`. They are advisory — none of them throws. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
+which-key writes diagnostics to the console prefixed with `[whichkey]`. Nearly all are `console.warn` advisories for consumer misuse; one is a `console.error` logged when your own shortcut handler throws. None of them propagates an exception into your app. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
 
 ---
 

@@ -498,7 +498,7 @@ A shortcut you registered that is **absent** from this list is either blocked by
 
 ### Console warnings
 
-Every diagnostic which-key writes is prefixed `[whichkey]`. All of them are advisory — the library soft-fails on consumer misuse rather than throwing, so a warning means "this did not do what you meant", never "your app is about to crash".
+Every diagnostic which-key writes is prefixed `[whichkey]`. Nearly all of them are `console.warn` advisories — the library soft-fails on consumer misuse rather than throwing, so a warning means "this did not do what you meant", never "your app is about to crash". The one exception is the `console.error` in the last row: it fires when *your own* shortcut handler throws, which is not consumer misuse of the which-key API, but which-key still catches it and keeps running rather than letting it propagate.
 
 | Warning (abridged) | Meaning | Fix |
 |---|---|---|
@@ -514,6 +514,7 @@ Every diagnostic which-key writes is prefixed `[whichkey]`. All of them are advi
 | `mountWhichKey called twice for the same container; the previous mount is still active. Call unmount() on it first. This call is a no-op.` | A second renderer was mounted on a container that already has one. | Call `unmount()` on the first mount, or mount into a different container. |
 | `invalid classPrefix "<prefix>"; must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first character (or the character right after a leading "-") is a letter or "_", never a digit. Falling back to "wk".` | `classPrefix` passed to `mountWhichKey` is not a valid CSS identifier stem. | Use only letters, digits, `-` and `_`; the first character (or the character immediately after a leading `-`) must be a letter or `_`, never a digit. |
 | `"<input>": Shift is dropped for punctuation and digits — write the shifted character directly (e.g. "?" not "Shift+/"). This binding will match "<base>".` | A key string like `'Shift+/'` was registered. `Shift+` is silently dropped for punctuation/digit base characters, so the binding matches the *unshifted* key, not the shifted glyph. | Register the shifted character directly (e.g. `'?'` instead of `'Shift+/'`). |
+| `Handler for "<keys>" threw; sequence state was reset.` (**`console.error`, not `console.warn`**) | Your own shortcut handler for `<keys>` threw an exception. which-key caught it, logged it (the original error is passed as a second argument to `console.error`), and reset the pending sequence buffer so the engine stays usable. | Fix the exception in your handler; this is not a which-key bug. |
 
 **Silent failures** — these produce no console output at all, so check them by hand:
 
@@ -530,7 +531,7 @@ The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both u
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|
 | `wk-popup`                    | Popup container                                  |
-| `wk-popup-host`               | Structural wrapper holding the popup; unstyled   |
+| `wk-popup-host`               | Structural wrapper holding the popup; unstyled; **vanilla only** |
 | `wk-popup--vertical`          | Modifier: corner popup (right-aligned, bottom)   |
 | `wk-popup--horizontal`        | Modifier: bottom bar spanning the viewport       |
 | `wk-popup__header`            | Header row (vertical layout)                     |
