@@ -1,6 +1,6 @@
 # bughunt.md — code-health audit findings
 
-Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 executed and stripped 2026-08-21. B14, B16-B40, B42-B43 executed and stripped 2026-08-22 on `codehealth/2026-08-21-batch2`. **Open:** B15 and B41 (left unchecked by the user in that batch); B44, B45 and B46 (found during that batch's reviews, never triaged); and the 7 decision-needed markers. Toolchain: npm run build / npm test / npm run lint.
+Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 executed and stripped 2026-08-21. B14, B16-B40, B42-B43 executed and stripped 2026-08-22 on `codehealth/2026-08-21-batch2`. B15, B44-B47 and two decision-needed markers (the cheatsheet re-render, resolved with a registry `version` counter; and the dark-only theme, resolved with `prefers-color-scheme` plus a `data-wk-theme` override) executed and stripped 2026-08-22 on `codehealth/2026-08-22-batch3`. **Open:** B41, and the five remaining decision-needed markers. Toolchain: npm run build / npm test / npm run lint / npm run format:check.
 
 > **For future sessions reading this file:** when you fix an item listed
 > here, strip it from this file in the same commit that fixes it. The list
