@@ -1,19 +1,10 @@
-import {
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
-import { WhichKeyContext, warnNoProvider } from './context';
+import { useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { WhichKeyContext } from './context';
+import { useEngineSnapshot } from './useEngineSnapshot';
 import type { CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
-
-const noopSubscribe = () => () => {};
-const getNullSnapshot = () => null;
 
 // Hoisted so the closed-sheet case returns the same object identity on every
 // render — a fresh `{ standalone: [], groups: [] }` literal per call would
@@ -31,19 +22,10 @@ const EMPTY_MODEL: CheatsheetModel = { standalone: [], groups: [] };
  */
 export const ShortcutCheatsheet = () => {
   const engine = useContext(WhichKeyContext);
-  const snapshot = useSyncExternalStore(
-    engine ? engine.subscribe : noopSubscribe,
-    engine ? engine.getSnapshot : getNullSnapshot,
-    getNullSnapshot,
-  );
-  const visible = snapshot?.cheatsheet.visible ?? false;
+  const visible = useEngineSnapshot(engine, '<ShortcutCheatsheet>').cheatsheet.visible;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!engine) warnNoProvider('<ShortcutCheatsheet>');
-  }, [engine]);
 
   useEffect(() => {
     if (!engine || !visible) return;
