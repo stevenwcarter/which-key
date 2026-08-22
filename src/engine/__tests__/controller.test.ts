@@ -693,6 +693,28 @@ describe('createWhichKey — invalid helpKey [B23]', () => {
   });
 });
 
+describe('createWhichKey — empty-string helpKey [B47]', () => {
+  it('warns that an empty helpKey disabled the help shortcut', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: '' });
+    expect(warn).toHaveBeenCalledWith('[whichkey] invalid helpKey ""; help shortcut disabled.');
+    expect(wk.registry.getAllActive()).toHaveLength(0);
+    warn.mockRestore();
+  });
+
+  it('stays silent for the documented helpKey: null', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey({ helpKey: null });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('still binds a valid helpKey', () => {
+    const wk = createWhichKey({ helpKey: 'F1' });
+    expect(wk.registry.getActive('F1')).toBeDefined();
+  });
+});
+
 describe('createWhichKey — timeoutMs validation [B30]', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

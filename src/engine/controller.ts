@@ -182,7 +182,13 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
   });
 
-  if (helpKey) {
+  // `null` is the documented way to disable help deliberately and stays
+  // silent. `''` is almost certainly a mistake — it is falsy, so it skipped
+  // registration without ever reaching parseKey, making it the one
+  // invalid-input path in the library that failed with no diagnostic.
+  if (helpKey === '') {
+    console.warn('[whichkey] invalid helpKey ""; help shortcut disabled.');
+  } else if (helpKey) {
     // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
     // a throw here unmounts the consumer's entire tree with no error boundary
     // in between. Matches useShortcut's missing-provider warn convention.
