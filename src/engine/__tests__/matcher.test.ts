@@ -307,18 +307,18 @@ describe('Matcher — leaf-AND-prefix timeout event fidelity [B17]', () => {
     expect(fired.cancelable).toBe(true);
   });
 
-  it('lets the handler actually preventDefault the timed-out event', () => {
-    const onFire = vi.fn<FireFn>((_e, event) => event.preventDefault());
-    const { registry, matcher } = buildMatcher({ onFire }, 500);
-    registry.register(entry({ id: 'leaf', keys: 'g' }));
-    registry.register(entry({ id: 'deeper', keys: 'g h' }));
-
-    const triggering = ev({ key: 'g', cancelable: true }, document.createElement('div'));
-    matcher.handleKeyDown(triggering);
-    vi.advanceTimersByTime(500);
-
-    expect(triggering.defaultPrevented).toBe(true);
-  });
+  // A sibling test used to sit here asserting that a handler calling
+  // preventDefault() on the timed-out event left `defaultPrevented === true`,
+  // titled as if this proved the handler could "actually preventDefault the
+  // timed-out event". It didn't: the assertion is trivially true for any
+  // event constructed with `cancelable: true` regardless of dispatch or of
+  // which code path produced it (confirmed empirically — calling
+  // preventDefault() on a freshly constructed, never-dispatched cancelable
+  // KeyboardEvent always sets defaultPrevented, synthetic or real). The
+  // `cancelable` fidelity it depended on is already asserted directly, and
+  // more clearly, by `expect(fired.cancelable).toBe(true)` above, so the
+  // test added no coverage beyond the one above it and has been removed
+  // rather than retitled to a narrower true claim that duplicates it.
 });
 
 describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher half]', () => {

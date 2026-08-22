@@ -98,9 +98,14 @@ export class Matcher {
       const fireTarget = eventTarget;
       // Fire the ORIGINAL event, never a synthesized one. A `new
       // KeyboardEvent(...)` that is never dispatched has target === null,
-      // cancelable === false (so preventDefault() silently no-ops) and all
-      // modifier flags false — so an identical handler would behave
-      // differently purely because this shortcut also happens to be a prefix.
+      // is not cancelable, and has all modifier flags false — so an
+      // identical handler would behave differently purely because this
+      // shortcut also happens to be a prefix. (This branch's fire always
+      // happens inside the setTimeout below, after the original dispatch
+      // has already completed, so calling preventDefault() here — on
+      // either event — no longer affects any default action either way;
+      // the difference this makes is target/cancelable/modifier-flag
+      // fidelity, not preventDefault's effect.)
       const fireEvent = event;
       this.timer = setTimeout(() => {
         if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
