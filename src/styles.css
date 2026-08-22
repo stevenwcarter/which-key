@@ -10,10 +10,13 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+/* 1000 clears Ant Design (1000) and sits under Bootstrap's .modal (1055) and
+   MUI's modal (1300); override --wk-z-index to place which-key relative to
+   your own modal layer. */
 .wk-popup {
   position: fixed;
   bottom: 1rem;
-  z-index: 50;
+  z-index: var(--wk-z-index, 1000);
   border-radius: 0.5rem;
   color: #f3f4f6;
   border: 1px solid #374151;
@@ -37,7 +40,7 @@
 .wk-row__label { color: #e5e7eb; }
 .wk-row--group .wk-row__label { color: #93c5fd; }
 .wk-backdrop {
-  position: fixed; inset: 0; z-index: 50;
+  position: fixed; inset: 0; z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));
   background: rgba(0, 0, 0, 0.5);
   display: flex; align-items: center; justify-content: center; padding: 1rem;
 }

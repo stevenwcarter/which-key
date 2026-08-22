@@ -259,6 +259,23 @@ mountWhichKey(wk, { classPrefix: 'myapp' });
 // produces: myapp-popup, myapp-kbd, etc.
 ```
 
+### Stacking order
+
+The overlay's `z-index` is exposed as a CSS custom property so you can place which-key relative to your own modal layer without out-specifying the shipped selectors:
+
+| Property                 | Default             | Applies to     |
+|--------------------------|---------------------|----------------|
+| `--wk-z-index`           | `1000`              | `.wk-popup`, and `.wk-backdrop` unless overridden |
+| `--wk-z-index-backdrop`  | `var(--wk-z-index)` | `.wk-backdrop` only |
+
+```css
+:root {
+  --wk-z-index: 1400; /* above MUI's modal layer (1300) */
+}
+```
+
+The default of `1000` clears Ant Design's modal layer but sits below Bootstrap's `.modal` (1055) and MUI's modal (1300) — raise it if you need the cheatsheet over one of those.
+
 ---
 
 ## API

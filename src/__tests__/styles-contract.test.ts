@@ -34,7 +34,14 @@ describe('styles.css — overlay stacking contract [B26]', () => {
   });
 
   it('has no hardcoded z-index left anywhere in the sheet', () => {
-    const hardcoded = css.match(/z-index:\s*(?!var\()[^;]+;/g) ?? [];
+    // NB: the lookahead sits before `\s*`, not after it. `z-index:\s*(?!var\()`
+    // is unsound — `\s*` backtracks to a zero-width match, so the lookahead
+    // then only has to reject a literal "var(" immediately after the colon,
+    // and the leading space before "var(" satisfies that trivially. That
+    // false-flags every correctly-fixed `z-index: var(...)` declaration as
+    // hardcoded. Anchoring the lookahead immediately after the colon (and
+    // folding the optional whitespace into the lookahead itself) closes it.
+    const hardcoded = css.match(/z-index:(?!\s*var\()\s*[^;]+;/g) ?? [];
     expect(hardcoded).toEqual([]);
   });
 

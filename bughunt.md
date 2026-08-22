@@ -62,16 +62,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add `export type { PopupOptions } from './popup';` to src/vanilla/index.ts and export a named `WhichKeyMountHandle = { unmount(): void }` from mount.ts, using it as `mountWhichKey`'s declared return type. Both additive — existing structural usage keeps compiling.
 - [x] execute   [ ] skip
 
-### B26. Hardcoded `z-index: 50` with no override hook puts the overlay under most host-app modal layers: `styles.css` (src/styles.css:16)
-- Category: frontend
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: S
-- Risk: high
-- Evidence: `.wk-popup` (:16) and `.wk-backdrop` (:40) both use a literal `z-index: 50`. This library renders *over* someone else's app, but 50 is below the stacking layer every major UI kit uses for modals (Bootstrap `.modal` 1055, MUI modal 1300, Ant Design 1000). A consumer who presses `?` while any such dialog is open gets the cheatsheet rendered behind it and unreachable. Because both which-key layers use the identical value, DOM order alone decides popup-vs-backdrop ordering, which is what makes the B18 divergence observable. There is no CSS custom property, so overriding requires out-specifying two selectors from the shipped sheet.
-- Blast radius: src/styles.css:16,40; README.md:218; examples/vanilla/index.html:30
-- Proposed fix: replace both literals with `z-index: var(--wk-z-index, 1000);` and `z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));`, and document the two variables in the README Styling section.
-- [x] execute   [ ] skip
-
 ### B28. The debugging exports that answer "why doesn't my shortcut fire" are undocumented: `parseKey` / `eventToCanonical` / `registry` (docs/API.md:142)
 - Category: observability
 - Impact: 6 (severity 2 × blast-radius 3)
