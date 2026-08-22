@@ -42,16 +42,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add `engine.pushLayer(options?)` and `engine.activateLayer(level, exclusive)` sections plus a `LayerHandle` type block to the engine section; add a `<WhichKeyLayer>` section and TOC entry to the React section; add `global`/`level` rows to the ShortcutOptions table, `level` to the registerGroup table, and correct the `popup` default. Docs-only.
 - [x] execute   [ ] skip
 
-### B18. Vanilla `render()` destroys and rebuilds the popup subtree on every emit, stacking it above the cheatsheet backdrop unlike React: `mountWhichKey.render` (src/vanilla/mount.ts:32)
-- Category: frontend
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: M
-- Risk: high
-- Evidence: `render()` unconditionally does `popupNode?.remove(); popupNode = null;` then re-`appendChild`s a freshly built node on every engine emit (since B5, emits fire only on real state changes rather than on every keystroke, but the popup subtree is still rebuilt on each one), while the cheatsheet backdrop is appended once on open and left in place. Since `.wk-popup` and `.wk-backdrop` share `z-index: 50` (styles.css:16, :40), painting order falls to DOM order: once the cheatsheet is open, the next popup render lands *after* the backdrop, so the popup paints on top of the full-screen overlay. React reconciles in place and honours the README's JSX order, so there the backdrop correctly covers the popup — a renderer divergence. Reproduce: open the cheatsheet with `?`, then press a leader key. While the popup is open, each continuation keypress also discards the entire panel and allocates a fresh subtree (full detach/reattach, style recalc, visible flicker). mount.ts:32 and :59 are uncovered.
-- Blast radius: src/vanilla/mount.ts:29,32,36,40,52; src/vanilla/popup.ts:38; src/styles.css:16,40; src/react/WhichKeyPopup.tsx:33
-- Proposed fix: create a stable popup host element once at mount, append it once, and replace only its children each render (`host.replaceChildren(...)`), toggling `host.hidden` when the snapshot has no visible popup. Fixes both the stacking order and the churn in one change to mount.ts:31-37.
-- [x] execute   [ ] skip
-
 ### B45. An explicit negative `level` on register()/registerGroup() silently makes the shortcut unreachable: `ShortcutOptions.level` (src/engine/types.ts)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)

@@ -226,6 +226,7 @@ Or bring your own by targeting the `wk-*` CSS class contract. All classes use th
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|
 | `wk-popup`                    | Popup container                                  |
+| `wk-popup-host`               | Structural wrapper holding the popup; unstyled   |
 | `wk-popup--vertical`          | Modifier: corner popup layout                    |
 | `wk-popup--horizontal`        | Modifier: bottom-bar layout                      |
 | `wk-popup__header`            | Header area (vertical layout)                    |

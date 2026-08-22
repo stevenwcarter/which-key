@@ -375,6 +375,7 @@ The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both u
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|
 | `wk-popup`                    | Popup container                                  |
+| `wk-popup-host`               | Structural wrapper holding the popup; unstyled   |
 | `wk-popup--vertical`          | Modifier: corner popup (right-aligned, bottom)   |
 | `wk-popup--horizontal`        | Modifier: bottom bar spanning the viewport       |
 | `wk-popup__header`            | Header row (vertical layout)                     |

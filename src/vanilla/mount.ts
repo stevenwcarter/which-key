@@ -22,7 +22,18 @@ export const mountWhichKey = (
     backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
   };
 
-  let popupNode: HTMLElement | null = null;
+  // A stable host appended ONCE, before any cheatsheet backdrop. The previous
+  // code removed and re-appended the popup on every emit, so once the
+  // cheatsheet was open the popup landed AFTER the backdrop in DOM order —
+  // and since both share a z-index, DOM order decides painting, so the popup
+  // drew on top of the full-screen overlay. React reconciles in place and
+  // does not have this bug; this keeps the two renderers in agreement. It
+  // also stops a full detach/reattach + style recalc on every keystroke.
+  const popupHost = document.createElement('div');
+  popupHost.className = `${prefix}-popup-host`;
+  popupHost.hidden = true;
+  if (popupOpts) container.appendChild(popupHost);
+
   let cheatsheetNode: HTMLElement | null = null;
   let cheatsheetDestroy: (() => void) | null = null;
 
@@ -30,12 +41,16 @@ export const mountWhichKey = (
 
   const render = () => {
     const snap = engine.getSnapshot();
-    // Popup
-    popupNode?.remove();
-    popupNode = null;
+    // Popup — replace children in place; never move the host.
     if (popupOpts) {
       const node = renderPopup(prefix, snap, popupOpts);
-      if (node) { container.appendChild(node); popupNode = node; }
+      if (node) {
+        popupHost.replaceChildren(node);
+        popupHost.hidden = false;
+      } else {
+        popupHost.replaceChildren();
+        popupHost.hidden = true;
+      }
     }
     // Cheatsheet
     if (showCheatsheet) {
@@ -62,7 +77,7 @@ export const mountWhichKey = (
   return {
     unmount() {
       unsubscribe();
-      popupNode?.remove();
+      popupHost.remove();
       cheatsheetNode?.remove();
       cheatsheetDestroy?.();
       cheatsheetDestroy = null;

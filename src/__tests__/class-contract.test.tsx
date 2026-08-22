@@ -17,7 +17,7 @@ const root = join(import.meta.dirname, '../../') + '/';
 /** The documented CSS class contract. Adding a class to a renderer means adding it here AND to both doc tables. */
 const CONTRACT = [
   'wk-kbd',
-  'wk-popup', 'wk-popup--vertical', 'wk-popup--horizontal',
+  'wk-popup', 'wk-popup-host', 'wk-popup--vertical', 'wk-popup--horizontal',
   'wk-popup__header', 'wk-popup__body', 'wk-popup__list', 'wk-popup__grid',
   'wk-row', 'wk-row--group', 'wk-row__label',
   'wk-sequence', 'wk-sequence__ellipsis',
@@ -113,7 +113,14 @@ describe('CSS class contract', () => {
       utils.unmount();
       document.body.innerHTML = '';
     }
-    expect([...emitted].sort()).toEqual([...CONTRACT].sort());
+    // wk-popup-host (B18) is a vanilla-only structural wrapper: the vanilla
+    // renderer needs a stable host element to avoid detach/reattach churn,
+    // but React already reconciles the popup in place and never had that
+    // problem, so it never emits this class. Documented in CONTRACT (and
+    // both doc tables) because a consumer can still target it to override
+    // stacking context in the vanilla renderer — just excluded here.
+    const expected = CONTRACT.filter((c) => c !== 'wk-popup-host');
+    expect([...emitted].sort()).toEqual([...expected].sort());
   });
 
   it('documents every emitted class in README.md and docs/API.md', () => {
