@@ -52,6 +52,16 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: create a stable popup host element once at mount, append it once, and replace only its children each render (`host.replaceChildren(...)`), toggling `host.hidden` when the snapshot has no visible popup. Fixes both the stacking order and the churn in one change to mount.ts:31-37.
 - [x] execute   [ ] skip
 
+### B45. An explicit negative `level` on register()/registerGroup() silently makes the shortcut unreachable: `ShortcutOptions.level` (src/engine/types.ts)
+- Category: api-surface
+- Impact: 6 (severity 3 × blast-radius 2)
+- Effort: S
+- Risk: medium
+- Evidence: found during B34's review (2026-08-21), not by the original triage. B34 closed this hole for `pushLayer({ level })`, but `level` is also a public field on `ShortcutOptions` (and on `registerGroup`'s options), and that path is still unvalidated. Verified empirically against the built bundle: `register('z', fn, { level: -1 })` returns a live unregister function, the entry lands in the registry, and `registry.getActive('z')` is `undefined` with **no warning** — because `blockLevel()` floors at 0 and `isReachable` requires `entry.global || entry.level >= block`. Same silent-dead-shortcut failure B34 describes, at a different public entry point. Two neighbouring paths were probed and are NOT affected: `pushLayer({ level: -1 })` now warns and falls back (B34), and `activateLayer(-1, true)` is inert — it creates a layer that both `nextLevel()` and `blockLevel()` ignore, and registers nothing at that level, so no shortcut becomes unreachable through it. Note B16/Task 25 will document `level` as a public option, which makes shipping it unvalidated more visible.
+- Blast radius: src/engine/types.ts (`ShortcutOptions.level`); src/engine/controller.ts (`register`, `registerGroup`); src/engine/registry.ts (`isReachable`, `blockLevel`)
+- Proposed fix: validate `opts.level` in `register`/`registerGroup` the same way B34 validates `pushLayer`'s — if supplied and not a non-negative integer, `console.warn` and fall back to `0`. Reuse B34's message shape. Do NOT reject the value outright; soft-fail per the batch convention.
+- [ ] execute   [ ] skip
+
 ### B24. Renderer components silently render nothing outside a provider while the three hooks warn: `useWhichKeyState` / `ShortcutCheatsheet` (src/react/useWhichKeyState.ts:15)
 - Category: observability
 - Impact: 6 (severity 2 × blast-radius 3)
