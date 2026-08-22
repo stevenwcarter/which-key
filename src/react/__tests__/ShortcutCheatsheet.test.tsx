@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { WhichKeyProvider, useShortcut, useShortcutGroup } from '../index';
 import { ShortcutCheatsheet } from '../ShortcutCheatsheet';
+import { resetNoProviderWarnings } from '../context';
 
 const Setup = () => {
   useShortcutGroup('g', { description: 'Focus widget' });
@@ -238,5 +239,16 @@ describe('cheatsheet focus management', () => {
       );
     });
     expect(document.activeElement).toBe(second);
+  });
+});
+
+describe('ShortcutCheatsheet outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns when mounted outside a provider [B24]', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<ShortcutCheatsheet />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<ShortcutCheatsheet>'));
+    warn.mockRestore();
   });
 });

@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { WhichKeyProvider, useShortcut } from '../index';
 import { WhichKeyPopup } from '../WhichKeyPopup';
+import { resetNoProviderWarnings } from '../context';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -388,5 +389,26 @@ describe('WhichKeyPopup — wk-row--group class (brief requirement)', () => {
     expect(popup).toHaveAttribute('aria-live', 'polite');
     expect(popup).toHaveAttribute('aria-atomic', 'true');
     expect(popup).not.toHaveAttribute('role', 'dialog');
+  });
+});
+
+describe('WhichKeyPopup outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns naming the component instead of failing silently', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<WhichKeyPopup />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyPopup>'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyProvider>'));
+    warn.mockRestore();
+  });
+
+  it('warns once per mount, not once per render', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { rerender } = render(<WhichKeyPopup />);
+    rerender(<WhichKeyPopup layout="horizontal" />);
+    rerender(<WhichKeyPopup maxRows={3} />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
