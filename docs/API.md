@@ -15,6 +15,7 @@
    - [`useWhichKeyState(what?)`](#usewhichkeystatewhat)
    - [`<WhichKeyPopup>`](#whichkeypopup)
    - [`<ShortcutCheatsheet>`](#shortcutcheatsheet)
+   - [React escape hatches](#react-escape-hatches)
 3. [Vanilla — `which-key/vanilla`](#vanilla--which-keyvanilla)
    - [`mountWhichKey(engine, options?) => WhichKeyMountHandle`](#mountwhichkey)
 4. [Debugging](#debugging)
@@ -50,6 +51,19 @@ const wk = createWhichKey({
 
 `KeyComparator` is `(a: string, b: string) => number` — the same contract as `Array.prototype.sort`.
 
+`SortMode` is the type of `sortKeys` above: `'alphabetical' | 'registration' | KeyComparator`.
+
+`alphabeticalKeysSort: KeyComparator` is the built-in comparator behind `sortKeys: 'alphabetical'` — a vim-style, case-insensitive sort with lowercase ordered before uppercase on a tie (so `'a'` < `'A'` < `'b'` < `'B'`), applied to the full canonical key string. It is exported so a custom `KeyComparator` can compose it instead of reimplementing it:
+
+```ts
+import { alphabeticalKeysSort, type KeyComparator } from 'which-key';
+
+const myComparator: KeyComparator = (a, b) => {
+  if (a === 'q') return -1; // always sort "q" first
+  return alphabeticalKeysSort(a, b);
+};
+```
+
 ---
 
 ### `WhichKeyEngine`
@@ -73,6 +87,8 @@ off(); // unregister
 ```
 
 > **Invalid input soft-fails.** If `keys` cannot be parsed (empty string, unknown modifier, dangling `+`) or `handler` is not a function, `register` emits a `console.warn` and returns a no-op unregister function rather than throwing. This keeps `useShortcut` — which calls `register` from inside an effect — from tearing down the consumer's React tree on a typo.
+
+`ShortcutHandler` is `(event: KeyboardEvent) => void` — the handler type accepted here and by `LayerHandle.register` below.
 
 **Options** (`ShortcutOptions`):
 
@@ -351,6 +367,8 @@ import { WhichKeyPopup } from 'which-key/react';
 | `maxRows`           | `number`                     | `5`          | Maximum rows in the horizontal grid.                    |
 | `backgroundOpacity` | `number`                     | `0.95`       | Panel background alpha (0–1).                           |
 
+`WhichKeyPopupLayout` is the type of `layout` above: `'vertical' | 'horizontal'`.
+
 ### `<ShortcutCheatsheet>`
 
 Renders the full-screen cheatsheet. Returns `null` when the cheatsheet is not visible. No props.
@@ -359,6 +377,18 @@ Renders the full-screen cheatsheet. Returns `null` when the cheatsheet is not vi
 import { ShortcutCheatsheet } from 'which-key/react';
 
 <ShortcutCheatsheet />;
+```
+
+### React escape hatches
+
+`WhichKeyContext` and `LayerContext` are the React contexts that back the hooks and layer components above. They are exported for advanced cases — a custom component that needs the raw `WhichKeyEngine` or the ambient layer level without going through `useShortcut`/`useShortcutGroup`/`useWhichKeyState` or `<WhichKeyLayer>`. Most consumers should use those instead of reading these contexts directly.
+
+```tsx
+import { useContext } from 'react';
+import { WhichKeyContext, LayerContext } from 'which-key/react';
+
+const engine = useContext(WhichKeyContext); // WhichKeyEngine | null; null outside <WhichKeyProvider>
+const { level } = useContext(LayerContext); // current layer level; { level: 0 } outside any <WhichKeyLayer>
 ```
 
 ---
@@ -489,6 +519,8 @@ parseSequence('g h'); // ['g', 'h']
 
 Both **throw** for an unparseable string (an unknown modifier, a trailing `+`, an empty string). That is how you tell a typo from a mismatch. Contrast this with [`engine.register`](#engine-register), which catches that same error internally and **warns instead of throwing** — call `parseKey`/`parseSequence` yourself and a bad string is an exception; register it through the engine and a bad string is a console warning plus a no-op.
 
+Both return `CanonicalKey` — an alias for `string` (`export type CanonicalKey = string`) that names the canonicalized, registry-lookup-ready form of a key string. It carries no runtime behavior of its own; it exists so signatures like the ones on this page document intent.
+
 ### `eventToCanonical(event)`
 
 Canonicalize a live `KeyboardEvent` the way the matcher does at runtime. **Registration and runtime must produce byte-identical strings** — registry lookups are plain `Map` gets — so comparing the two is the fastest way to find a mismatch. Log both sides from a raw listener next to your registered key:
@@ -502,6 +534,24 @@ document.addEventListener('keydown', (e) => {
 ```
 
 If those two strings differ, that is your bug. This is exactly what happens with the `Shift+/` example above: physically holding Shift and pressing `/` on a US layout delivers a `KeyboardEvent` whose `key` is already `'?'`, so `eventToCanonical(e)` reports `'?'`. But `parseKey('Shift+/')` reports `'/'` (see above) — the two never match, and a shortcut registered as `'Shift+/'` silently never fires. Registering the shifted character directly, `'?'`, fixes it.
+
+### `isModifierOnlyEvent(event)` / `isInputTarget(target)`
+
+Matcher-internal predicates, exported for advanced diagnostics rather than as primary API — `Matcher.handleKeyDown` uses both to decide whether a `keydown` should be ignored outright. They are candidates for being unexported before a 1.0 release; most consumers should never need to call them directly.
+
+```ts
+import { isModifierOnlyEvent, isInputTarget } from 'which-key';
+
+document.addEventListener('keydown', (e) => {
+  if (isModifierOnlyEvent(e)) return; // a bare Shift/Ctrl/Alt/Meta press, nothing chorded yet
+  if (isInputTarget(e.target)) {
+    /* focus is in a text field */
+  }
+});
+```
+
+- `isModifierOnlyEvent(event: KeyboardEvent) => boolean` — `true` when `event.key` is itself a modifier name (`'Shift'`, `'Control'`, `'Alt'`, `'Meta'`), i.e. the keydown is a bare modifier press with no other key chorded yet. The matcher uses this to skip modifier-only keydowns instead of treating them as a (dead) one-key sequence.
+- `isInputTarget(target: EventTarget | null) => boolean` — `true` when `target` is an `<input>`, a `<textarea>`, or an element that is (or declares itself via `contenteditable`) content-editable. Backs the `enableOnInputs` option on `register`/`registerGroup`.
 
 ### `engine.registry.getAllActive()`
 
