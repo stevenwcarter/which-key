@@ -86,7 +86,17 @@ const buildCheatsheetModel = (
 };
 
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
-  const { timeoutMs = 500, helpKey = '?', sortKeys } = options;
+  const { helpKey = '?', sortKeys } = options;
+  // setTimeout silently coerces NaN / negative / overflow to 0, which turns
+  // "wait before showing the popup" into "fire instantly" with no diagnostic.
+  // Validate at the boundary; the public timeoutMs?: number stays unchanged.
+  const timeoutMs = ((): number => {
+    const raw = options.timeoutMs;
+    if (raw === undefined) return 500;
+    if (Number.isFinite(raw) && raw >= 0) return raw;
+    console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
+    return 500;
+  })();
   const explicitTarget = options.target;
   let bound: Document | HTMLElement | null = null;
   const registry = new ShortcutRegistry();

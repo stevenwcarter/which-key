@@ -118,16 +118,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: make both total — `Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.95` and `Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 5`. Better still, hoist the pair into a shared internal module so the two copies cannot drift again.
 - [x] execute   [ ] skip
 
-### B30. timeoutMs is unvalidated, so NaN/negative values silently make the popup instantaneous: `WhichKeyOptions.timeoutMs` (src/engine/controller.ts:81)
-- Category: api-surface
-- Impact: 4 (severity 2 × blast-radius 2)
-- Effort: S
-- Risk: high
-- Evidence: `timeoutMs` is destructured with a 500 default and handed straight to the Matcher, which passes it to `setTimeout`. `setTimeout` coerces NaN, negative and overflow values to 0, so `createWhichKey({ timeoutMs: -1 })` — or a value computed from bad config — produces a popup that flashes open on the first keystroke and a leaf-and-prefix shortcut that fires with zero grace period, the exact opposite of the documented "Milliseconds of inactivity before a partial sequence is cancelled" (docs/API.md:44). No error, no warning. Same path from React via `<WhichKeyProvider timeoutMs={…}>`. Nothing in the suite exercises a non-positive or NaN timeout.
-- Blast radius: src/engine/controller.ts:81,116; src/engine/matcher.ts:65,80; src/react/WhichKeyProvider.tsx:17; docs/API.md:44
-- Proposed fix: clamp at the boundary — `const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs >= 0 ? options.timeoutMs : 500;` with a `console.warn` when a supplied value is rejected. Purely internal; the `timeoutMs?: number` signature is unchanged.
-- [x] execute   [ ] skip
-
 ### B31. isMacPlatform reads deprecated `navigator.platform` unguarded, so `Mod+` throws where navigator is absent: `isMacPlatform` (src/engine/keys.ts:20)
 - Category: correctness
 - Impact: 4 (severity 2 × blast-radius 2)
