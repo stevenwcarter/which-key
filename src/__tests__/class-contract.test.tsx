@@ -173,7 +173,7 @@ describe('CSS class contract', () => {
     }
     const missing = [...emitted]
       .filter((cls) => !UNSTYLED.has(cls))
-      .filter((cls) => !new RegExp(`\\.${cls}\\b`).test(css))
+      .filter((cls) => !new RegExp(`\\.${cls}(?![\\w-])`).test(css))
       .sort();
     expect(missing).toEqual([]);
   });
