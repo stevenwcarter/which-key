@@ -663,3 +663,50 @@ describe('createWhichKey — invalid helpKey [B23]', () => {
     warn.mockRestore();
   });
 });
+
+describe('createWhichKey — timeoutMs validation [B30]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  // Registers a leaf-and-prefix pair ("g" alone isn't bound, only "g a" is,
+  // so "g" is a pure prefix), presses "g", advances fake timers by `ms`, and
+  // reports whether the popup is visible at that point. Reuses the file's
+  // existing `press` helper rather than dispatching directly on `document`.
+  const popupAppearsAfter = (wk: ReturnType<typeof createWhichKey>, ms: number): boolean => {
+    wk.register('g a', vi.fn());
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(ms);
+    const visible = wk.getSnapshot().popup.visible;
+    wk.stop();
+    return visible;
+  };
+
+  it.each([-1, NaN, -Infinity])('clamps %p to the 500ms default', (bad) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ timeoutMs: bad });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid timeoutMs'));
+    expect(popupAppearsAfter(wk, 0)).toBe(false);
+    warn.mockRestore();
+  });
+
+  it('does not warn when timeoutMs is simply absent', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey();
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('timeoutMs'));
+    warn.mockRestore();
+  });
+
+  it('honours a valid explicit timeoutMs', () => {
+    const wk = createWhichKey({ timeoutMs: 50 });
+    expect(popupAppearsAfter(wk, 50)).toBe(true);
+  });
+
+  it('accepts 0 as a deliberate instant popup', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ timeoutMs: 0 });
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('timeoutMs'));
+    expect(popupAppearsAfter(wk, 0)).toBe(true);
+    warn.mockRestore();
+  });
+});
