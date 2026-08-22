@@ -278,16 +278,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a top-level `permissions:\n  contents: read` block after `on:` (no step needs write), and pin the third-party action to a full commit SHA with a trailing version comment: `uses: codecov/codecov-action@<40-char-sha> # v5.x.x`. The first-party `actions/checkout@v4` and `actions/setup-node@v4` may stay on tags.
 - [ ] execute   [ ] skip
 
-### B42. Popup-show timer callback leaves a fired timeout handle in this.timer: `Matcher.handleKeyDown` (src/engine/matcher.ts:77)
-- Category: caching
-- Impact: 1 (severity 1 × blast-radius 1)
-- Effort: S
-- Risk: low
-- Evidence: the prefix-only branch assigns `this.timer = setTimeout(...)`, but the callback sets `popupVisible` and calls `onShowPopup` without clearing `this.timer`. Unlike the leaf-and-prefix branch (which ends in `resetBuffer` → `clearTimer`), this path leaves an already-fired Timeout object referenced by the Matcher for as long as the popup stays open. No correctness bug and no unbounded growth (at most one stale handle), but it makes `this.timer !== null` an unreliable signal for "a timer is pending", which blocks using that condition in any future guard.
-- Blast radius: src/engine/matcher.ts:77,104
-- Proposed fix: add `this.timer = null;` as the first statement of the popup-show timeout callback, mirroring the invariant `clearTimer()` maintains.
-- [x] execute   [ ] skip
-
 ### B43. Stale .npmignore shadowed by `files`, and the README's API.md link is unreachable from the tarball: `.npmignore` / `files` (.npmignore:1)
 - Category: api-surface
 - Impact: 1 (severity 1 × blast-radius 1)

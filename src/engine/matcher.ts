@@ -142,6 +142,9 @@ export class Matcher {
         this.options.onShowPopup({ currentSequence: [...this.buffer] });
       } else {
         this.timer = setTimeout(() => {
+          // Maintain clearTimer()'s invariant: a non-null this.timer means a
+          // timer is still pending. This one just fired.
+          this.timer = null;
           this.popupVisible = true;
           this.options.onShowPopup({ currentSequence: [...this.buffer] });
         }, this.options.timeoutMs);
