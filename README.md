@@ -274,6 +274,50 @@ mountWhichKey(wk, { classPrefix: 'myapp' });
 >
 > `classPrefix` is **vanilla-only**. The React components always emit `wk-`.
 
+### Theming
+
+The shipped stylesheet ships dark by default — a consumer who does nothing sees no change. It automatically follows the `prefers-color-scheme: light` media query, and an author can force either theme regardless of OS preference with `data-wk-theme="light"` or `data-wk-theme="dark"` on `<html>` — the document root, not just any ancestor. The override selectors are `:root`-scoped, which matches only the actual document root element, so the palette they set is visible wherever the popup or cheatsheet render, including the vanilla renderer's popup host, which is appended to `document.body` rather than nested under the consumer's markup.
+
+Force light regardless of OS preference:
+
+```html
+<html data-wk-theme="light"></html>
+```
+
+Force dark regardless of OS preference:
+
+```html
+<html data-wk-theme="dark"></html>
+```
+
+All colours are `--wk-*` custom properties, so overriding one is the same as overriding any other CSS variable:
+
+```css
+:root {
+  --wk-focus-ring: #f59e0b;
+}
+```
+
+| Property               | Dark default (shipped)                                                    | Light value                                                                 |
+| ---------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `--wk-panel-bg`        | `#111827`                                                                 | `#ffffff`                                                                   |
+| `--wk-panel-bg-rgb`    | `17, 24, 39`                                                              | `255, 255, 255`                                                             |
+| `--wk-chip-bg`         | `#374151`                                                                 | `#f3f4f6`                                                                   |
+| `--wk-border`          | `#374151`                                                                 | `#d1d5db`                                                                   |
+| `--wk-text`            | `#f3f4f6`                                                                 | `#111827`                                                                   |
+| `--wk-text-muted`      | `#9ca3af`                                                                 | `#4b5563`                                                                   |
+| `--wk-text-subtle`     | `#6b7280`                                                                 | `#6b7280`                                                                   |
+| `--wk-row-label`       | `#e5e7eb`                                                                 | `#1f2937`                                                                   |
+| `--wk-row-label-group` | `#93c5fd`                                                                 | `#1d4ed8`                                                                   |
+| `--wk-focus-ring`      | `#93c5fd`                                                                 | `#1d4ed8`                                                                   |
+| `--wk-backdrop-bg`     | `rgba(0, 0, 0, 0.5)`                                                      | `rgba(0, 0, 0, 0.35)`                                                       |
+| `--wk-shadow-chip`     | `0 1px 2px rgba(0, 0, 0, 0.05)`                                           | `0 1px 2px rgba(0, 0, 0, 0.08)`                                             |
+| `--wk-shadow-panel`    | `0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)` | `0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15)` |
+
+The popup's `backgroundOpacity` prop/option (`<WhichKeyPopup>` and `mountWhichKey`) sets only the `--wk-popup-bg-opacity` custom property inline; the colour itself always comes from `--wk-panel-bg-rgb` in CSS, so the popup repaints correctly under either theme instead of staying pinned to one background.
+
+> `--wk-z-index`/`--wk-z-index-backdrop`, documented under [Stacking order](#stacking-order) just below, are part of this same `--wk-*` custom-property surface.
+
 ### Stacking order
 
 The overlay's `z-index` is exposed as a CSS custom property so you can place which-key relative to your own modal layer without out-specifying the shipped selectors:

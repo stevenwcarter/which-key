@@ -1,14 +1,81 @@
 /* which-key default theme. Import via: import "which-key/styles.css"; */
+
+/* Dark is the default: an existing consumer who does nothing sees no change.
+   A light palette is supplied under prefers-color-scheme, and an author can
+   force either theme with data-wk-theme on <html> (the document root). The
+   override selectors below are :root-scoped, which matches only the actual
+   document root — never an arbitrary wrapper div — so the attribute must go
+   on <html>, not on some ancestor of the popup. That is also what makes the
+   theme apply correctly to the vanilla renderer's popup host, which is
+   appended to document.body rather than nested under the consumer's markup. */
+:root {
+  --wk-panel-bg: #111827;
+  --wk-panel-bg-rgb: 17, 24, 39;
+  --wk-chip-bg: #374151;
+  --wk-border: #374151;
+  --wk-text: #f3f4f6;
+  --wk-text-muted: #9ca3af;
+  --wk-text-subtle: #6b7280;
+  --wk-row-label: #e5e7eb;
+  --wk-row-label-group: #93c5fd;
+  --wk-focus-ring: #93c5fd;
+  --wk-backdrop-bg: rgba(0, 0, 0, 0.5);
+  --wk-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --wk-shadow-panel: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-wk-theme='dark']) {
+    --wk-panel-bg: #ffffff;
+    --wk-panel-bg-rgb: 255, 255, 255;
+    --wk-chip-bg: #f3f4f6;
+    --wk-border: #d1d5db;
+    --wk-text: #111827;
+    --wk-text-muted: #4b5563;
+    --wk-text-subtle: #6b7280;
+    --wk-row-label: #1f2937;
+    --wk-row-label-group: #1d4ed8;
+    --wk-focus-ring: #1d4ed8;
+    --wk-backdrop-bg: rgba(0, 0, 0, 0.35);
+    --wk-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --wk-shadow-panel: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Explicit author override wins in both directions, regardless of OS setting.
+   The light values are repeated verbatim here rather than shared: plain CSS
+   has no way to reference one property block from two selectors, and the
+   alternative — light-dark() with color-scheme — would silently raise this
+   library's browser floor to Chrome 123 / Safari 17.5 / Firefox 120. The
+   package declares no browserslist and no support policy, so raising the
+   floor is the maintainer's call to make deliberately, not a side effect of
+   a theming task. Do NOT substitute light-dark() here. */
+:root[data-wk-theme='light'] {
+  --wk-panel-bg: #ffffff;
+  --wk-panel-bg-rgb: 255, 255, 255;
+  --wk-chip-bg: #f3f4f6;
+  --wk-border: #d1d5db;
+  --wk-text: #111827;
+  --wk-text-muted: #4b5563;
+  --wk-text-subtle: #6b7280;
+  --wk-row-label: #1f2937;
+  --wk-row-label-group: #1d4ed8;
+  --wk-focus-ring: #1d4ed8;
+  --wk-backdrop-bg: rgba(0, 0, 0, 0.35);
+  --wk-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --wk-shadow-panel: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+}
+
 .wk-kbd {
   display: inline-block;
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  background: #374151; /* gray-700 */
-  color: #f3f4f6; /* gray-100 */
+  background: var(--wk-chip-bg);
+  color: var(--wk-text);
   font-size: 0.75rem;
   line-height: 1rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--wk-shadow-chip);
 }
 /* 1000 clears Ant Design (1000) and sits under Bootstrap's .modal (1055) and
    MUI's modal (1300); override --wk-z-index to place which-key relative to
@@ -18,12 +85,11 @@
   bottom: 1rem;
   z-index: var(--wk-z-index, 1000);
   border-radius: 0.5rem;
-  color: #f3f4f6;
-  border: 1px solid #374151;
+  background: rgba(var(--wk-panel-bg-rgb), var(--wk-popup-bg-opacity, 0.95));
+  color: var(--wk-text);
+  border: 1px solid var(--wk-border);
   padding: 0.75rem;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.3),
-    0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--wk-shadow-panel);
 }
 .wk-popup--vertical {
   right: 1rem;
@@ -39,11 +105,11 @@
   display: flex;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--wk-text-muted);
   flex-shrink: 0;
 }
 .wk-sequence__ellipsis {
-  color: #6b7280;
+  color: var(--wk-text-subtle);
 }
 .wk-popup__list {
   list-style: none;
@@ -75,16 +141,16 @@
   gap: 0.5rem;
 }
 .wk-row__label {
-  color: #e5e7eb;
+  color: var(--wk-row-label);
 }
 .wk-row--group .wk-row__label {
-  color: #93c5fd;
+  color: var(--wk-row-label-group);
 }
 .wk-backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--wk-backdrop-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,13 +162,11 @@
   max-height: 80vh;
   overflow-y: auto;
   border-radius: 0.5rem;
-  background: #111827;
-  color: #f3f4f6;
-  border: 1px solid #374151;
+  background: var(--wk-panel-bg);
+  color: var(--wk-text);
+  border: 1px solid var(--wk-border);
   padding: 1.5rem;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.3),
-    0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--wk-shadow-panel);
 }
 .wk-cheatsheet__title {
   font-size: 1.125rem;
@@ -121,7 +185,7 @@
 .wk-cheatsheet__group-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--wk-text-muted);
   margin: 0 0 0.5rem;
 }
 .wk-cheatsheet__group-label {
@@ -147,7 +211,7 @@
 .wk-cheatsheet__hint {
   margin-top: 1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--wk-text-subtle);
 }
 .wk-cheatsheet__close {
   float: right;
@@ -155,20 +219,20 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--wk-text-muted);
   font-size: 1.25rem;
   line-height: 1;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
 }
 .wk-cheatsheet__close:hover {
-  color: #f3f4f6;
+  color: var(--wk-text);
 }
 .wk-cheatsheet__close:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--wk-focus-ring);
   outline-offset: 2px;
 }
 .wk-cheatsheet:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--wk-focus-ring);
   outline-offset: -2px;
 }

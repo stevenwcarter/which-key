@@ -21,6 +21,7 @@
 4. [Debugging](#debugging)
 5. [Key-string syntax](#key-string-syntax)
 6. [CSS class contract (`wk-*`)](#css-class-contract-wk-)
+7. [Theming (`--wk-*` custom properties)](#theming---wk--custom-properties)
 
 ---
 
@@ -635,3 +636,11 @@ The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both u
 | `wk-cheatsheet__hint`         | "Press Escape to close" footer                                   |
 
 When using a custom `classPrefix` (e.g. `'myapp'`), replace `wk-` with `myapp-` throughout. Note that setting `classPrefix` opts out of the shipped `which-key/styles.css` entirely — see [`mountWhichKey`'s `classPrefix` option](#mountwhichkey) under Vanilla for what that means and the warning emitted on an invalid value.
+
+---
+
+## Theming (`--wk-*` custom properties)
+
+The shipped stylesheet ships dark by default, follows `prefers-color-scheme: light` automatically, and an author can force either theme regardless of OS preference with `data-wk-theme="light"` or `data-wk-theme="dark"` on `<html>` — the document root; the override selectors are `:root`-scoped and never match an arbitrary ancestor, so the palette they set applies wherever the popup or cheatsheet render, including the vanilla renderer's `document.body` popup host. All colours are `--wk-*` custom properties (`--wk-panel-bg`, `--wk-panel-bg-rgb`, `--wk-chip-bg`, `--wk-border`, `--wk-text`, `--wk-text-muted`, `--wk-text-subtle`, `--wk-row-label`, `--wk-row-label-group`, `--wk-focus-ring`, `--wk-backdrop-bg`, `--wk-shadow-chip`, `--wk-shadow-panel`), overridable like any CSS variable; the README's [Theming](../README.md#theming) subsection has the full default-value table and a worked override.
+
+`<WhichKeyPopup>`'s and `mountWhichKey`'s `backgroundOpacity` sets only the `--wk-popup-bg-opacity` custom property inline — the colour composes in CSS from `--wk-panel-bg-rgb`, so the popup still repaints correctly under either theme. `--wk-z-index`/`--wk-z-index-backdrop` (README: [Stacking order](../README.md#stacking-order)) are part of the same custom-property surface.

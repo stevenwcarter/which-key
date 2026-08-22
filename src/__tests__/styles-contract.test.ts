@@ -70,6 +70,22 @@ describe('styles.css — theming contract [D2]', () => {
     expect(css).toMatch(/\[data-wk-theme=['"]dark['"]\]/);
   });
 
+  // Regression guard for a specific documented constraint, not a generic
+  // strengthening: data-wk-theme is only honoured on the document root.
+  // :root matches *only* the actual root element, never an arbitrary
+  // ancestor, which is what makes the attribute's placement on <html> load
+  // bearing rather than a style preference. Loosening either selector to a
+  // bare [data-wk-theme=...] would silently create a renderer divergence —
+  // it would start working per-subtree in React (where <WhichKeyPopup/>
+  // renders wherever the consumer put it) while staying broken in vanilla
+  // (whose popup host is appended to document.body, outside any consumer
+  // wrapper) — so this pins the :root scoping explicitly rather than relying
+  // on the previous test's bare attribute-selector match to catch it.
+  it('scopes both theme overrides to :root, not a looser ancestor selector', () => {
+    expect(css).toMatch(/:root\[data-wk-theme=['"]light['"]\]/);
+    expect(css).toMatch(/:root:not\(\[data-wk-theme=['"]dark['"]\]\)/);
+  });
+
   it('leaves no raw hex colour outside a custom-property declaration', () => {
     const offenders = css
       .split('\n')

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useWhichKeyState } from './useWhichKeyState';
 import type { WhichKeyCandidate, WhichKeyState } from '../engine';
 import { clamp01, clampRows, DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
@@ -9,8 +9,6 @@ export type WhichKeyPopupProps = {
   maxRows?: number;
   backgroundOpacity?: number;
 };
-
-const PANEL_BG_RGB = '17, 24, 39';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
@@ -33,12 +31,17 @@ const CandidateRow = ({ c }: { c: WhichKeyCandidate }) => (
   </div>
 );
 
-const VerticalCorner = ({ state, bg }: { state: WhichKeyState; bg: string }) => (
+const VerticalCorner = ({ state, bgOpacity }: { state: WhichKeyState; bgOpacity: number }) => (
   <div
     data-testid="whichkey-popup"
     data-layout="vertical"
     className="wk-popup wk-popup--vertical"
-    style={{ backgroundColor: bg }}
+    // CSSProperties has no index signature for custom properties; the cast
+    // is narrowed to exactly this one declaration. The colour itself lives
+    // in src/styles.css (--wk-panel-bg-rgb) so a light-preferring OS or an
+    // explicit data-wk-theme can still repaint the popup — only the runtime
+    // opacity prop needs to reach the element.
+    style={{ '--wk-popup-bg-opacity': bgOpacity } as CSSProperties}
     role="status"
     aria-live="polite"
     aria-atomic="true"
@@ -57,12 +60,21 @@ const VerticalCorner = ({ state, bg }: { state: WhichKeyState; bg: string }) => 
   </div>
 );
 
-const HorizontalBar = ({ state, bg, rows }: { state: WhichKeyState; bg: string; rows: number }) => (
+const HorizontalBar = ({
+  state,
+  bgOpacity,
+  rows,
+}: {
+  state: WhichKeyState;
+  bgOpacity: number;
+  rows: number;
+}) => (
   <div
     data-testid="whichkey-popup"
     data-layout="horizontal"
     className="wk-popup wk-popup--horizontal"
-    style={{ backgroundColor: bg }}
+    // See VerticalCorner above for why this is a narrow custom-property cast.
+    style={{ '--wk-popup-bg-opacity': bgOpacity } as CSSProperties}
     role="status"
     aria-live="polite"
     aria-atomic="true"
@@ -90,10 +102,10 @@ export const WhichKeyPopup = ({
 }: WhichKeyPopupProps = {}) => {
   const state = useWhichKeyState('<WhichKeyPopup>');
   if (!state.visible) return null;
-  const bg = `rgba(${PANEL_BG_RGB}, ${clamp01(backgroundOpacity)})`;
+  const bgOpacity = clamp01(backgroundOpacity);
   return layout === 'horizontal' ? (
-    <HorizontalBar state={state} bg={bg} rows={clampRows(maxRows)} />
+    <HorizontalBar state={state} bgOpacity={bgOpacity} rows={clampRows(maxRows)} />
   ) : (
-    <VerticalCorner state={state} bg={bg} />
+    <VerticalCorner state={state} bgOpacity={bgOpacity} />
   );
 };
