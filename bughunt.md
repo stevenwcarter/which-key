@@ -42,6 +42,16 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: for each, decide documented-or-unexported rather than defaulting to documented. `WhichKeyContext`/`LayerContext` are plausibly genuine escape hatches for advanced consumers and want a short section; `isModifierOnlyEvent`/`isInputTarget` are matcher-internal predicates that may be better unexported; `alphabeticalKeysSort` pairs naturally with the existing `sortKeys` docs; `CanonicalKey` and `ShortcutHandler` appear in documented signatures and want type blocks. Unexporting any of them is a `feat!:` break while pre-1.0, so pair this with the existing public-surface decision-needed marker.
 - [ ] execute   [ ] skip
 
+### B47. `helpKey: ''` silently disables the help shortcut with no warning — the only silent no-op left: `createWhichKey` (src/engine/controller.ts)
+- Category: api-surface
+- Impact: 4 (severity 2 × blast-radius 2)
+- Effort: S
+- Risk: low
+- Evidence: surfaced by B23's review and promoted by the final whole-branch review (2026-08-22). `createWhichKey` guards its help registration with `if (helpKey)`. `''` is falsy, so an empty string skips registration entirely and never reaches `parseKey` — the consumer gets no `?` binding and no diagnostic, identical to the documented `helpKey: null`. This predates the B14-B43 batch and was correctly outside B23's scope (B23 covered values that *throw*, and `''` does not). It matters now because that batch made "warn, never silently no-op" the house rule across six other paths — `register`, `registerGroup`, `helpKey` (unparseable), `timeoutMs`, `pushLayer` level, `classPrefix`, and duplicate `mountWhichKey` all warn on invalid input. `helpKey: ''` is now the sole invalid-input path in the library that fails silently, which is exactly the inconsistency a consumer will trip over.
+- Blast radius: src/engine/controller.ts (the `if (helpKey)` guard); docs/API.md (the `helpKey` row and the Console warnings table)
+- Proposed fix: distinguish `null` (documented, deliberate, silent) from `''` (almost certainly a mistake). Warn for the empty string using the established shape — `[whichkey] invalid helpKey ""; help shortcut disabled.` — and leave `null` untouched. Add the row to docs/API.md's Console warnings table.
+- [ ] execute   [ ] skip
+
 ### B45. An explicit negative `level` on register()/registerGroup() silently makes the shortcut unreachable: `ShortcutOptions.level` (src/engine/types.ts)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)
