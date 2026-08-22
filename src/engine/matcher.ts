@@ -90,14 +90,19 @@ export class Matcher {
       this.commitBuffer(prospective, isInputTarget(eventTarget) && echoesCharacter(event));
       this.clearTimer();
       const fireTarget = eventTarget;
+      // Fire the ORIGINAL event, never a synthesized one. A `new
+      // KeyboardEvent(...)` that is never dispatched has target === null,
+      // cancelable === false (so preventDefault() silently no-ops) and all
+      // modifier flags false — so an identical handler would behave
+      // differently purely because this shortcut also happens to be a prefix.
+      const fireEvent = event;
       this.timer = setTimeout(() => {
         if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
           this.resetBuffer();
           return;
         }
-        const synthetic = new KeyboardEvent('keydown', { key });
         try {
-          this.options.onFire(leaf, synthetic);
+          this.options.onFire(leaf, fireEvent);
         } finally {
           this.resetBuffer();
         }

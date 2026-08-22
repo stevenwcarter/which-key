@@ -52,16 +52,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add `engine.pushLayer(options?)` and `engine.activateLayer(level, exclusive)` sections plus a `LayerHandle` type block to the engine section; add a `<WhichKeyLayer>` section and TOC entry to the React section; add `global`/`level` rows to the ShortcutOptions table, `level` to the registerGroup table, and correct the `popup` default. Docs-only.
 - [x] execute   [ ] skip
 
-### B17. Leaf-AND-prefix timeout hands the handler a synthetic event with null target, no modifier flags, and an inert preventDefault: `Matcher.handleKeyDown` (src/engine/matcher.ts:62)
-- Category: correctness
-- Impact: 8 (severity 4 × blast-radius 2)
-- Effort: S
-- Risk: high
-- Evidence: empirically confirmed. `new KeyboardEvent('keydown', { key })` is never dispatched, so `cancelable` defaults to false and `target` is null. Running the timeout path yields `target=null ctrl=false shift=false cancelable=false` and `defaultPrevented after preventDefault(): false`, while the pure-leaf path on the same engine gives `target=real cancelable=true defaultPrevented=true`. So an identical handler behaves differently depending on whether the shortcut happened to also be a prefix and whether the user waited out the timeout: `preventDefault()` silently no-ops, `event.target` is null (crashing any handler doing `event.target.closest(...)`), and Ctrl/Shift/Alt/Meta all read false even though they were held. The original event is already in scope (`fireTarget = event.target`, matcher.ts:56). matcher.ts:59-61 is uncovered and matcher.test.ts only asserts `expect.any(KeyboardEvent)`.
-- Blast radius: src/engine/matcher.ts:56,62; src/engine/controller.ts:117; src/engine/__tests__/matcher.test.ts:196
-- Proposed fix: capture the triggering event (`const fireEvent = event;`) alongside `fireTarget` and pass it to `onFire` instead of synthesizing — replace lines 62-63 with `this.options.onFire(leaf, fireEvent);` and drop the `new KeyboardEvent(...)`. Modifier flags, key and target are then accurate.
-- [x] execute   [ ] skip
-
 ### B18. Vanilla `render()` destroys and rebuilds the popup subtree on every emit, stacking it above the cheatsheet backdrop unlike React: `mountWhichKey.render` (src/vanilla/mount.ts:32)
 - Category: frontend
 - Impact: 6 (severity 2 × blast-radius 3)

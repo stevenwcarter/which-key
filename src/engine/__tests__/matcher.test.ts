@@ -240,10 +240,11 @@ describe('Matcher — sequences', () => {
     const seq = entry({ id: 'seq', keys: 'g g' });
     registry.register(leaf);
     registry.register(seq);
-    matcher.handleKeyDown(ev({ key: 'g' }));
+    const triggering = ev({ key: 'g' });
+    matcher.handleKeyDown(triggering);
     expect(onFire).not.toHaveBeenCalled();
     vi.advanceTimersByTime(500);
-    expect(onFire).toHaveBeenCalledWith(leaf, expect.any(KeyboardEvent));
+    expect(onFire).toHaveBeenCalledWith(leaf, triggering);
   });
 
   it('leaf-AND-prefix: continues sequence when a follow-up arrives', () => {
