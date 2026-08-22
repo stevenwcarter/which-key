@@ -1,6 +1,6 @@
 {
   "name": "which-key",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Keyboard-shortcut engine with a which-key popup and cheatsheet. Framework-agnostic core, React binding, and a vanilla-DOM renderer.",
   "type": "module",
   "license": "MIT",
@@ -31,16 +31,34 @@
   ],
   "exports": {
     ".": {
-      "import": { "types": "./dist/engine/index.d.ts", "default": "./dist/engine/index.js" },
-      "require": { "types": "./dist/engine/index.d.cts", "default": "./dist/engine/index.cjs" }
+      "import": {
+        "types": "./dist/engine/index.d.ts",
+        "default": "./dist/engine/index.js"
+      },
+      "require": {
+        "types": "./dist/engine/index.d.cts",
+        "default": "./dist/engine/index.cjs"
+      }
     },
     "./react": {
-      "import": { "types": "./dist/react/index.d.ts", "default": "./dist/react/index.js" },
-      "require": { "types": "./dist/react/index.d.cts", "default": "./dist/react/index.cjs" }
+      "import": {
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.js"
+      },
+      "require": {
+        "types": "./dist/react/index.d.cts",
+        "default": "./dist/react/index.cjs"
+      }
     },
     "./vanilla": {
-      "import": { "types": "./dist/vanilla/index.d.ts", "default": "./dist/vanilla/index.js" },
-      "require": { "types": "./dist/vanilla/index.d.cts", "default": "./dist/vanilla/index.cjs" }
+      "import": {
+        "types": "./dist/vanilla/index.d.ts",
+        "default": "./dist/vanilla/index.js"
+      },
+      "require": {
+        "types": "./dist/vanilla/index.d.cts",
+        "default": "./dist/vanilla/index.cjs"
+      }
     },
     "./styles.css": "./dist/styles.css"
   },
