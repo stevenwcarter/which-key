@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { render, act } from '@testing-library/react';
 import { createWhichKey } from '../engine';
 import { mountWhichKey } from '../vanilla';
+import { WhichKeyProvider, useShortcut, useShortcutGroup, WhichKeyPopup, ShortcutCheatsheet } from '../react';
 
 // NB: not fileURLToPath(new URL('../../', import.meta.url)) — under this
 // project's jsdom test environment, `URL` is jsdom's global implementation,
@@ -47,16 +49,69 @@ const renderEverything = (layout: 'vertical' | 'horizontal') => {
   return { wk, ui };
 };
 
+/**
+ * Same surface as renderEverything above (group with a description, a leaf,
+ * a nested sub-group so one candidate is a group and one is not, and a
+ * standalone entry) but through the React renderer. There is no direct
+ * engine handle here — WhichKeyProvider owns its engine internally — so the
+ * cheatsheet is opened the same way a real consumer would: pressing the
+ * default help key. It must fire *before* 'g' rather than after: the matcher
+ * treats a buffered prefix plus an unrelated keystroke as "nothing matches"
+ * and cancels the pending sequence (src/engine/matcher.ts, final branch), so
+ * pressing '?' while 'g' is still pending would silently drop the popup
+ * instead of opening the cheatsheet alongside it.
+ */
+const ReactFixture = ({ layout }: { layout: 'vertical' | 'horizontal' }) => {
+  useShortcutGroup('g', { description: 'Go to' });
+  useShortcut('g a', vi.fn(), { description: 'Alpha' });
+  useShortcut('g b c', vi.fn(), { description: 'Deep' });
+  useShortcut('q', vi.fn(), { description: 'Quit' });
+  return (
+    <>
+      <WhichKeyPopup layout={layout} />
+      <ShortcutCheatsheet />
+    </>
+  );
+};
+
+const renderReactEverything = (layout: 'vertical' | 'horizontal') => {
+  const utils = render(
+    <WhichKeyProvider timeoutMs={10}>
+      <ReactFixture layout={layout} />
+    </WhichKeyProvider>,
+  );
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' })); });
+  act(() => { vi.advanceTimersByTime(20); });
+  return utils;
+};
+
 describe('CSS class contract', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
 
-  it('emits exactly the documented class set across both popup layouts', () => {
+  it('vanilla renderer emits exactly the documented class set across both popup layouts', () => {
     const emitted = new Set<string>();
     for (const layout of ['vertical', 'horizontal'] as const) {
       const { wk, ui } = renderEverything(layout);
       for (const c of collectClasses()) emitted.add(c);
       ui.unmount(); wk.stop(); document.body.innerHTML = '';
+    }
+    expect([...emitted].sort()).toEqual([...CONTRACT].sort());
+  });
+
+  // Guards against a hole the merged-set version of this test would have:
+  // the two renderers hard-code their class names as separate literal
+  // strings rather than sharing a source, so a class renamed or dropped in
+  // only one of them must fail here on its own — asserted independently,
+  // never unioned with the other renderer's set.
+  it('react renderer emits exactly the documented class set across both popup layouts', () => {
+    const emitted = new Set<string>();
+    for (const layout of ['vertical', 'horizontal'] as const) {
+      const utils = renderReactEverything(layout);
+      for (const c of collectClasses()) emitted.add(c);
+      utils.unmount();
+      document.body.innerHTML = '';
     }
     expect([...emitted].sort()).toEqual([...CONTRACT].sort());
   });
