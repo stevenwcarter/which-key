@@ -220,3 +220,70 @@ describe('mountWhichKey', () => {
     wk.stop();
   });
 });
+
+describe('mountWhichKey — stable popup host [B18]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+
+  it('keeps the popup below the cheatsheet backdrop in DOM order', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+
+    press('?');                                   // open the cheatsheet
+    press('g');                                   // then start a sequence
+    vi.advanceTimersByTime(500);
+
+    const popup = document.querySelector('.wk-popup')!;
+    const backdrop = document.querySelector('.wk-backdrop')!;
+    expect(popup).not.toBeNull();
+    expect(backdrop).not.toBeNull();
+    // DOCUMENT_POSITION_FOLLOWING === 4: backdrop comes AFTER the popup,
+    // so with equal z-index the backdrop paints on top, matching React.
+    expect(popup.compareDocumentPosition(backdrop) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    ui.unmount();
+    wk.stop();
+  });
+
+  // Tightened from the brief: comparing `.wk-popup`'s `.parentElement` across
+  // renders is a weak check whenever that parent happens to be `container`
+  // both times (which it is, pre-fix, since the popup is always appended
+  // straight into `container`) — it would pass for the wrong reason. Assert
+  // instead that a `.wk-popup-host` element exists and that the very same
+  // instance persists across two separate popup appearances.
+  it('reuses the same host element across separate popup appearances', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    wk.register('g b', vi.fn(), { description: 'Bravo' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+
+    press('g');
+    vi.advanceTimersByTime(500);
+    const hostFirst = document.querySelector('.wk-popup-host');
+    expect(hostFirst).not.toBeNull();
+    expect(document.querySelector('.wk-popup')!.parentElement).toBe(hostFirst);
+
+    wk.cancel();
+    press('g');
+    vi.advanceTimersByTime(500);
+    const hostSecond = document.querySelector('.wk-popup-host');
+
+    expect(hostSecond).toBe(hostFirst);
+
+    ui.unmount();
+    wk.stop();
+  });
+
+  it('unmount removes the host from the container', () => {
+    const wk = createWhichKey();
+    const ui = mountWhichKey(wk);
+    wk.start();
+    ui.unmount();
+    expect(document.querySelector('.wk-popup-host')).toBeNull();
+    wk.stop();
+  });
+});
