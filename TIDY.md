@@ -32,13 +32,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T15. Level→priority→latest winner cascade written twice (src/engine/registry.ts:212-230 and 129-144)
-
-- Lenses: duplication
-- Risk: high — needs characterization tests first
-- Proposed fix: The four-clause comparison (`best === undefined || x.level > best.level || (level equal && priority >) || (level and priority equal && i > bestIdx)`) is byte-identical in `findActive` (212-230) and `getActiveGroup` (129-144); only the skip predicate differs (`!e.enabled || !this.isReachable(e, block)` vs `g.level < block`). Extract a module-private `const pickBest = <T extends { level: number; priority: number }>(bucket: T[], eligible: (e: T) => boolean): T | undefined`; `findActive` passes `e => e.enabled && this.isReachable(e, block)` and `getActiveGroup` passes `g => g.level >= block`. The predicates are **not** currently equivalent — groups have no `enabled` and no `global`, so a group is reachable at `level >= block` while a shortcut may bypass `block` entirely via `global: true`. The helper must keep them as two distinct callbacks, never unify them; that asymmetry is itself T30's open question, so do not "fix" it here. Write characterization tests for both resolvers first.
-- [x] execute [ ] skip
-
 ### T16. Cheatsheet Tab focus trap duplicated across both renderers, already diverging (src/react/ShortcutCheatsheet.tsx:22-69 and src/vanilla/cheatsheet.ts:3-4, 96-114)
 
 - Lenses: duplication, idioms

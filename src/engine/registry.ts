@@ -30,6 +30,38 @@ const removeById = <T extends { id: string }>(map: Map<string, T[]>, id: string)
   return false;
 };
 
+// The winner cascade both resolvers share: level, then priority, then latest
+// registration (higher bucket index).
+//
+// The `eligible` predicate is deliberately a parameter and the two callers
+// pass DIFFERENT predicates — they are not interchangeable. A shortcut must
+// be enabled AND either global or at/above the exclusive-layer floor; a group
+// has neither an `enabled` nor a `global` field and is eligible purely on
+// level. Collapsing them would silently hand groups a `global` escape hatch
+// they do not have. That asymmetry is TIDY's T30, an open question that is
+// deliberately NOT resolved here.
+const pickBest = <T extends { level: number; priority: number }>(
+  bucket: T[],
+  eligible: (e: T) => boolean,
+): T | undefined => {
+  let best: T | undefined;
+  let bestIdx = -1;
+  for (let i = 0; i < bucket.length; i++) {
+    const e = bucket[i];
+    if (!eligible(e)) continue;
+    if (
+      best === undefined ||
+      e.level > best.level ||
+      (e.level === best.level && e.priority > best.priority) ||
+      (e.level === best.level && e.priority === best.priority && i > bestIdx)
+    ) {
+      best = e;
+      bestIdx = i;
+    }
+  }
+  return best;
+};
+
 /**
  * Stores every registration in priority-sorted buckets keyed by canonical key
  * string (and by group prefix), so several components can bind the same key at
@@ -158,22 +190,9 @@ export class ShortcutRegistry {
     const bucket = this.groups.get(prefix);
     if (!bucket || bucket.length === 0) return undefined;
     const block = this.blockLevel();
-    let best: GroupEntry | undefined;
-    let bestIdx = -1;
-    for (let i = 0; i < bucket.length; i++) {
-      const g = bucket[i];
-      if (g.level < block) continue;
-      if (
-        best === undefined ||
-        g.level > best.level ||
-        (g.level === best.level && g.priority > best.priority) ||
-        (g.level === best.level && g.priority === best.priority && i > bestIdx)
-      ) {
-        best = g;
-        bestIdx = i;
-      }
-    }
-    return best;
+    // No `enabled` and no `global` on GroupEntry — level alone decides
+    // eligibility here. See pickBest's comment and TIDY's T30.
+    return pickBest(bucket, (g) => g.level >= block);
   }
 
   /**
@@ -248,21 +267,9 @@ export class ShortcutRegistry {
 
   private findActive(bucket: ShortcutEntry[]): ShortcutEntry | undefined {
     const block = this.blockLevel();
-    let best: ShortcutEntry | undefined;
-    let bestIdx = -1;
-    for (let i = 0; i < bucket.length; i++) {
-      const e = bucket[i];
-      if (!e.enabled || !this.isReachable(e, block)) continue;
-      if (
-        best === undefined ||
-        e.level > best.level ||
-        (e.level === best.level && e.priority > best.priority) ||
-        (e.level === best.level && e.priority === best.priority && i > bestIdx)
-      ) {
-        best = e;
-        bestIdx = i;
-      }
-    }
-    return best;
+    // Distinct from getActiveGroup's predicate on purpose: a shortcut may
+    // carry `global: true` and pierce the exclusive-layer floor, and may be
+    // switched off with `enabled: false`. Neither exists for groups.
+    return pickBest(bucket, (e) => e.enabled && this.isReachable(e, block));
   }
 }
