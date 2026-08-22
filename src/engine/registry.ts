@@ -95,8 +95,9 @@ export class ShortcutRegistry {
 
   /**
    * Monotonic mutation counter, starting at `0`. Bumped by every registration,
-   * unregistration, and layer activation or deactivation, and never by a read.
-   * Intended as a memoisation key for a derived view over the registry.
+   * every layer activation or deactivation, and any unregistration that
+   * actually removes an entry, and never by a read. Intended as a
+   * memoisation key for a derived view over the registry.
    */
   get version(): number {
     return this._version;

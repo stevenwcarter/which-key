@@ -368,7 +368,7 @@ Multiple components may bind the same key. The winner is decided by **level, the
 
 ### Console warnings
 
-which-key writes diagnostics to the console prefixed with `[whichkey]`. Nearly all are `console.warn` advisories for consumer misuse; one is a `console.error` logged when your own shortcut handler throws. None of them propagates an exception into your app. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
+which-key writes diagnostics to the console prefixed with `[whichkey]`. Nearly all are `console.warn` advisories for consumer misuse; two are `console.error`, logged when your own shortcut handler throws or a `subscribe` listener throws. None of them propagates an exception into your app. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
 
 ---
 

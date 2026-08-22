@@ -214,7 +214,7 @@ Returns the current cheatsheet data model. Useful for building custom cheatsheet
 
 Reference to the underlying `ShortcutRegistry`. Advanced use only — treat it as read-only. The supported read method is `getAllActive()`, documented under [Debugging](#debugging). The mutating methods (`register`, `unregister`, `activateLayer`) exist on the class but are driven by the engine; calling them directly bypasses the engine's bookkeeping.
 
-`engine.registry.version: number` — a read-only monotonic counter, starting at `0`, that increments on every registration, unregistration, or layer activation/deactivation. It does **not** change on reads (`getActive`, `getAllActive`, `getActiveCandidates`, `getActiveGroup`, etc.). Intended for memoising a derived view over the registry — e.g. `<ShortcutCheatsheet>` uses it to rebuild its cheatsheet model only when the registry actually changes, rather than on every render.
+`engine.registry.version: number` — a read-only monotonic counter, starting at `0`, that increments on every registration, every layer activation/deactivation, and any unregistration that actually removes an entry (a no-op unregister does not bump it). It does **not** change on reads (`getActive`, `getAllActive`, `getActiveCandidates`, `getActiveGroup`, etc.). Intended for memoising a derived view over the registry — e.g. `<ShortcutCheatsheet>` uses it to rebuild its cheatsheet model only when the registry actually changes, rather than on every render.
 
 ---
 

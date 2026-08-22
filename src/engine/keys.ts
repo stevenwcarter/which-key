@@ -156,9 +156,9 @@ export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
 };
 
 /**
- * True when the keydown is a bare `Shift`/`Control`/`Alt`/`Meta` press with
- * nothing chorded onto it yet. The matcher ignores these, so holding a modifier
- * never aborts a pending sequence.
+ * True when the keydown is a bare `Shift`/`Control`/`Alt`/`AltGraph`/`Meta`
+ * press with nothing chorded onto it yet. The matcher ignores these, so
+ * holding a modifier never aborts a pending sequence.
  */
 export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
