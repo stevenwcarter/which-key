@@ -341,4 +341,35 @@ describe('ShortcutCheatsheet model memoisation [D1]', () => {
     rerender(<ShortcutCheatsheet />);
     expect(getByTestId('whichkey-cheatsheet').textContent).toContain('New');
   });
+
+  // Load-bearing: fails against the pre-fix code, where the useMemo factory
+  // called engine.getCheatsheetModel() unconditionally and only `visible`'s
+  // *value* (not a gate inside the factory) affected the result — so a
+  // registry mutation on a CLOSED sheet (e.g. a sibling layer's
+  // activateLayer(), which bumps registry.version and emit()s) still ran a
+  // full model build every render, with nothing ever shown for it.
+  it('does not build the model while the sheet is closed, even when the registry changes [D1]', () => {
+    const wk = createWhichKey({ helpKey: null });
+    const spy = vi.spyOn(wk, 'getCheatsheetModel');
+    const { rerender, queryByTestId } = render(
+      <WhichKeyContext.Provider value={wk}>
+        <ShortcutCheatsheet />
+      </WhichKeyContext.Provider>,
+    );
+    expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
+    expect(spy).not.toHaveBeenCalled();
+
+    act(() => {
+      wk.register('n', vi.fn(), { description: 'New' });
+      wk.activateLayer(1, true);
+    });
+    rerender(
+      <WhichKeyContext.Provider value={wk}>
+        <ShortcutCheatsheet />
+      </WhichKeyContext.Provider>,
+    );
+
+    expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
+    expect(spy).not.toHaveBeenCalled();
+  });
 });
