@@ -17,7 +17,20 @@ const SPECIAL_KEYS = new Set([
 
 const MODIFIER_KEY_NAMES = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 
-const isMacPlatform = (): boolean => /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+// `navigator` is absent on Node < 21 (package.json allows >= 20) and on any
+// SSR/prerender runtime, and `navigator.platform` is deprecated and frozen by
+// anti-fingerprinting modes. Reached from parseKey for EVERY `Mod+` binding —
+// the spelling the README recommends — so it must never throw.
+type PlatformSource = { userAgentData?: { platform?: string }; platform?: string };
+
+const isMacPlatform = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as PlatformSource;
+  const platform = nav.userAgentData?.platform ?? nav.platform ?? '';
+  // Case-insensitive: `userAgentData.platform` reports 'macOS' (lowercase m),
+  // which the legacy case-sensitive /Mac/ pattern would miss.
+  return /Mac|iPod|iPhone|iPad/i.test(platform);
+};
 
 const buildCanonical = (
   base: string,

@@ -172,6 +172,34 @@ describe('parseKey', () => {
   });
 });
 
+describe('isMacPlatform — absent navigator [B31]', () => {
+  it('resolves Mod to Ctrl instead of throwing when navigator is undefined', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    // Simulate a Node 20 SSR/prerender runtime with no navigator global.
+    Reflect.deleteProperty(globalThis as object, 'navigator');
+    try {
+      expect(() => parseKey('Mod+/')).not.toThrow();
+      expect(parseKey('Mod+/')).toBe(parseKey('Ctrl+/'));
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'navigator', original);
+    }
+  });
+
+  it('prefers userAgentData.platform when present', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { userAgentData: { platform: 'macOS' }, platform: 'Linux x86_64' },
+      configurable: true,
+    });
+    try {
+      expect(parseKey('Mod+/')).toBe(parseKey('Cmd+/'));
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'navigator', original);
+      else Reflect.deleteProperty(globalThis as object, 'navigator');
+    }
+  });
+});
+
 describe('Shift on punctuation and digits', () => {
   it('warns that Shift is dropped and names the key it will actually match', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

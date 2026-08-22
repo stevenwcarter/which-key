@@ -128,16 +128,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: make both total — `Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.95` and `Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 5`. Better still, hoist the pair into a shared internal module so the two copies cannot drift again.
 - [x] execute   [ ] skip
 
-### B31. isMacPlatform reads deprecated `navigator.platform` unguarded, so `Mod+` throws where navigator is absent: `isMacPlatform` (src/engine/keys.ts:20)
-- Category: correctness
-- Impact: 4 (severity 2 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: `/Mac|iPod|iPhone|iPad/.test(navigator.platform)` dereferences the `navigator` global with no guard, and is reached from `parseKey` for every `Mod+` binding — the form README.md:203,211 presents as the recommended cross-platform spelling. Node only gained a global `navigator` in v21 while package.json declares `engines.node >= 20`, so on a supported Node 20 SSR/prerender/test runtime `register('Mod+/')` throws `ReferenceError: navigator is not defined`. `navigator.platform` is also deprecated and frozen by anti-fingerprinting modes. The two `Mod` tests stub `navigator.platform` via `defineProperty`, so the absent-navigator path is untested.
-- Blast radius: src/engine/keys.ts:20,99; README.md:83,203; docs/API.md:349; src/engine/__tests__/keys.test.ts:140
-- Proposed fix: `if (typeof navigator === 'undefined') return false;` then prefer `navigator.userAgentData?.platform ?? navigator.platform ?? ''`. Keeps both existing Mod tests passing.
-- [x] execute   [ ] skip
-
 ### B32. mountWhichKey has no double-mount guard, so two calls silently duplicate the popup DOM: `mountWhichKey` (src/vanilla/mount.ts:12)
 - Category: api-surface
 - Impact: 4 (severity 2 × blast-radius 2)
