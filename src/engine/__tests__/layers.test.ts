@@ -38,3 +38,43 @@ describe('layers — matcher integration', () => {
     expect(wk.registry.getActiveCandidates('g').map((c) => c.keys)).toEqual(['g x']);
   });
 });
+
+describe('pushLayer — explicit level validation [B34]', () => {
+  it.each([-1, 1.5, NaN, Infinity])('warns and falls back to nextLevel() for %p', (bad) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const layer = wk.pushLayer({ level: bad });
+    layer.register('z', vi.fn(), { description: 'Zed' });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid pushLayer level'));
+    expect(layer.level).toBe(1);
+    expect(wk.registry.getActive('z')).toBeDefined();
+    layer.pop();
+    warn.mockRestore();
+  });
+
+  it('honours a valid explicit level', () => {
+    const wk = createWhichKey();
+    const layer = wk.pushLayer({ level: 3 });
+    layer.register('z', vi.fn());
+    expect(layer.level).toBe(3);
+    expect(wk.registry.getActive('z')).toBeDefined();
+    layer.pop();
+  });
+
+  it('warns when an explicit level undercuts the next free level', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const outer = wk.pushLayer({ exclusive: true });   // level 1
+    const inner = wk.pushLayer({ exclusive: true });   // level 2
+    warn.mockClear();
+
+    // nextLevel() is now 3, so level 1 undercuts by more than one.
+    const undercut = wk.pushLayer({ level: 1 });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] pushLayer level 1'));
+    expect(undercut.level).toBe(1);   // still honoured, just flagged
+
+    undercut.pop(); inner.pop(); outer.pop();
+    warn.mockRestore();
+  });
+});
