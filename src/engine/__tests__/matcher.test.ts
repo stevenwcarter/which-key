@@ -437,3 +437,44 @@ describe('Matcher — popup freshness during the leaf-AND-prefix wait [B21]', ()
     expect(onShowPopup).not.toHaveBeenCalled();
   });
 });
+
+describe('Matcher — tainted leaf-AND-prefix hides a stale popup [B44]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('hides an already-visible popup when the buffer becomes tainted', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const onHidePopup = vi.fn<HideFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup, onHidePopup }, 50);
+    // No bare 'g' leaf: 'g' must be prefix-only so its timer sets popupVisible.
+    registry.register(entry({ id: 'gh', keys: 'g h', enableOnInputs: true }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x', enableOnInputs: true }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g'] });
+    onShowPopup.mockClear();
+    onHidePopup.mockClear();
+
+    // 'h' typed into a text field echoes a character and taints the buffer.
+    const input = document.createElement('input');
+    matcher.handleKeyDown(ev({ key: 'h' }, input));
+
+    expect(onShowPopup).not.toHaveBeenCalled();
+    expect(onHidePopup).toHaveBeenCalled();
+  });
+
+  it('does not hide when the buffer is untainted', () => {
+    const onHidePopup = vi.fn<HideFn>();
+    const { registry, matcher } = buildMatcher({ onHidePopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    onHidePopup.mockClear();
+
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onHidePopup).not.toHaveBeenCalled();
+  });
+});

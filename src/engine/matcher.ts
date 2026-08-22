@@ -94,8 +94,18 @@ export class Matcher {
       // for the whole timeout window — keys that would now abort the
       // sequence. Same input-echo latch applies: never paint a buffer that
       // echoed characters into a text field.
-      if (this.popupVisible && !this.bufferTouchedInput) {
-        this.options.onShowPopup({ currentSequence: [...this.buffer] });
+      if (this.popupVisible) {
+        if (this.bufferTouchedInput) {
+          // Mirror the prefix-only branch: a tainted buffer must not merely
+          // stop refreshing, it must clear what is already on screen.
+          // Skipping the refresh alone left untainted content displayed
+          // until some later terminal outcome reached resetBuffer — a
+          // window bounded only by chain depth x timeoutMs, not by design.
+          this.popupVisible = false;
+          this.options.onHidePopup();
+        } else {
+          this.options.onShowPopup({ currentSequence: [...this.buffer] });
+        }
       }
       const fireTarget = eventTarget;
       // Fire the ORIGINAL event, never a synthesized one. A `new
