@@ -1,6 +1,6 @@
 {
   "name": "which-key",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Keyboard-shortcut engine with a which-key popup and cheatsheet. Framework-agnostic core, React binding, and a vanilla-DOM renderer.",
   "type": "module",
   "license": "MIT",

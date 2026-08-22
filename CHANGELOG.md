@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.0](https://github.com/stevenwcarter/which-key/compare/v0.2.1...v0.3.0) (2026-08-22)
+
+### ⚠ BREAKING CHANGES
+
+- **idioms:** consumers that assign into a snapshot, a candidate, or a
+  cheatsheet model no longer typecheck. Writing into them was already
+  forbidden by the docs; copy before mutating.
+
+Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC
+
+- **idioms:** type the published snapshot shapes as deeply readonly [T4] ([86b86e8](https://github.com/stevenwcarter/which-key/commit/86b86e873ff06cb895fbf5c00fb0bc95f099c37e))
+
+### Bug Fixes
+
+- **duplication:** print the real offender path in the copy-contract test ([9035720](https://github.com/stevenwcarter/which-key/commit/903572095b6a138f1cc48f4cdf652cae2ff6e714))
+- **idioms:** restore focus to SVG elements too, not just HTMLElement ([cf75a5f](https://github.com/stevenwcarter/which-key/commit/cf75a5f6dad917b02884a9850c1a3dc31f677daf))
+- **opportunistic:** bump registry version only on a real removal [T29] ([394efef](https://github.com/stevenwcarter/which-key/commit/394efeff111ecf6d72984332cbff9e1bc35af4e9))
+- **opportunistic:** guard emit's subscriber fan-out [T5] ([4f0ee61](https://github.com/stevenwcarter/which-key/commit/4f0ee61893a40cacce80a2b8cfb6ab185745748a))
+- **opportunistic:** make "+" bindable via the Plus alias [T12] ([0f7f060](https://github.com/stevenwcarter/which-key/commit/0f7f060823320e884ebefe1d8adb975b08d8cbba))
+- **opportunistic:** treat AltGraph as a modifier-only keydown [T8] ([bd03e4b](https://github.com/stevenwcarter/which-key/commit/bd03e4b85dadc3f698dfb448a4ba625ce79fc1e5))
+
 ## [0.2.1](https://github.com/stevenwcarter/which-key/compare/v0.2.0...v0.2.1) (2026-08-22)
 
 ### Features
