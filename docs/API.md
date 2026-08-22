@@ -366,21 +366,32 @@ Mod+k g        →  (Cmd/Ctrl)+k, then g
 
 The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both use this class set. Override any class to customize appearance.
 
-| Class                   | Element                                          |
-|-------------------------|--------------------------------------------------|
-| `wk-popup`              | Popup container                                  |
-| `wk-popup--vertical`    | Modifier: corner popup (right-aligned, bottom)   |
-| `wk-popup--horizontal`  | Modifier: bottom bar spanning the viewport       |
-| `wk-popup__header`      | Header row (vertical layout)                     |
-| `wk-popup__body`        | Body wrapper (horizontal layout)                 |
-| `wk-popup__list`        | `<ul>` candidate list (vertical)                 |
-| `wk-popup__grid`        | CSS grid of candidates (horizontal)              |
-| `wk-row`                | Single candidate entry                           |
-| `wk-row--group`         | Modifier: candidate is a group prefix            |
-| `wk-row__label`         | Candidate description text                       |
-| `wk-kbd`                | `<kbd>` key chip                                 |
-| `wk-sequence`           | Pressed-sequence display                         |
-| `wk-sequence__ellipsis` | `…` appended to the pressed sequence             |
-| `wk-cheatsheet`         | Cheatsheet overlay/container                     |
+| Class                         | Element                                          |
+|-------------------------------|--------------------------------------------------|
+| `wk-popup`                    | Popup container                                  |
+| `wk-popup--vertical`          | Modifier: corner popup (right-aligned, bottom)   |
+| `wk-popup--horizontal`        | Modifier: bottom bar spanning the viewport       |
+| `wk-popup__header`            | Header row (vertical layout)                     |
+| `wk-popup__body`              | Body wrapper (horizontal layout)                 |
+| `wk-popup__list`              | `<ul>` candidate list (vertical)                 |
+| `wk-popup__grid`              | CSS grid of candidates (horizontal)              |
+| `wk-row`                      | Single candidate entry                           |
+| `wk-row--group`               | Modifier: candidate is a group prefix            |
+| `wk-row__label`               | Candidate description text                       |
+| `wk-kbd`                      | `<kbd>` key chip                                 |
+| `wk-sequence`                 | Pressed-sequence display                         |
+| `wk-sequence__ellipsis`       | `…` appended to the pressed sequence             |
+| `wk-backdrop`                 | Full-screen dimmed overlay behind the cheatsheet |
+| `wk-cheatsheet`               | Cheatsheet panel (scrollable content box)        |
+| `wk-cheatsheet__close`        | Close button in the cheatsheet panel             |
+| `wk-cheatsheet__title`        | Cheatsheet heading                               |
+| `wk-cheatsheet__sections`     | Wrapper around all cheatsheet sections           |
+| `wk-cheatsheet__section`      | One group's section                              |
+| `wk-cheatsheet__list`         | List of shortcut entries                         |
+| `wk-cheatsheet__list--nested` | Modifier: list nested under a group              |
+| `wk-cheatsheet__item`         | One shortcut entry                               |
+| `wk-cheatsheet__group-title`  | Group heading row                                |
+| `wk-cheatsheet__group-label`  | Group description text                           |
+| `wk-cheatsheet__hint`         | "Press Escape to close" footer                   |
 
 When using a custom `classPrefix` (e.g. `'myapp'`), replace `wk-` with `myapp-` throughout.

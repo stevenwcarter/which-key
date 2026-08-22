@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B13. Documented CSS class contract omits 11 emitted classes and mislabels `wk-cheatsheet` as the backdrop: CSS class contract table (README.md:241)
-- Category: frontend
-- Impact: 12 (severity 3 × blast-radius 4)
-- Effort: S
-- Risk: high
-- Evidence: both renderers emit 23 distinct classes; the README table (226-241) and the API table (docs/API.md:370-384) each list only 14. Missing from both: `wk-backdrop`, `wk-cheatsheet__title`, `wk-cheatsheet__sections`, `wk-cheatsheet__section`, `wk-cheatsheet__list`, `wk-cheatsheet__list--nested`, `wk-cheatsheet__item`, `wk-cheatsheet__group-title`, `wk-cheatsheet__group-label`, `wk-cheatsheet__hint`. Worse, the one cheatsheet row present is actively wrong: `wk-cheatsheet` is described as "Cheatsheet backdrop/container", but it is the inner scrollable panel — the full-screen overlay is the undocumented `wk-backdrop`. A consumer told to "bring your own by targeting the `wk-*` CSS class contract" (README.md:224) styles the panel as if it were the overlay and gets no dimming, no centering, no fixed positioning. `examples/vanilla/index.html:46-58` is a live demonstration of exactly this failure inside this repo.
-- Blast radius: README.md:241; docs/API.md:384; src/react/ShortcutCheatsheet.tsx:29; src/vanilla/cheatsheet.ts:26; src/styles.css:39; examples/vanilla/index.html:46
-- Proposed fix: add the 10 missing cheatsheet classes plus `wk-backdrop` to both tables, correct the `wk-cheatsheet` row to "Cheatsheet panel (scrollable content box)", and add a `wk-backdrop` row for "Full-screen dimmed overlay behind the cheatsheet". Docs-only.
-- [x] execute   [ ] skip
-
 > **decision-needed (behavioral):** the cheatsheet overlay is not modal — `toggleCheatsheet`/`openCheatsheet` only flip `cheatsheetVisible` and `Matcher.handleKeyDown` never consults it, so while the full-screen sheet covers the app, pressing `s` still fires the page's Save shortcut and `g` pops the leader popup over the backdrop. Additionally both Escape-to-close listeners (src/react/ShortcutCheatsheet.tsx:20, src/vanilla/mount.ts:27) are on `document` and neither `preventDefault`s nor `stopPropagation`s, so with the README's own layer example (`useShortcut('Escape', onClose)`, README.md:167) one Escape press closes the cheatsheet **and** the user's modal (confirmed empirically). Impact 12 (severity 3 × blast-radius 4). The correct fix — making the cheatsheet an engine-level exclusive layer and routing its Escape through a real global shortcut — changes dispatch semantics for anyone relying on shortcuts working behind the cheatsheet, and touches both renderers. Discuss scope before scheduling.
 
 ## Medium
