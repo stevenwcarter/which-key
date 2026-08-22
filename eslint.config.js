@@ -26,8 +26,8 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/react/**/*.tsx'],
     ...jsxA11y.flatConfigs.recommended,
+    files: ['src/react/**/*.tsx'],
   },
   {
     files: ['src/react/**/*.{ts,tsx}'],

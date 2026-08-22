@@ -185,13 +185,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Low severity
 
-### T24. Preset spread after its own `files` key (eslint.config.js:9)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: The jsx-a11y block spreads `jsxA11y.flatConfigs.recommended` _after_ setting `files`, so an upstream `files`/`ignores` addition to the preset would silently unscope the rules. The preset currently exposes only `languageOptions`/`name`/`plugins`/`rules` (verified), so it works today by coincidence of key ordering. Match the sibling react-hooks block immediately below (lines 12-16): spread first, then `files: ['src/react/**/*.tsx']`.
-- [x] execute [ ] skip
-
 ### T26. Three phases in 32 unbroken lines: `buildCheatsheetModel` (src/engine/controller.ts:88-119)
 
 - Lenses: long-methods
