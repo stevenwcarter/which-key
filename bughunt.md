@@ -68,16 +68,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: mirror the prefix-only branch — when `this.bufferTouchedInput` is latched and `this.popupVisible` is true, set `popupVisible = false` and call `onHidePopup()` instead of merely skipping the refresh, so both branches share the same safety property rather than relying on eventual termination. Add a test registering a two-level leaf-AND-prefix chain and asserting the hide fires.
 - [ ] execute   [ ] skip
 
-### B35. No troubleshooting section documenting the emitted warnings or the silent failure modes: `README.md` (README.md:252)
-- Category: observability
-- Impact: 3 (severity 1 × blast-radius 3)
-- Effort: S
-- Risk: low
-- Evidence: neither README.md nor docs/API.md mentions the string `[whichkey]` or the word "warn" anywhere. A developer who sees `[whichkey] Shortcut "j" registered while another is active…` has no documentation telling them whether it is expected (it is, for the layer pattern the same README teaches). Symmetrically, the failure modes that produce no output at all — a key string that canonicalizes differently than the runtime event (B2, B15), a binding shadowed by an exclusive layer, a shortcut suppressed because focus is in an input — are never listed together as things to check. For a library whose entire failure mode is "nothing happens", this is the difference between a five-minute fix and an abandoned integration.
-- Blast radius: README.md:252; docs/API.md:337; src/engine/matcher.ts:43; src/engine/controller.ts:159
-- Proposed fix: add a `## Troubleshooting` section to README.md with a checklist — (1) is `<WhichKeyProvider>` an ancestor / did you call `engine.start()`; (2) is focus in an input — set `enableOnInputs: true`; (3) compare `parseKey('<your key>')` against `eventToCanonical(e)` from a raw keydown listener; (4) is an exclusive layer active — use `global: true`; (5) is another registration winning — check level then priority. Add a matching subsection to docs/API.md listing each warning verbatim with its meaning.
-- [x] execute   [ ] skip
-
 ### B41. CI job runs an unpinned third-party action while holding CODECOV_TOKEN under a default-scoped GITHUB_TOKEN: build job (.github/workflows/ci.yml:20)
 - Category: security
 - Impact: 2 (severity 2 × blast-radius 1)

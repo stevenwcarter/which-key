@@ -48,7 +48,8 @@ export const mountWhichKey = (
     } else {
       console.warn(
         `[whichkey] invalid classPrefix "${requestedPrefix}"; ` +
-          'must be a valid CSS identifier stem (letters, digits, "-", "_"; not starting with a digit). ' +
+          'must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first ' +
+          'character (or the character right after a leading "-") is a letter or "_", never a digit. ' +
           'Falling back to "wk".',
       );
     }

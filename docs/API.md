@@ -496,6 +496,31 @@ console.table(engine.registry.getAllActive().map((e) => ({
 
 A shortcut you registered that is **absent** from this list is either blocked by an active exclusive layer (see [`<WhichKeyLayer>`](#whichkeylayer) — register it with `global: true` to punch through) or has lost its bucket to a higher-level or higher-priority entry.
 
+### Console warnings
+
+Every diagnostic which-key writes is prefixed `[whichkey]`. All of them are advisory — the library soft-fails on consumer misuse rather than throwing, so a warning means "this did not do what you meant", never "your app is about to crash".
+
+| Warning (abridged) | Meaning | Fix |
+|---|---|---|
+| `Shortcut "<keys>" has a same-level collision: "<winner>" (level <n>, priority <n>) wins over "<loser>" (level <n>, priority <n>). Raise the losing entry's priority or unregister one to resolve.` | Two live entries at the same level are bound to the same key string. | Expected when using the layer pattern deliberately. Otherwise raise the loser's `priority` or unregister one. |
+| `<what> used outside <WhichKeyProvider>; wrap your app in <WhichKeyProvider> for it to work.` | A hook (`useShortcut`, `useShortcutGroup`, `useWhichKeyState`) or a renderer component (`<WhichKeyPopup>`, `<ShortcutCheatsheet>`, `<WhichKeyLayer>`) rendered with no `<WhichKeyProvider>` ancestor. | Wrap your app in `<WhichKeyProvider>`. |
+| `invalid timeoutMs <value>; falling back to 500ms.` | `timeoutMs` passed to `createWhichKey` was not a non-negative finite number. | Pass a non-negative finite number, or omit the option. |
+| `invalid helpKey "<helpKey>": <reason>; help shortcut disabled.` | `helpKey` passed to `createWhichKey` could not be parsed as a key string. | Fix the key string, or pass `helpKey: null` to disable the built-in help shortcut deliberately. |
+| `handler for "<keys>" is not a function; shortcut not registered.` | `register`'s second argument was not a function. | Pass a function. |
+| `invalid key string "<keys>": <reason>; shortcut not registered.` | `register` could not parse the key string. | Fix the key string; see [Key-string syntax](#key-string-syntax). |
+| `invalid group prefix "<prefix>": <reason>; group not registered.` | `registerGroup` could not parse the prefix. | Fix the prefix. |
+| `invalid pushLayer level <value>; expected a non-negative integer. Falling back to <n>.` | An explicit `level` passed to `pushLayer` was not a non-negative integer. | Omit `level` and let `pushLayer` allocate one. |
+| `pushLayer level <n> undercuts the next free level (<n>); shortcuts on this layer may be blocked by an active exclusive layer.` | An explicit `level` sits below the currently active layer stack. | Usually a mistake — omit `level` and let `pushLayer` allocate one. |
+| `mountWhichKey called twice for the same container; the previous mount is still active. Call unmount() on it first. This call is a no-op.` | A second renderer was mounted on a container that already has one. | Call `unmount()` on the first mount, or mount into a different container. |
+| `invalid classPrefix "<prefix>"; must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first character (or the character right after a leading "-") is a letter or "_", never a digit. Falling back to "wk".` | `classPrefix` passed to `mountWhichKey` is not a valid CSS identifier stem. | Use only letters, digits, `-` and `_`; the first character (or the character immediately after a leading `-`) must be a letter or `_`, never a digit. |
+| `"<input>": Shift is dropped for punctuation and digits — write the shifted character directly (e.g. "?" not "Shift+/"). This binding will match "<base>".` | A key string like `'Shift+/'` was registered. `Shift+` is silently dropped for punctuation/digit base characters, so the binding matches the *unshifted* key, not the shifted glyph. | Register the shifted character directly (e.g. `'?'` instead of `'Shift+/'`). |
+
+**Silent failures** — these produce no console output at all, so check them by hand:
+
+- **A key string that canonicalizes differently than the runtime event** (see [`eventToCanonical`](#eventtocanonicalevent) above). In particular, special-key base names are **case-sensitive and exact**: `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. This is a known open issue — use the exact `KeyboardEvent.key` spelling until it's addressed.
+- **A binding shadowed by an active exclusive layer** (see [`engine.registry.getAllActive()`](#engineregistrygetallactive) above).
+- **A shortcut suppressed because focus is in a text field** and it was registered without `enableOnInputs: true`.
+
 ---
 
 ## CSS class contract (`wk-*`)
@@ -531,4 +556,4 @@ The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both u
 | `wk-cheatsheet__group-label`  | Group description text                           |
 | `wk-cheatsheet__hint`         | "Press Escape to close" footer                   |
 
-When using a custom `classPrefix` (e.g. `'myapp'`), replace `wk-` with `myapp-` throughout.
+When using a custom `classPrefix` (e.g. `'myapp'`), replace `wk-` with `myapp-` throughout. Note that setting `classPrefix` opts out of the shipped `which-key/styles.css` entirely — see [`mountWhichKey`'s `classPrefix` option](#mountwhichkey) under Vanilla for what that means and the warning emitted on an invalid value.

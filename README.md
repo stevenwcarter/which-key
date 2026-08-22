@@ -282,6 +282,41 @@ The default of `1000` clears Ant Design's modal layer but sits below Bootstrap's
 
 ---
 
+## Troubleshooting
+
+which-key's failure mode is almost always "nothing happens". Work down this list.
+
+**1. Is `<WhichKeyProvider>` an ancestor, and did you call `engine.start()`?**
+The React hooks and both renderer components warn on the console when they are used outside the provider. The engine does not attach its `keydown` listener until `start()` is called — `mountWhichKey` deliberately does **not** call it for you.
+
+**2. Is focus in a text field?**
+Shortcuts are suppressed while focus is in an `<input>`, `<textarea>` or `contenteditable` element unless you register them with `enableOnInputs: true`.
+
+**3. Does your key string canonicalize to what the browser actually reports?**
+This is the most common silent failure. Registration and runtime both funnel through the same canonicalizer and the registry looks up plain strings, so a mismatch means the lookup simply misses:
+
+```ts
+import { parseKey, eventToCanonical } from 'which-key';
+
+document.addEventListener('keydown', (e) => {
+  console.log('pressed:', eventToCanonical(e), 'registered:', parseKey('g'));
+});
+```
+
+If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the *unshifted* character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names being **case-sensitive and exact** — `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. Use the exact `KeyboardEvent.key` spelling.
+
+**4. Is an exclusive layer active?**
+An exclusive layer makes every shortcut below its level unreachable. Register with `global: true` to punch through, or check what is live with `engine.registry.getAllActive()`.
+
+**5. Is another registration winning?**
+Multiple components may bind the same key. The winner is decided by **level, then priority, then most-recent registration**. A same-level collision emits a console warning naming both entries; raise the loser's `priority` or unregister one.
+
+### Console warnings
+
+which-key writes diagnostics to the console prefixed with `[whichkey]`. They are advisory — none of them throws. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
+
+---
+
 ## API
 
 See **[docs/API.md](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md)** for the full reference.
