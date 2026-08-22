@@ -505,3 +505,15 @@ describe('canonical-key parity: parseKey ⇄ eventToCanonical [Invariant 1]', ()
     expect(parseKey(spec)).toBe(eventToCanonical(ev(init)));
   });
 });
+
+describe('modifier parsing is a single pass over the leading segments [T10]', () => {
+  it('names both the offending segment and the whole input when a modifier is unknown', () => {
+    expect(() => parseKey('Hyper+Ctrl+K')).toThrow(
+      'whichkey: unknown modifier "Hyper" in "Hyper+Ctrl+K"',
+    );
+  });
+
+  it('folds every documented alias, in any case, into one canonical chord', () => {
+    expect(parseKey('control+option+shift+cmd+k')).toBe('Ctrl+Alt+Shift+Cmd+K');
+  });
+});

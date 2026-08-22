@@ -199,6 +199,42 @@ const SHIFT_ALTERS_US = new Set([
   '/',
 ]);
 
+// The modifier half of parseKey: everything before the final `+`. Returns the
+// flags buildCanonical consumes, so parseKey's own body is left with base
+// resolution and the two warning rules.
+const parseModifiers = (segments: string[], input: string): Modifiers => {
+  const mods: Modifiers = { ctrl: false, alt: false, shift: false, meta: false };
+  for (const seg of segments) {
+    const mod = MODIFIER_ALIASES.get(seg.toLowerCase());
+    if (mod === undefined) {
+      throw new Error(`whichkey: unknown modifier "${seg}" in "${input}"`);
+    }
+    switch (mod) {
+      case 'Ctrl':
+        mods.ctrl = true;
+        break;
+      case 'Alt':
+        mods.alt = true;
+        break;
+      case 'Shift':
+        mods.shift = true;
+        break;
+      case 'Cmd':
+        mods.meta = true;
+        break;
+      case 'Mod':
+        if (isMacPlatform()) mods.meta = true;
+        else mods.ctrl = true;
+        break;
+      default: {
+        const exhaustive: never = mod;
+        throw new Error(`whichkey: unknown modifier "${String(exhaustive)}" in "${input}"`);
+      }
+    }
+  }
+  return mods;
+};
+
 /**
  * Canonicalizes one chord written as a key string — the registration half of
  * the canonical-key contract, which `eventToCanonical` must match byte for
@@ -222,56 +258,24 @@ export const parseKey = (input: string): CanonicalKey => {
   if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
     throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
   }
-  let ctrl = false;
-  let alt = false;
-  let shift = false;
-  let meta = false;
-
-  for (const seg of segments) {
-    const mod = MODIFIER_ALIASES.get(seg.toLowerCase());
-    if (mod === undefined) {
-      throw new Error(`whichkey: unknown modifier "${seg}" in "${input}"`);
-    }
-    switch (mod) {
-      case 'Ctrl':
-        ctrl = true;
-        break;
-      case 'Alt':
-        alt = true;
-        break;
-      case 'Shift':
-        shift = true;
-        break;
-      case 'Cmd':
-        meta = true;
-        break;
-      case 'Mod':
-        if (isMacPlatform()) meta = true;
-        else ctrl = true;
-        break;
-      default: {
-        const exhaustive: never = mod;
-        throw new Error(`whichkey: unknown modifier "${String(exhaustive)}" in "${input}"`);
-      }
-    }
-  }
+  const mods = parseModifiers(segments, input);
 
   const base = baseRaw === ' ' ? 'Space' : normalizeBase(baseRaw, input);
   // A bare uppercase letter (no other modifier) implies Shift was held to
   // produce it. Without this, parseKey('N') would canonicalize to 'n' but
   // pressing Shift+n at runtime canonicalizes to 'N' — they'd never match.
-  if (/^[A-Z]$/.test(base) && !ctrl && !alt && !meta && !shift) {
-    shift = true;
+  if (/^[A-Z]$/.test(base) && !mods.ctrl && !mods.alt && !mods.meta && !mods.shift) {
+    mods.shift = true;
   }
 
-  if (shift && SHIFT_ALTERS_US.has(base)) {
+  if (mods.shift && SHIFT_ALTERS_US.has(base)) {
     console.warn(
       `[whichkey] "${input}": Shift is dropped for punctuation and digits — write the ` +
         `shifted character directly (e.g. "?" not "Shift+/"). This binding will match "${base}".`,
     );
   }
 
-  return buildCanonical(base, { ctrl, alt, shift, meta });
+  return buildCanonical(base, mods);
 };
 
 /**

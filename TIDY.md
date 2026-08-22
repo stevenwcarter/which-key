@@ -53,13 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
 - [x] execute [ ] skip
 
-### T10. Five phases with no internal structure: `parseKey` (src/engine/keys.ts:189-244, 56 lines)
-
-- Lenses: long-methods
-- Risk: low
-- Proposed fix: Extract a module-private `const parseModifiers = (segments: string[], input: string): { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean }` holding lines 198-226 (the four flags, the `MODIFIER_ALIASES` lookup, the throw on an unknown modifier, and the `Mod`/`isMacPlatform` resolution). Optionally also `const impliesShift = (base: string, mods): boolean` for 232-234. `parseKey` keeps its exported signature and still funnels into `buildCanonical`, so the canonical-string parity invariant is untouched by construction. Guard with the 65 cases in src/engine/**tests**/keys.test.ts. **Shared file region:** T10, T11 and T12 all land within keys.ts:189-195 and are three genuinely different changes — sequence them one at a time (T10 → T11 → T12) rather than editing that block concurrently; T9's `Modifiers` type is the natural return type for `parseModifiers` if both are taken.
-- [x] execute [ ] skip
-
 ### T11. Assertion cancels out the guard on the next line: `segments.pop() as string` (src/engine/keys.ts:194)
 
 - Lenses: idioms
