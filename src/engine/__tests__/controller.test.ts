@@ -784,3 +784,44 @@ describe('buildCheatsheetModel — labelled single-entry prefix [B37]', () => {
     expect(model.groups).toEqual([]);
   });
 });
+
+describe('register/registerGroup — level validation [B45]', () => {
+  it.each([-1, 1.5, NaN, Infinity])('warns and falls back to 0 for level %p', (bad) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('z', vi.fn(), { level: bad, description: 'Zed' });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid level'));
+    expect(wk.registry.getActive('z')).toBeDefined();
+    warn.mockRestore();
+  });
+
+  it('warns and falls back to 0 for an invalid registerGroup level', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    wk.registerGroup('g', { description: 'Go', level: -1 });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid level'));
+    expect(wk.registry.getActiveGroup('g')?.description).toBe('Go');
+    warn.mockRestore();
+  });
+
+  it('honours a valid explicit level', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('z', vi.fn(), { level: 2 });
+    expect(warn).not.toHaveBeenCalled();
+    expect(wk.registry.getActive('z')?.level).toBe(2);
+    warn.mockRestore();
+  });
+
+  it('does not warn when level is omitted', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('z', vi.fn());
+    expect(warn).not.toHaveBeenCalled();
+    expect(wk.registry.getActive('z')?.level).toBe(0);
+    warn.mockRestore();
+  });
+});

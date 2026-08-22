@@ -21,6 +21,23 @@ const DEFAULT_HELP_ID = '__whichkey_default_help__';
 // route it through this helper.
 const stripWhichkeyPrefix = (message: string): string => message.replace(/^whichkey:\s*/, '');
 
+// `level` is public on ShortcutOptions and on registerGroup's options. A
+// negative or non-integer value is silently fatal: blockLevel() floors at 0
+// and isReachable requires entry.level >= block, so the entry registers, the
+// unregister function looks healthy, and the key simply never fires. B34
+// closed the same hole for pushLayer; this is the registration-side twin.
+// Falls back to 0 rather than nextLevel() — a bare registration has no layer
+// of its own, and 0 is the documented default.
+const resolveLevel = (requested: number | undefined, what: string): number => {
+  if (requested === undefined) return 0;
+  if (Number.isInteger(requested) && requested >= 0) return requested;
+  console.warn(
+    `[whichkey] invalid level ${String(requested)} for "${what}"; ` +
+      'expected a non-negative integer. Falling back to 0.',
+  );
+  return 0;
+};
+
 export type WhichKeyOptions = {
   timeoutMs?: number;
   helpKey?: string | null;
@@ -245,7 +262,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         enableOnInputs: opts?.enableOnInputs ?? false,
         priority: opts?.priority ?? 0,
         enabled: opts?.enabled ?? true,
-        level: opts?.level ?? 0,
+        level: resolveLevel(opts?.level, keys),
         global: opts?.global ?? false,
       };
       registry.register(entry);
@@ -272,7 +289,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         prefix: canonical,
         description: opts.description,
         priority: opts.priority ?? 0,
-        level: opts.level ?? 0,
+        level: resolveLevel(opts.level, prefix),
       });
       return () => registry.unregisterGroup(id);
     },
