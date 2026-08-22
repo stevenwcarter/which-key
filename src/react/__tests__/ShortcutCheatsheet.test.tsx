@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReactElement } from 'react';
 import { render, act } from '@testing-library/react';
-import { WhichKeyProvider, useShortcut, useShortcutGroup } from '../index';
+import { WhichKeyProvider, useShortcut, useShortcutGroup, createWhichKey } from '../index';
+import type { WhichKeyEngine } from '../index';
 import { ShortcutCheatsheet } from '../ShortcutCheatsheet';
-import { resetNoProviderWarnings } from '../context';
+import { resetNoProviderWarnings, WhichKeyContext } from '../context';
 
 const Setup = () => {
   useShortcutGroup('g', { description: 'Focus widget' });
@@ -10,6 +12,27 @@ const Setup = () => {
   useShortcut('g s', () => {}, { description: 'Focus Skills' });
   useShortcut('Ctrl+K', () => {}, { description: 'Command palette' });
   return null;
+};
+
+// D1's engine is created directly (bypassing <WhichKeyProvider>, which owns
+// its engine internally and never exposes it) so the test can hold a
+// reference to call `wk.register(...)` and spy `wk.getCheatsheetModel` after
+// the sheet is already open. `rerender` re-wraps in the same context Provider
+// so each call simulates a parent re-render without losing the engine.
+const renderOpenCheatsheet = (wk: WhichKeyEngine) => {
+  const utils = render(
+    <WhichKeyContext.Provider value={wk}>
+      <ShortcutCheatsheet />
+    </WhichKeyContext.Provider>,
+  );
+  act(() => {
+    wk.openCheatsheet();
+  });
+  return {
+    ...utils,
+    rerender: (ui: ReactElement) =>
+      utils.rerender(<WhichKeyContext.Provider value={wk}>{ui}</WhichKeyContext.Provider>),
+  };
 };
 
 describe('ShortcutCheatsheet', () => {
@@ -290,5 +313,32 @@ describe('ShortcutCheatsheet outside a provider [B24]', () => {
     render(<ShortcutCheatsheet />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('<ShortcutCheatsheet>'));
     warn.mockRestore();
+  });
+});
+
+describe('ShortcutCheatsheet model memoisation [D1]', () => {
+  it('does not rebuild the cheatsheet model when the registry has not changed [D1]', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const spy = vi.spyOn(wk, 'getCheatsheetModel');
+
+    const { rerender } = renderOpenCheatsheet(wk);
+    const afterFirst = spy.mock.calls.length;
+
+    rerender(<ShortcutCheatsheet />);
+    rerender(<ShortcutCheatsheet />);
+    expect(spy.mock.calls.length).toBe(afterFirst);
+  });
+
+  it('rebuilds when a late registration changes the registry [D1]', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const { rerender, getByTestId } = renderOpenCheatsheet(wk);
+
+    act(() => {
+      wk.register('n', vi.fn(), { description: 'New' });
+    });
+    rerender(<ShortcutCheatsheet />);
+    expect(getByTestId('whichkey-cheatsheet').textContent).toContain('New');
   });
 });

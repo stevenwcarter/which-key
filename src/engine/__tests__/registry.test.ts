@@ -452,3 +452,44 @@ describe('collision warning precision', () => {
     warn.mockRestore();
   });
 });
+
+describe('ShortcutRegistry.version [D1]', () => {
+  it('starts at 0 and increments on every mutation', () => {
+    const registry = new ShortcutRegistry();
+    expect(registry.version).toBe(0);
+
+    registry.register(entry({ id: 'a', keys: 'a' }));
+    const afterRegister = registry.version;
+    expect(afterRegister).toBeGreaterThan(0);
+
+    registry.registerGroup({ id: 'g', prefix: 'g', description: 'Go', priority: 0, level: 0 });
+    expect(registry.version).toBeGreaterThan(afterRegister);
+
+    const afterGroup = registry.version;
+    registry.activateLayer('l', 1, true);
+    expect(registry.version).toBeGreaterThan(afterGroup);
+
+    const afterActivate = registry.version;
+    registry.deactivateLayer('l');
+    expect(registry.version).toBeGreaterThan(afterActivate);
+
+    const afterDeactivate = registry.version;
+    registry.unregisterGroup('g');
+    expect(registry.version).toBeGreaterThan(afterDeactivate);
+
+    const afterUnregisterGroup = registry.version;
+    registry.unregister('a');
+    expect(registry.version).toBeGreaterThan(afterUnregisterGroup);
+  });
+
+  it('does not change on reads', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'a', keys: 'a' }));
+    const v = registry.version;
+    registry.getActive('a');
+    registry.getAllActive();
+    registry.getActiveCandidates('a');
+    registry.getActiveGroup('a');
+    expect(registry.version).toBe(v);
+  });
+});

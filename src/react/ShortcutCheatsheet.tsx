@@ -1,4 +1,11 @@
-import { useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { WhichKeyContext, warnNoProvider } from './context';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
@@ -63,8 +70,25 @@ export const ShortcutCheatsheet = () => {
     };
   }, [engine, visible]);
 
+  // Read before the early return — hooks must run unconditionally. Keyed on
+  // the registry's version (not just `visible`) so a late registration made
+  // while the sheet is already open still invalidates the memo; keying on
+  // `visible` alone would freeze the sheet at its open-time contents.
+  const registryVersion = engine?.registry.version ?? 0;
+  // registryVersion and visible are deliberately unreferenced inside the
+  // factory below: they are cache-invalidation signals for state the engine
+  // owns internally (the registry's mutation counter, and whether the sheet
+  // is open), not values the computation itself reads. exhaustive-deps only
+  // sees identifiers used in the callback body, so it can't know these two
+  // are load-bearing for invalidating a memo over a mutable,
+  // non-React-tracked data source.
+  const model = useMemo(
+    () => engine?.getCheatsheetModel() ?? { standalone: [], groups: [] },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, registryVersion, visible],
+  );
+
   if (!engine || !visible) return null;
-  const model = engine.getCheatsheetModel();
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-dismiss backdrop; the keyboard equivalent is the Escape handler installed in the useEffect above, and the panel (not the backdrop) is the focus target of this modal.
