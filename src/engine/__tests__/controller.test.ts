@@ -825,3 +825,23 @@ describe('register/registerGroup — level validation [B45]', () => {
     warn.mockRestore();
   });
 });
+
+describe('createWhichKey — timeoutMs boundary and warning text [T1]', () => {
+  it('emits the exact invalid-timeoutMs warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey({ timeoutMs: NaN });
+    expect(warn).toHaveBeenCalledWith('[whichkey] invalid timeoutMs NaN; falling back to 500ms.');
+    warn.mockRestore();
+  });
+
+  it('accepts the largest delay setTimeout honours and rejects one past it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey({ timeoutMs: 2147483647 });
+    expect(warn).not.toHaveBeenCalled();
+    createWhichKey({ timeoutMs: 2147483648 });
+    expect(warn).toHaveBeenCalledWith(
+      '[whichkey] invalid timeoutMs 2147483648; falling back to 500ms.',
+    );
+    warn.mockRestore();
+  });
+});

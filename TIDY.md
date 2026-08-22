@@ -16,13 +16,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## High severity
 
-### T1. Oversized factory with four unlabelled setup phases: `createWhichKey` (src/engine/controller.ts:121-399, 279 lines)
-
-- Lenses: long-methods, idioms
-- Risk: low
-- Proposed fix: Extract two module-private helpers above `createWhichKey`, both closure-free: (a) `const resolveTimeoutMs = (raw: number | undefined): number` covering the IIFE at lines 130-137 — this also hoists `MAX_SETTIMEOUT_DELAY_MS` out of the factory body next to `DEFAULT_HELP_ID` (controller.ts:14), where every other constant in the file lives; the bare const hoist is the smaller independent step and can land on its own if the full extraction is deferred. (b) `const registerHelpShortcut = (registry: ShortcutRegistry, helpKey: string | null | undefined, onToggle: () => void): void` for lines 202-229 (the `''`/`null`/try-catch triage). Then add three section comments in the remaining body: `// --- options & mutable state ---`, `// --- snapshot computation & emission ---`, `// --- engine surface ---`. The returned object's methods are individually short and stay put. Sequencing: the helpKey try/catch at 224-228 is one of the three sites T6 rewrites, and T18 wants a module-level `DEFAULT_TIMEOUT_MS` that `resolveTimeoutMs` should own — do T1 first, then T6 and T18 on top.
-- [x] execute [ ] skip
-
 ## Medium severity
 
 ### T4. Snapshot immutability is documented but not typed: `WhichKeySnapshot` (src/engine/controller.ts:56-59)

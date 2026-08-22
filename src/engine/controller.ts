@@ -12,6 +12,12 @@ import type {
 } from './types';
 
 const DEFAULT_HELP_ID = '__whichkey_default_help__';
+const DEFAULT_TIMEOUT_MS = 500;
+// The largest delay setTimeout honours: it stores the delay in a signed
+// 32-bit int, so anything past this overflows and is coerced to fire almost
+// immediately — the same silent-instant-fire failure as NaN/negative, just
+// reached from the other direction.
+const MAX_SETTIMEOUT_DELAY_MS = 2147483647;
 
 // keys.ts's thrown Errors are already prefixed "whichkey: " (correct for
 // that Error surfacing on its own, unwrapped). Strip it here so composing it
@@ -36,6 +42,18 @@ const resolveLevel = (requested: number | undefined, what: string): number => {
       'expected a non-negative integer. Falling back to 0.',
   );
   return 0;
+};
+
+// setTimeout silently coerces NaN / negative / overflow to 0, which turns
+// "wait before showing the popup" into "fire instantly" with no diagnostic.
+// Validate at the boundary; the public timeoutMs?: number stays unchanged.
+const resolveTimeoutMs = (raw: number | undefined): number => {
+  if (raw === undefined) return DEFAULT_TIMEOUT_MS;
+  if (Number.isFinite(raw) && raw >= 0 && raw <= MAX_SETTIMEOUT_DELAY_MS) return raw;
+  console.warn(
+    `[whichkey] invalid timeoutMs ${String(raw)}; falling back to ${DEFAULT_TIMEOUT_MS}ms.`,
+  );
+  return DEFAULT_TIMEOUT_MS;
 };
 
 /**
@@ -193,6 +211,42 @@ const buildCheatsheetModel = (
   return { standalone, groups };
 };
 
+// `null` is the documented way to disable help deliberately and stays
+// silent. `''` is almost certainly a mistake — it is falsy, so it skipped
+// registration without ever reaching parseKey, making it the one
+// invalid-input path in the library that failed with no diagnostic.
+const registerHelpShortcut = (
+  registry: ShortcutRegistry,
+  helpKey: string | null | undefined,
+  onToggle: () => void,
+): void => {
+  if (helpKey === '') {
+    console.warn('[whichkey] invalid helpKey ""; help shortcut disabled.');
+    return;
+  }
+  if (!helpKey) return;
+  // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
+  // a throw here unmounts the consumer's entire tree with no error boundary
+  // in between. Matches useShortcut's missing-provider warn convention.
+  try {
+    registry.register({
+      id: DEFAULT_HELP_ID,
+      keys: parseKey(helpKey),
+      handler: () => onToggle(),
+      description: 'Toggle keyboard shortcuts',
+      enableOnInputs: false,
+      priority: -1,
+      enabled: true,
+      level: 0,
+      global: true,
+    });
+  } catch (err) {
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    const message = stripWhichkeyPrefix(rawMessage);
+    console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
+  }
+};
+
 /**
  * Creates a which-key engine: a registry, a matcher, and the snapshot store the
  * renderers subscribe to.
@@ -204,22 +258,9 @@ const buildCheatsheetModel = (
  * consumer's tree.
  */
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
+  // --- options & mutable state ---
   const { helpKey = '?', sortKeys } = options;
-  // setTimeout silently coerces NaN / negative / overflow to 0, which turns
-  // "wait before showing the popup" into "fire instantly" with no diagnostic.
-  // Validate at the boundary; the public timeoutMs?: number stays unchanged.
-  // MAX_SETTIMEOUT_DELAY_MS is the largest delay setTimeout honours: it
-  // stores the delay in a signed 32-bit int, so anything past this overflows
-  // and is coerced to fire almost immediately — the same silent-instant-fire
-  // failure as NaN/negative, just reached from the other direction.
-  const MAX_SETTIMEOUT_DELAY_MS = 2147483647;
-  const timeoutMs = ((): number => {
-    const raw = options.timeoutMs;
-    if (raw === undefined) return 500;
-    if (Number.isFinite(raw) && raw >= 0 && raw <= MAX_SETTIMEOUT_DELAY_MS) return raw;
-    console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
-    return 500;
-  })();
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
   const explicitTarget = options.target;
   let bound: Document | HTMLElement | null = null;
   const registry = new ShortcutRegistry();
@@ -232,6 +273,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   let idCounter = 0;
   let started = false;
 
+  // --- snapshot computation & emission ---
   const computeCandidates = (): WhichKeyCandidate[] => {
     const prefix = currentSequence.join(' ');
     const raw = prefix ? registry.getActiveCandidates(prefix) : [];
@@ -284,37 +326,11 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
   });
 
-  // `null` is the documented way to disable help deliberately and stays
-  // silent. `''` is almost certainly a mistake — it is falsy, so it skipped
-  // registration without ever reaching parseKey, making it the one
-  // invalid-input path in the library that failed with no diagnostic.
-  if (helpKey === '') {
-    console.warn('[whichkey] invalid helpKey ""; help shortcut disabled.');
-  } else if (helpKey) {
-    // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
-    // a throw here unmounts the consumer's entire tree with no error boundary
-    // in between. Matches useShortcut's missing-provider warn convention.
-    try {
-      registry.register({
-        id: DEFAULT_HELP_ID,
-        keys: parseKey(helpKey),
-        handler: () => toggleCheatsheet(),
-        description: 'Toggle keyboard shortcuts',
-        enableOnInputs: false,
-        priority: -1,
-        enabled: true,
-        level: 0,
-        global: true,
-      });
-    } catch (err) {
-      const rawMessage = err instanceof Error ? err.message : String(err);
-      const message = stripWhichkeyPrefix(rawMessage);
-      console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
-    }
-  }
+  registerHelpShortcut(registry, helpKey, toggleCheatsheet);
 
   const handler = (event: Event) => matcher.handleKeyDown(event as KeyboardEvent);
 
+  // --- engine surface ---
   const engine: WhichKeyEngine = {
     registry,
     register(keys, h, opts) {
