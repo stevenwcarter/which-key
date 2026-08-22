@@ -15,6 +15,44 @@ const SPECIAL_KEYS = new Set([
   'PageDown',
 ]);
 
+// Consumers reasonably assume a key string is validated, because parseKey
+// throws on an unknown MODIFIER. It did not validate the base, so
+// register('escape') produced a canonical string no KeyboardEvent can ever
+// emit — a silently dead binding. Map the common spellings onto the exact
+// `event.key` values the runtime reports.
+const SPECIAL_KEY_ALIASES = new Map<string, string>([
+  ...[...SPECIAL_KEYS].map((k): [string, string] => [k.toLowerCase(), k]),
+  ['esc', 'Escape'],
+  ['space', 'Space'],
+  ['spacebar', 'Space'],
+  ['up', 'ArrowUp'],
+  ['down', 'ArrowDown'],
+  ['left', 'ArrowLeft'],
+  ['right', 'ArrowRight'],
+  ['pgup', 'PageUp'],
+  ['pgdn', 'PageDown'],
+  ['pagedn', 'PageDown'],
+]);
+
+/** `f1`-`f12` in any casing -> `F1`-`F12`. */
+const FUNCTION_KEY_RE = /^f([1-9]|1[0-2])$/i;
+
+const normalizeBase = (base: string, input: string): string => {
+  if (base.length <= 1) return base;
+  const alias = SPECIAL_KEY_ALIASES.get(base.toLowerCase());
+  if (alias !== undefined) return alias;
+  if (FUNCTION_KEY_RE.test(base)) return base.toUpperCase();
+  // Not a name we recognise. Do NOT throw — exotic event.key values
+  // ('MediaPlayPause', 'BrowserBack', IME keys) must stay bindable — but a
+  // silently dead binding is exactly what this warning exists to prevent.
+  console.warn(
+    `[whichkey] key string "${input}": "${base}" is not a key name this library ` +
+      'recognises; if the browser does not report exactly this value, the binding ' +
+      'will never match.',
+  );
+  return base;
+};
+
 const MODIFIER_KEY_NAMES = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 
 // `navigator` is absent on Node < 21 (package.json allows >= 20) and on any
@@ -154,7 +192,7 @@ export const parseKey = (input: string): CanonicalKey => {
     }
   }
 
-  const base = baseRaw === ' ' ? 'Space' : baseRaw;
+  const base = baseRaw === ' ' ? 'Space' : normalizeBase(baseRaw, input);
   // A bare uppercase letter (no other modifier) implies Shift was held to
   // produce it. Without this, parseKey('N') would canonicalize to 'n' but
   // pressing Shift+n at runtime canonicalizes to 'N' — they'd never match.

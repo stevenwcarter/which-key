@@ -437,6 +437,24 @@ Keys are expressed as strings. Sequences use a single space as the separator.
 
 Modifier names are case-insensitive. Multiple modifiers may be combined: `Ctrl+Shift+p`, `Mod+Alt+f`.
 
+### Special keys
+
+A base that names a special key is accepted **case-insensitively**, and the common short spellings below are also accepted as aliases. Both forms canonicalize to the exact `event.key` spelling the browser reports, so they match at runtime:
+
+| Special key                                          | Aliases (case-insensitive)                     |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `Escape`                                             | `escape`, `esc`                                |
+| `Tab`                                                | `tab`                                          |
+| `Enter`                                              | `enter`                                        |
+| `Backspace`                                          | `backspace`                                    |
+| `Space`                                              | `space`, `spacebar`, literal `' '`             |
+| `ArrowUp` / `ArrowDown` / `ArrowLeft` / `ArrowRight` | `up`, `down`, `left`, `right`                  |
+| `Home` / `End`                                       | `home`, `end`                                  |
+| `PageUp` / `PageDown`                                | `pgup`, `pageup`, `pgdn`, `pagedn`, `pagedown` |
+| `F1`–`F12`                                           | `f1`–`f12` (any casing)                        |
+
+A base that is not one of the names above (or one of these aliases) is **not validated** — it passes through verbatim, since exotic-but-real `event.key` values (`'MediaPlayPause'`, `'BrowserBack'`, IME composition keys, …) must stay bindable. If it isn't a name any browser reports, the binding will never fire, and `parseKey` emits the `is not a key name this library recognises` warning (see [Console warnings](#console-warnings)) to flag it instead of failing silently.
+
 ### Examples
 
 ```
@@ -520,11 +538,12 @@ Every diagnostic which-key writes is prefixed `[whichkey]`. Nearly all of them a
 | `mountWhichKey called twice for the same container; the previous mount is still active. Call unmount() on it first. This call is a no-op.`                                                                                           | A second renderer was mounted on a container that already has one.                                                                                                                                                                  | Call `unmount()` on the first mount, or mount into a different container.                                                                             |
 | `invalid classPrefix "<prefix>"; must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first character (or the character right after a leading "-") is a letter or "_", never a digit. Falling back to "wk".` | `classPrefix` passed to `mountWhichKey` is not a valid CSS identifier stem.                                                                                                                                                         | Use only letters, digits, `-` and `_`; the first character (or the character immediately after a leading `-`) must be a letter or `_`, never a digit. |
 | `"<input>": Shift is dropped for punctuation and digits — write the shifted character directly (e.g. "?" not "Shift+/"). This binding will match "<base>".`                                                                          | A key string like `'Shift+/'` was registered. `Shift+` is silently dropped for punctuation/digit base characters, so the binding matches the _unshifted_ key, not the shifted glyph.                                                | Register the shifted character directly (e.g. `'?'` instead of `'Shift+/'`).                                                                          |
+| `key string "<input>": "<base>" is not a key name this library recognises; if the browser does not report exactly this value, the binding will never match.`                                                                         | A multi-character base that is not a known special key or `F1`–`F12`.                                                                                                                                                               | Use the exact `event.key` spelling. Common aliases (`esc`, `up`, `pgup`, `f1`) are accepted case-insensitively.                                       |
 | `Handler for "<keys>" threw; sequence state was reset.` (**`console.error`, not `console.warn`**)                                                                                                                                    | Your own shortcut handler for `<keys>` threw an exception. which-key caught it, logged it (the original error is passed as a second argument to `console.error`), and reset the pending sequence buffer so the engine stays usable. | Fix the exception in your handler; this is not a which-key bug.                                                                                       |
 
 **Silent failures** — these produce no console output at all, so check them by hand:
 
-- **A key string that canonicalizes differently than the runtime event** (see [`eventToCanonical`](#eventtocanonicalevent) above). In particular, special-key base names are **case-sensitive and exact**: `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. This is a known open issue — use the exact `KeyboardEvent.key` spelling until it's addressed.
+- **A key string that canonicalizes differently than the runtime event** (see [`eventToCanonical`](#eventtocanonicalevent) above). Special-key base names (`Escape`, `Tab`, `ArrowUp`, `F1`, …) are accepted case-insensitively with the common aliases listed in [Key-string syntax](#key-string-syntax) (`'escape'`, `'esc'`, `'up'`, `'f1'`, …), so these now round-trip correctly. A base that isn't a recognised special key or alias still passes through verbatim, but now emits the `is not a key name this library recognises` warning above instead of failing silently — the only names that remain a silent risk are exotic multi-character `event.key` values that _are_ real (e.g. `'MediaPlayPause'`) but happen to be misspelled.
 - **A binding shadowed by an active exclusive layer** (see [`engine.registry.getAllActive()`](#engineregistrygetallactive) above).
 - **A shortcut suppressed because focus is in a text field** and it was registered without `enableOnInputs: true`.
 

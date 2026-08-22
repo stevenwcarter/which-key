@@ -172,6 +172,65 @@ describe('parseKey', () => {
   });
 });
 
+describe('parseKey — special-key aliases [B15]', () => {
+  // The bar is a ROUND TRIP: what parseKey produces for the alias must equal
+  // what eventToCanonical produces for the real key press.
+  const cases: Array<[string, KeyboardEventInit]> = [
+    ['escape', { key: 'Escape' }],
+    ['esc', { key: 'Escape' }],
+    ['ESC', { key: 'Escape' }],
+    ['tab', { key: 'Tab' }],
+    ['enter', { key: 'Enter' }],
+    ['backspace', { key: 'Backspace' }],
+    ['space', { key: ' ' }],
+    ['up', { key: 'ArrowUp' }],
+    ['down', { key: 'ArrowDown' }],
+    ['left', { key: 'ArrowLeft' }],
+    ['right', { key: 'ArrowRight' }],
+    ['home', { key: 'Home' }],
+    ['end', { key: 'End' }],
+    ['pgup', { key: 'PageUp' }],
+    ['pagedown', { key: 'PageDown' }],
+    ['f1', { key: 'F1' }],
+    ['F12', { key: 'F12' }],
+  ];
+
+  it.each(cases)('parseKey(%p) round-trips against the real event', (alias, init) => {
+    expect(parseKey(alias)).toBe(eventToCanonical(new KeyboardEvent('keydown', init)));
+  });
+
+  it('applies aliases under modifiers too', () => {
+    expect(parseKey('ctrl+esc')).toBe(
+      eventToCanonical(new KeyboardEvent('keydown', { key: 'Escape', ctrlKey: true })),
+    );
+  });
+
+  it('warns for a multi-character base no browser reports, without throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => parseKey('Blorp')).not.toThrow();
+    expect(parseKey('Blorp')).toBe('Blorp');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('will never match'));
+    warn.mockRestore();
+  });
+
+  it('round-trips an exotic event.key it cannot validate, and warns — it cannot tell a real key from a typo', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(parseKey('MediaPlayPause')).toBe(
+      eventToCanonical(new KeyboardEvent('keydown', { key: 'MediaPlayPause' })),
+    );
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('does not warn or alter single-character bases', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(parseKey('a')).toBe('a');
+    expect(parseKey('/')).toBe('/');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
 describe('isMacPlatform — absent navigator [B31]', () => {
   it('resolves Mod to Ctrl instead of throwing when navigator is undefined', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');

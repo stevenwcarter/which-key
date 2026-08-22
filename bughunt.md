@@ -23,17 +23,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 
 ## Medium
 
-### B15. Lowercase or aliased special-key names register silently dead bindings: `parseKey` (src/engine/keys.ts:105)
-
-- Category: correctness
-- Impact: 9 (severity 3 × blast-radius 3)
-- Effort: M
-- Risk: medium
-- Evidence: empirically confirmed. `parseKey` passes any multi-character base through verbatim, so `register('escape')`, `'tab'`, `'enter'`, `'space'`, `'up'`, `'esc'`, `'backspace'`, `'f1'` all succeed and produce canonical strings no KeyboardEvent can ever produce. Firing every corresponding real key gave `{"escape":0,"tab":0,"enter":0,"space":0,"up":0,"ArrowUp":1,"Escape":1,"esc":0,"f1":0,"F1":1}` — only exactly-cased names fire. Because `parseKey` happily throws on an unknown _modifier_, a consumer reasonably assumes bad key strings are validated; this failure is completely silent. No test covers an unrecognized base.
-- Blast radius: src/engine/keys.ts:3,105,112; src/engine/controller.ts:136,156; src/react/useShortcut.ts:22
-- Proposed fix: add a case-insensitive alias table for known special bases (SPECIAL_KEYS plus `Space` and `F1`-`F12`, with `esc`→`Escape`, `up`/`down`/`left`/`right`→`Arrow*`, `pgup`/`pgdn`→`PageUp`/`PageDown`) and normalize `base` through it before `buildCanonical`. For a multi-character base not in the table and not `F1`-`F12`, `console.warn` that the key string will never match — do not throw, since exotic `event.key` values should stay bindable.
-- [x] execute [ ] skip
-
 ### B46. Eight public exports are absent from docs/API.md, which the README calls "the full reference": `src/engine/index.ts` / `src/react/index.ts`
 
 - Category: api-surface
