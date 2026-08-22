@@ -32,6 +32,16 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a case-insensitive alias table for known special bases (SPECIAL_KEYS plus `Space` and `F1`-`F12`, with `esc`→`Escape`, `up`/`down`/`left`/`right`→`Arrow*`, `pgup`/`pgdn`→`PageUp`/`PageDown`) and normalize `base` through it before `buildCanonical`. For a multi-character base not in the table and not `F1`-`F12`, `console.warn` that the key string will never match — do not throw, since exotic `event.key` values should stay bindable.
 - [ ] execute   [ ] skip
 
+### B46. Eight public exports are absent from docs/API.md, which the README calls "the full reference": `src/engine/index.ts` / `src/react/index.ts`
+- Category: api-surface
+- Impact: 6 (severity 2 × blast-radius 3)
+- Effort: M
+- Risk: low
+- Evidence: found during B16's export cross-check (2026-08-21), not by the original triage. CLAUDE.md states the rule: "Anything public must be added to the relevant `index.ts` *and* to `docs/API.md`." B16 documented the layers API and B28 documents the canonicalization helpers, but a full sweep of the three entry points still leaves these exported and undocumented: `WhichKeyContext` and `LayerContext` (src/react/index.ts:3), `alphabeticalKeysSort` (src/engine/index.ts:6), `isModifierOnlyEvent` and `isInputTarget` (src/engine/index.ts:2), and the `CanonicalKey` / `ShortcutHandler` types published by `export * from './types'`. (`parseSequence` was on the raw list but B28 documents it.) B16's review additionally surfaced `SortMode` — also published by `export * from './types'` and never named in docs/API.md, though its expanded union appears inline in the `sortKeys` row; `WhichKeyPopupLayout` is the same shape and was judged not worth flagging, so treat these two together when deciding. These are distinct from the separate decision-needed marker below, which covers `Matcher`, `MatcherOptions`, `ShortcutRegistry`, `resolveSort` and the internal `ShortcutEntry`/`GroupEntry` shapes — none of the eight above appear there.
+- Blast radius: docs/API.md; src/engine/index.ts:2,6; src/react/index.ts:3; src/engine/types.ts:1,3
+- Proposed fix: for each, decide documented-or-unexported rather than defaulting to documented. `WhichKeyContext`/`LayerContext` are plausibly genuine escape hatches for advanced consumers and want a short section; `isModifierOnlyEvent`/`isInputTarget` are matcher-internal predicates that may be better unexported; `alphabeticalKeysSort` pairs naturally with the existing `sortKeys` docs; `CanonicalKey` and `ShortcutHandler` appear in documented signatures and want type blocks. Unexporting any of them is a `feat!:` break while pre-1.0, so pair this with the existing public-surface decision-needed marker.
+- [ ] execute   [ ] skip
+
 ### B45. An explicit negative `level` on register()/registerGroup() silently makes the shortcut unreachable: `ShortcutOptions.level` (src/engine/types.ts)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)
