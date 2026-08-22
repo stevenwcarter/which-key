@@ -187,6 +187,34 @@ describe('mountWhichKey', () => {
     trigger.remove();
   });
 
+  it('unmount() while the cheatsheet is open restores focus to a focused SVGElement', () => {
+    // document.activeElement is Element | null; an SVGElement with a
+    // tabindex can genuinely be the active element and its .focus() works —
+    // the restore path must not silently narrow it away to null.
+    const trigger = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    trigger.setAttribute('tabindex', '0');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const wk = createWhichKey();
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('?');
+
+    expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
+    expect(document.activeElement).not.toBe(trigger);
+
+    ui.unmount();
+
+    expect(document.querySelector('.wk-cheatsheet')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    wk.stop();
+    trigger.remove();
+  });
+
   it('renders the popup as a polite live region in the vanilla renderer', () => {
     const wk = createWhichKey();
     wk.registerGroup('g', { description: 'Go' });

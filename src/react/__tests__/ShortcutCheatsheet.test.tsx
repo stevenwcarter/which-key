@@ -221,6 +221,34 @@ describe('cheatsheet focus management', () => {
     trigger.remove();
   });
 
+  it('restores focus to a focused SVGElement on close (not just HTMLElement)', () => {
+    // document.activeElement is Element | null; an SVGElement with a
+    // tabindex can genuinely be the active element and its .focus() works —
+    // the restore path must not silently narrow it away to null.
+    const trigger = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    trigger.setAttribute('tabindex', '0');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const { getByTestId } = render(
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
+    expect(getByTestId('whichkey-cheatsheet').contains(document.activeElement)).toBe(true);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
   it('exposes a keyboard-reachable close button that closes the sheet', () => {
     const { getByTestId, getByLabelText, queryByTestId } = render(
       <WhichKeyProvider>

@@ -24,12 +24,18 @@ const useCheatsheetFocusTrap = (
   active: boolean,
   onEscape: () => void,
 ): void => {
-  const restoreRef = useRef<HTMLElement | null>(null);
+  const restoreRef = useRef<HTMLElement | SVGElement | null>(null);
 
   useEffect(() => {
     if (!active) return;
     const previouslyFocused = document.activeElement;
-    restoreRef.current = previouslyFocused instanceof HTMLElement ? previouslyFocused : null;
+    // Element | null: an SVGElement with a tabindex can genuinely be the
+    // active element (and its .focus() works, per HTMLOrSVGElement), so the
+    // narrow must accept both — HTMLElement alone silently drops the restore.
+    restoreRef.current =
+      previouslyFocused instanceof HTMLElement || previouslyFocused instanceof SVGElement
+        ? previouslyFocused
+        : null;
     panelRef.current?.focus();
 
     const onKey = (e: KeyboardEvent) => {

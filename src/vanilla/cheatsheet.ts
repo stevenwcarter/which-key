@@ -70,7 +70,13 @@ const buildSections = (p: string, model: CheatsheetModel): HTMLElement => {
 /** Cycles Tab inside `panel`; returns the teardown that also restores focus. */
 const installFocusTrap = (panel: HTMLElement): (() => void) => {
   const previouslyFocused = document.activeElement;
-  const restore = previouslyFocused instanceof HTMLElement ? previouslyFocused : null;
+  // Element | null: an SVGElement with a tabindex can genuinely be the
+  // active element (and its .focus() works, per HTMLOrSVGElement), so the
+  // narrow must accept both — HTMLElement alone silently drops the restore.
+  const restore =
+    previouslyFocused instanceof HTMLElement || previouslyFocused instanceof SVGElement
+      ? previouslyFocused
+      : null;
   const onKey = (e: KeyboardEvent) => trapTab(panel, e);
   document.addEventListener('keydown', onKey);
   return () => {
