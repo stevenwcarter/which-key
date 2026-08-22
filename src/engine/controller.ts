@@ -199,18 +199,28 @@ export type WhichKeyEngine = {
   readonly registry: ShortcutRegistry;
 };
 
-const buildCheatsheetModel = (
-  registry: ShortcutRegistry,
-  cmp: KeyComparator | undefined,
-): CheatsheetModel => {
-  const all = registry.getAllActive().filter((e) => e.id !== DEFAULT_HELP_ID);
+// Phase 1 of buildCheatsheetModel: file every active shortcut under its
+// leading key. Bucket insertion order follows registry.getAllActive(), which
+// is what makes sortKeys: 'registration' mean "registration order".
+const bucketByFirstKey = (entries: ShortcutEntry[]): Map<string, CheatsheetEntry[]> => {
   const buckets = new Map<string, CheatsheetEntry[]>();
-  for (const entry of all) {
+  for (const entry of entries) {
     const first = entry.keys.split(' ')[0];
     const list = buckets.get(first) ?? [];
     list.push({ keys: entry.keys, description: entry.description });
     buckets.set(first, list);
   }
+  return buckets;
+};
+
+const buildCheatsheetModel = (
+  registry: ShortcutRegistry,
+  cmp: KeyComparator | undefined,
+): CheatsheetModel => {
+  // 1. bucket entries by their leading key
+  const buckets = bucketByFirstKey(registry.getAllActive().filter((e) => e.id !== DEFAULT_HELP_ID));
+
+  // 2. partition into standalone shortcuts vs labelled groups
   const standalone: CheatsheetEntry[] = [];
   const groups: CheatsheetGroup[] = [];
   for (const [prefix, entries] of buckets) {
@@ -224,6 +234,8 @@ const buildCheatsheetModel = (
       groups.push({ prefix, description: registry.getActiveGroup(prefix)?.description, entries });
     }
   }
+
+  // 3. apply the caller's key comparator
   if (cmp) {
     standalone.sort((a, b) => cmp(a.keys, b.keys));
     for (const g of groups) g.entries.sort((a, b) => cmp(a.keys, b.keys));

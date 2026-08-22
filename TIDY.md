@@ -129,13 +129,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Low severity
 
-### T26. Three phases in 32 unbroken lines: `buildCheatsheetModel` (src/engine/controller.ts:88-119)
-
-- Lenses: long-methods
-- Risk: low
-- Proposed fix: Either extract `const bucketByFirstKey = (entries: ShortcutEntry[]): Map<string, CheatsheetEntry[]>` (lines 92-99) and `const sortModel = (model: CheatsheetModel, cmp: KeyComparator): void` (113-117), leaving the partition loop as the body; or, if the single readable pipeline is preferred, add three section comments — `// 1. bucket entries by their leading key`, `// 2. partition into standalone shortcuts vs labelled groups`, `// 3. apply the caller's key comparator`. Keep the existing explanatory comment at 103-106 attached to the partition condition.
-- [x] execute [ ] skip
-
 ### T29. `_version` bumped before checking whether anything was removed (src/engine/registry.ts:88 and :108)
 
 - Lenses: opportunistic
