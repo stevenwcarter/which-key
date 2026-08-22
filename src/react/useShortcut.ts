@@ -1,5 +1,5 @@
 import { useContext, useEffect, useLayoutEffect, useRef } from 'react';
-import { WhichKeyContext, LayerContext } from './context';
+import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 import type { ShortcutHandler, ShortcutOptions } from '../engine';
 
 export const useShortcut = (
@@ -16,7 +16,7 @@ export const useShortcut = (
   const global = options?.global ?? false;
   useEffect(() => {
     if (!engine) {
-      console.warn('[whichkey] useShortcut called outside <WhichKeyProvider>; shortcut will not register.');
+      warnNoProvider('useShortcut()');
       return;
     }
     return engine.register(keys, (event) => handlerRef.current(event), {

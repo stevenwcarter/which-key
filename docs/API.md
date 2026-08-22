@@ -11,7 +11,7 @@
    - [`<WhichKeyProvider>`](#whichkeyprovider)
    - [`useShortcut(keys, handler, options?)`](#useshortcutkeys-handler-options)
    - [`useShortcutGroup(prefix, options)`](#useshortcutgroupprefix-options)
-   - [`useWhichKeyState()`](#usewhichkeystate)
+   - [`useWhichKeyState(what?)`](#usewhichkeystatewhat)
    - [`<WhichKeyPopup>`](#whichkeypopup)
    - [`<ShortcutCheatsheet>`](#shortcutcheatsheet)
 3. [Vanilla — `which-key/vanilla`](#vanilla--which-keyvanilla)
@@ -247,9 +247,13 @@ useShortcutGroup('g', { description: 'Go to' });
 
 Options mirror `engine.registerGroup`.
 
-### `useWhichKeyState()`
+### `useWhichKeyState(what?)`
 
 Returns the current `WhichKeyState` (a view of the snapshot shaped for React rendering). Subscribes to updates via `useSyncExternalStore`.
+
+| Parameter | Type     | Default                | Description                                                                                     |
+|-----------|----------|------------------------|-------------------------------------------------------------------------------------------------|
+| `what`    | `string` | `'useWhichKeyState()'` | Label used in the "used outside `<WhichKeyProvider>`" console warning. Set by `<WhichKeyPopup>` so the warning names the component; consumers rarely need it. |
 
 ```ts
 type WhichKeyState = {

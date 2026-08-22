@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
 import { useShortcut } from '../useShortcut';
 import { useWhichKeyState } from '../useWhichKeyState';
+import { resetNoProviderWarnings } from '../context';
 import type { WhichKeyState } from '../../engine';
 
 afterEach(() => {
@@ -102,5 +103,17 @@ describe('useWhichKeyState', () => {
     });
     // Lowercase before uppercase within the same letter; alphabetical otherwise.
     expect(lastState!.candidates.map((c) => c.nextKey)).toEqual(['a', 'n', 'N', 's']);
+  });
+});
+
+describe('useWhichKeyState outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns with the default label when called without a "what" argument', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<Probe onState={() => {}} />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('useWhichKeyState()'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
+    warn.mockRestore();
   });
 });

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import { WhichKeyContext } from './context';
+import { WhichKeyContext, warnNoProvider } from './context';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
@@ -20,6 +20,10 @@ export const ShortcutCheatsheet = () => {
 
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!engine) warnNoProvider('<ShortcutCheatsheet>');
+  }, [engine]);
 
   useEffect(() => {
     if (!engine || !visible) return;

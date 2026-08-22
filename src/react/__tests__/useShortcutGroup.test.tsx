@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useContext } from 'react';
 import { render } from '@testing-library/react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
-import { WhichKeyContext } from '../context';
+import { WhichKeyContext, resetNoProviderWarnings } from '../context';
 import { useShortcutGroup } from '../useShortcutGroup';
 import type { WhichKeyEngine } from '../../engine';
 
@@ -52,5 +52,21 @@ describe('useShortcutGroup', () => {
       </WhichKeyProvider>,
     );
     expect(ctx!.registry.getActiveGroup('g')?.description).toBe('B');
+  });
+});
+
+describe('useShortcutGroup outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns and no-ops outside a provider', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const Group = () => {
+      useShortcutGroup('g', { description: 'Focus widget' });
+      return null;
+    };
+    expect(() => render(<Group />)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('useShortcutGroup()'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
+    warn.mockRestore();
   });
 });

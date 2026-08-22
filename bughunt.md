@@ -62,16 +62,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: validate `opts.level` in `register`/`registerGroup` the same way B34 validates `pushLayer`'s — if supplied and not a non-negative integer, `console.warn` and fall back to `0`. Reuse B34's message shape. Do NOT reject the value outright; soft-fail per the batch convention.
 - [ ] execute   [ ] skip
 
-### B24. Renderer components silently render nothing outside a provider while the three hooks warn: `useWhichKeyState` / `ShortcutCheatsheet` (src/react/useWhichKeyState.ts:15)
-- Category: observability
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: S
-- Risk: high
-- Evidence: `useShortcut`, `useShortcutGroup` and `<WhichKeyLayer>` all emit a consistent `[whichkey] … outside <WhichKeyProvider>` warn. The three consumers that actually put pixels on screen do not: `useWhichKeyState` falls back to `noopSubscribe`/`getEmptySnapshot` and returns a no-op `cancel` in silence, `<ShortcutCheatsheet>` falls back and returns null, and `<WhichKeyPopup>` inherits the silence via `useWhichKeyState`. This is the highest-frequency integration mistake — placing `<WhichKeyPopup />` outside the provider — and it presents as "the popup never appears" *with the shortcuts still firing*, so the developer suspects CSS, z-index or the styles.css import, not the provider. All three fallback paths are uncovered (useWhichKeyState.ts 15-16, 23; ShortcutCheatsheet.tsx 12-16). The existing three warns are also ungated and undeduped, re-firing on every effect dep change.
-- Blast radius: src/react/useWhichKeyState.ts:15,23; src/react/ShortcutCheatsheet.tsx:11,25; src/react/WhichKeyPopup.tsx:2; src/react/useShortcut.ts:19; src/react/useShortcutGroup.ts:12; src/react/WhichKeyLayer.tsx:15
-- Proposed fix: extract a shared `warnNoProvider(what: string)` helper in src/react/context.ts that dedupes via a module-level `Set<string>`, and call it from all four sites (naming `<WhichKeyPopup>` / `<ShortcutCheatsheet>` in their messages) so the diagnostics are uniform. Fire it from a `useEffect` so it warns once per mount.
-- [x] execute   [ ] skip
-
 ### B25. PopupOptions is documented as a public type but is not exported from which-key/vanilla: `PopupOptions` (src/vanilla/index.ts:2)
 - Category: api-surface
 - Impact: 6 (severity 2 × blast-radius 3)

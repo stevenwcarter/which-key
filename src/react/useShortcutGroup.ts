@@ -1,5 +1,5 @@
 import { useContext, useEffect } from 'react';
-import { WhichKeyContext, LayerContext } from './context';
+import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 
 export const useShortcutGroup = (
   prefix: string, options: { description: string; priority?: number },
@@ -9,7 +9,7 @@ export const useShortcutGroup = (
   const { description, priority = 0 } = options;
   useEffect(() => {
     if (!engine) {
-      console.warn('[whichkey] useShortcutGroup called outside <WhichKeyProvider>; group will not register.');
+      warnNoProvider('useShortcutGroup()');
       return;
     }
     return engine.registerGroup(prefix, { description, priority, level });

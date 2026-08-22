@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { useState } from 'react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
 import { useShortcut } from '../useShortcut';
+import { resetNoProviderWarnings } from '../context';
 
 const Bound = ({
   onFire,
@@ -16,6 +17,8 @@ const Bound = ({
 };
 
 describe('useShortcut', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
   it('registers on mount and fires for the key', () => {
     const handler = vi.fn();
     render(

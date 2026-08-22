@@ -1,5 +1,5 @@
 import { useContext, useEffect, type ReactNode } from 'react';
-import { WhichKeyContext, LayerContext } from './context';
+import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 
 export type WhichKeyLayerProps = {
   children: ReactNode;
@@ -12,7 +12,7 @@ export const WhichKeyLayer = ({ children, exclusive = false }: WhichKeyLayerProp
   const level = parent.level + 1;
   useEffect(() => {
     if (!engine) {
-      console.warn('[whichkey] <WhichKeyLayer> used outside <WhichKeyProvider>; layer inactive.');
+      warnNoProvider('<WhichKeyLayer>');
       return;
     }
     return engine.activateLayer(level, exclusive);

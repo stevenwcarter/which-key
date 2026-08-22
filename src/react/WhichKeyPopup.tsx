@@ -55,7 +55,7 @@ const HorizontalBar = ({ state, bg, rows }: { state: WhichKeyState; bg: string; 
 export const WhichKeyPopup = ({
   layout = 'vertical', maxRows = 5, backgroundOpacity = 0.95,
 }: WhichKeyPopupProps = {}) => {
-  const state = useWhichKeyState();
+  const state = useWhichKeyState('<WhichKeyPopup>');
   if (!state.visible) return null;
   const bg = `rgba(${PANEL_BG_RGB}, ${clamp01(backgroundOpacity)})`;
   return layout === 'horizontal'

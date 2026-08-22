@@ -411,4 +411,19 @@ describe('WhichKeyPopup outside a provider [B24]', () => {
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
+
+  // Distinct from the "once per render" test above: rerender() keeps the same
+  // component instance alive, so React's own effect-dependency comparison
+  // (stable engine/what) is what suppresses re-firing there — the module-level
+  // Set is never consulted. Unmounting and mounting a brand-new instance is
+  // the only way to force a second, independent effect run and actually
+  // exercise the cross-mount dedupe the Set exists for.
+  it('warns exactly once across an unmount + remount, not once per mount', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { unmount } = render(<WhichKeyPopup />);
+    unmount();
+    render(<WhichKeyPopup />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
 });
