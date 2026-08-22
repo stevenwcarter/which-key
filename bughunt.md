@@ -148,16 +148,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add an explicit note at README.md:243 and docs/API.md:325 — "Using `classPrefix` opts out of `which-key/styles.css` entirely; you must supply your own stylesheet for the whole class contract." Also state that `classPrefix` is vanilla-only and the React components always emit `wk-`.
 - [x] execute   [ ] skip
 
-### B34. pushLayer accepts an explicit level that silently makes every shortcut on that layer unreachable: `WhichKeyEngine.pushLayer` (src/engine/controller.ts:186)
-- Category: api-surface
-- Impact: 3 (severity 3 × blast-radius 1)
-- Effort: S
-- Risk: high
-- Evidence: `const level = opts?.level ?? registry.nextLevel();` with no validation. `blockLevel()` floors at 0 and `isReachable` requires `entry.global || entry.level >= block`, so any negative level is permanently unreachable. Verified against the built bundle: `pushLayer({ level: -1 })` then `layer.register('z', …)` leaves `registry.getActive('z') === undefined` — the shortcut is registered, the handle looks healthy, `pop()` works, and the key just never fires. The same silent hole exists for a level that undercuts an already-active exclusive layer. `level` on `pushLayer` is undocumented (see B16) and no test passes an explicit level.
-- Blast radius: src/engine/controller.ts:186,196; src/engine/registry.ts:16,22,31
-- Proposed fix: validate — if `opts?.level` is supplied and is not a non-negative finite integer, `console.warn` and fall back to `registry.nextLevel()`. Additionally warn when the supplied level is below `registry.nextLevel() - 1` so the undercut case is visible.
-- [x] execute   [ ] skip
-
 ### B35. No troubleshooting section documenting the emitted warnings or the silent failure modes: `README.md` (README.md:252)
 - Category: observability
 - Impact: 3 (severity 1 × blast-radius 3)
