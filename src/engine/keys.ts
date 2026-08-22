@@ -85,7 +85,7 @@ const normalizeBase = (base: string, input: string): string => {
   return base;
 };
 
-const MODIFIER_KEY_NAMES = new Set(['Shift', 'Control', 'Alt', 'Meta']);
+const MODIFIER_KEY_NAMES = new Set(['Shift', 'Control', 'Alt', 'AltGraph', 'Meta']);
 
 // `navigator` is absent on Node < 21 (package.json allows >= 20) and on any
 // SSR/prerender runtime, and `navigator.platform` is deprecated and frozen by

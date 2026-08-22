@@ -478,3 +478,30 @@ describe('Matcher — tainted leaf-AND-prefix hides a stale popup [B44]', () => 
     expect(onHidePopup).not.toHaveBeenCalled();
   });
 });
+
+describe('Matcher — AltGr does not cancel a pending sequence [T8]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('keeps the pending buffer alive across an AltGraph keydown', () => {
+    const onFire = vi.fn<FireFn>();
+    const onShowPopup = vi.fn<ShowFn>();
+    const onHidePopup = vi.fn<HideFn>();
+    const { registry, matcher } = buildMatcher({ onFire, onShowPopup, onHidePopup }, 50);
+    // No bare 'g' leaf: 'g' must be prefix-only so its timer sets popupVisible.
+    const leaf = entry({ id: 'gh', keys: 'g h' });
+    registry.register(leaf);
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g'] });
+    onHidePopup.mockClear();
+
+    matcher.handleKeyDown(ev({ key: 'AltGraph', ctrlKey: true, altKey: true }));
+    expect(onHidePopup).not.toHaveBeenCalled();
+
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onFire).toHaveBeenCalledOnce();
+    expect(onFire).toHaveBeenCalledWith(leaf, expect.any(KeyboardEvent));
+  });
+});

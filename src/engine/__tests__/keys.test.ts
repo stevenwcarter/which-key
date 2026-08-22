@@ -90,6 +90,12 @@ describe('isModifierOnlyEvent', () => {
   it('is true when key is Meta', () => {
     expect(isModifierOnlyEvent(ev({ key: 'Meta', metaKey: true }))).toBe(true);
   });
+  it('is true when key is AltGraph (AltGr must not cancel a pending sequence)', () => {
+    // A German/Nordic/Latin-American layout reports AltGr as ctrlKey+altKey with
+    // event.key === 'AltGraph'. Treated as a normal key it canonicalizes to
+    // 'Ctrl+Alt+AltGraph', matches nothing, and resets the pending buffer.
+    expect(isModifierOnlyEvent(ev({ key: 'AltGraph', ctrlKey: true, altKey: true }))).toBe(true);
+  });
   it('is false for a normal key', () => {
     expect(isModifierOnlyEvent(ev({ key: 'a' }))).toBe(false);
   });

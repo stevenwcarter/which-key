@@ -53,13 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
 - [x] execute [ ] skip
 
-### T8. AltGr cancels a pending sequence: `MODIFIER_KEY_NAMES` (src/engine/keys.ts:89)
-
-- Lenses: opportunistic
-- Risk: low
-- Proposed fix: Add `'AltGraph'` to `MODIFIER_KEY_NAMES`. Scenario: on a German/Nordic/Latin-American layout the user presses leader `g` (popup opens), then AltGr. `isModifierOnlyEvent` returns false because `event.key === 'AltGraph'`, so `eventToCanonical` builds `'Ctrl+Alt+AltGraph'`, which matches no leaf and no candidate, and `handleKeyDown` falls through to `resetBuffer()` (matcher.ts:173) — the pending sequence is silently aborted and the popup disappears, whereas a bare Shift/Ctrl/Alt/Meta press is correctly ignored. `parseKey('AltGraph')` already warns that it is an unrecognised base, so nothing can legitimately be bound to it today. Add a case to `describe('isModifierOnlyEvent')` in src/engine/**tests**/keys.test.ts:80.
-- [x] execute [ ] skip
-
 ### T9. Four consecutive positional booleans on the canonical-string join point: `buildCanonical` (src/engine/keys.ts:106)
 
 - Lenses: idioms
