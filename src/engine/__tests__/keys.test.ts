@@ -308,7 +308,7 @@ describe('isMacPlatform — absent navigator [B31]', () => {
   it('resolves Mod to Ctrl instead of throwing when navigator is undefined', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
     // Simulate a Node 20 SSR/prerender runtime with no navigator global.
-    Reflect.deleteProperty(globalThis as object, 'navigator');
+    Reflect.deleteProperty(globalThis, 'navigator');
     try {
       expect(() => parseKey('Mod+/')).not.toThrow();
       expect(parseKey('Mod+/')).toBe(parseKey('Ctrl+/'));
@@ -327,7 +327,7 @@ describe('isMacPlatform — absent navigator [B31]', () => {
       expect(parseKey('Mod+/')).toBe(parseKey('Cmd+/'));
     } finally {
       if (original) Object.defineProperty(globalThis, 'navigator', original);
-      else Reflect.deleteProperty(globalThis as object, 'navigator');
+      else Reflect.deleteProperty(globalThis, 'navigator');
     }
   });
 });

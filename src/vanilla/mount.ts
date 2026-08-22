@@ -130,7 +130,7 @@ export const mountWhichKey = (
         cheatsheetNode = sheet.element;
         cheatsheetDestroy = sheet.destroy;
         container.appendChild(cheatsheetNode);
-        (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
+        cheatsheetNode.querySelector<HTMLElement>(`.${prefix}-cheatsheet`)?.focus();
         document.addEventListener('keydown', onEscape);
       } else if (!snap.cheatsheet.visible && cheatsheetNode) {
         cheatsheetNode.remove();

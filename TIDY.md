@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Medium severity
 
-### T3. No type-aware linting, so the project's own `any`/assertion conventions are unpoliced (eslint.config.js:7)
-
-- Lenses: idioms
-- Risk: medium
-- Proposed fix: CLAUDE.md commits to "strict TS, no `any` without justification" but only the syntactic preset runs. Switch to `...tseslint.configs.recommendedTypeChecked` with `languageOptions.parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname }`, and add a trailing `{ files: ['**/*.js'], ...tseslint.configs.disableTypeChecked }` block for the root config files. This makes `@typescript-eslint/no-unnecessary-type-assertion` (which mechanically settles the `as` casts in T11/T22/T31 — it correctly leaves controller.ts:231's `event as KeyboardEvent` alone, since the `Document | HTMLElement` receiver genuinely requires it), `no-unnecessary-condition`, `no-floating-promises`, `no-misused-promises` and `require-await` available. Expect a first run to surface new findings; land it as its own commit, after T2.
-- [x] execute [ ] skip
-
 ### T4. Snapshot immutability is documented but not typed: `WhichKeySnapshot` (src/engine/controller.ts:56-59)
 
 - Lenses: idioms
