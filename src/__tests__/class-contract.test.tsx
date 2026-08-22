@@ -27,6 +27,26 @@ const CONTRACT = [
   'wk-cheatsheet__group-title', 'wk-cheatsheet__group-label', 'wk-cheatsheet__hint',
 ] as const;
 
+/**
+ * Named exemptions to the contract above, so a special case is a lookup
+ * against a documented set rather than an ad-hoc inline `.filter()`.
+ *
+ * VANILLA_ONLY: classes the vanilla renderer emits that React never does.
+ * wk-popup-host (B18) is a structural wrapper vanilla needs to avoid
+ * detach/reattach churn; React already reconciles the popup in place and
+ * never had that problem, so it never emits this class.
+ *
+ * UNSTYLED: classes in CONTRACT that are deliberately unstyled structural
+ * hooks — real, documented DOM hooks a consumer can target, but the shipped
+ * default theme (src/styles.css) intentionally defines no rule for them.
+ * wk-popup-host is the only one today; it is positioning-neutral by design,
+ * the styled node is its `.wk-popup` child (B18/B40 review).
+ */
+const VANILLA_ONLY = new Set(['wk-popup-host']);
+const UNSTYLED = new Set(['wk-popup-host']);
+
+const css = readFileSync(join(root, 'src/styles.css'), 'utf8');
+
 const collectClasses = (): Set<string> => {
   const found = new Set<string>();
   for (const el of document.querySelectorAll<HTMLElement>('*')) {
@@ -119,7 +139,7 @@ describe('CSS class contract', () => {
     // problem, so it never emits this class. Documented in CONTRACT (and
     // both doc tables) because a consumer can still target it to override
     // stacking context in the vanilla renderer — just excluded here.
-    const expected = CONTRACT.filter((c) => c !== 'wk-popup-host');
+    const expected = CONTRACT.filter((c) => !VANILLA_ONLY.has(c));
     expect([...emitted].sort()).toEqual([...expected].sort());
   });
 
@@ -129,5 +149,32 @@ describe('CSS class contract', () => {
     const missingReadme = CONTRACT.filter((c) => !readme.includes(`\`${c}\``));
     const missingApi = CONTRACT.filter((c) => !api.includes(`\`${c}\``));
     expect({ missingReadme, missingApi }).toEqual({ missingReadme: [], missingApi: [] });
+  });
+
+  // [B40] wk-cheatsheet__section was emitted by both renderers with no rule
+  // defined for it in src/styles.css — the shipped theme silently ignored a
+  // hook it documents. This is the mechanical guard against that class of
+  // drift: collect every class either renderer actually puts in the DOM
+  // (reusing the same render harness and collectClasses() as the tests
+  // above, not a second source-grepping mechanism) and assert the shipped
+  // stylesheet defines a rule for each one, except classes named in UNSTYLED.
+  it('defines a CSS rule for every emitted class that is not deliberately unstyled [B40]', () => {
+    const emitted = new Set<string>();
+    for (const layout of ['vertical', 'horizontal'] as const) {
+      const { wk, ui } = renderEverything(layout);
+      for (const c of collectClasses()) emitted.add(c);
+      ui.unmount(); wk.stop(); document.body.innerHTML = '';
+    }
+    for (const layout of ['vertical', 'horizontal'] as const) {
+      const utils = renderReactEverything(layout);
+      for (const c of collectClasses()) emitted.add(c);
+      utils.unmount();
+      document.body.innerHTML = '';
+    }
+    const missing = [...emitted]
+      .filter((cls) => !UNSTYLED.has(cls))
+      .filter((cls) => !new RegExp(`\\.${cls}\\b`).test(css))
+      .sort();
+    expect(missing).toEqual([]);
   });
 });

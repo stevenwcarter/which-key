@@ -221,7 +221,7 @@ Import the prebuilt stylesheet:
 import 'which-key/styles.css';
 ```
 
-Or bring your own by targeting the `wk-*` CSS class contract. All classes use the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`):
+Or bring your own by targeting the `wk-*` CSS class contract. All classes use the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`). Most of these carry the default theme's styling and can be overridden to customize appearance; a few (like `wk-popup-host`) are deliberately unstyled structural hooks the theme leaves alone:
 
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|

@@ -370,7 +370,7 @@ Mod+k g        →  (Cmd/Ctrl)+k, then g
 
 ## CSS class contract (`wk-*`)
 
-The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both use this class set. Override any class to customize appearance.
+The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both use this class set. Most classes carry the default theme's styling and can be overridden to customize appearance; a few (like `wk-popup-host`) are deliberately unstyled structural hooks the theme leaves alone.
 
 | Class                         | Element                                          |
 |-------------------------------|--------------------------------------------------|

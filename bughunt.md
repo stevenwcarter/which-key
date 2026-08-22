@@ -138,16 +138,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: rename `.wk-cheatsheet` → `.wk-backdrop` and `.wk-cheatsheet__panel` → `.wk-cheatsheet` in the inline `<style>`, delete the `::before { content: '+' }` rule at line 42, and change the two unpkg specifiers to `which-key@latest`.
 - [x] execute   [ ] skip
 
-### B40. wk-cheatsheet__section is emitted by both renderers but has no rule in the shipped stylesheet: `styles.css` (src/styles.css:50)
-- Category: frontend
-- Impact: 2 (severity 1 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: mechanical diff of emitted vs. defined classes — both ShortcutCheatsheet.tsx:44 and vanilla/cheatsheet.ts:51 emit `wk-cheatsheet__section` on the per-group `<section>`, but src/styles.css has no `.wk-cheatsheet__section` selector (it defines the plural `.wk-cheatsheet__sections` container at :49 and every other cheatsheet child). It is the only class either renderer emits that the shipped theme does not define, so the theme is contractually incomplete — a consumer inspecting the DOM finds a hook the default theme silently ignores. Visually benign today because the flex-column parent supplies the spacing.
-- Blast radius: src/styles.css:50; src/react/ShortcutCheatsheet.tsx:44; src/vanilla/cheatsheet.ts:51; README.md:241; docs/API.md:384
-- Proposed fix: add `.wk-cheatsheet__section { display: block; }` (or a deliberate margin/`break-inside` rule) next to `.wk-cheatsheet__sections`, and include it in the two class tables alongside the B13 additions.
-- [x] execute   [ ] skip
-
 ### B41. CI job runs an unpinned third-party action while holding CODECOV_TOKEN under a default-scoped GITHUB_TOKEN: build job (.github/workflows/ci.yml:20)
 - Category: security
 - Impact: 2 (severity 2 × blast-radius 1)
