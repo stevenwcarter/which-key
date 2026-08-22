@@ -42,8 +42,12 @@ function ItemModal({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <div style={{ background: '#fff', borderRadius: 8, padding: 32, minWidth: 300 }}>
@@ -91,7 +95,11 @@ function Editor() {
         <br />
         Press <kbd>?</kbd> to open the full cheatsheet.
       </p>
-      <textarea placeholder="Type here… shortcuts fire outside inputs by default." rows={5} cols={60} />
+      <textarea
+        placeholder="Type here… shortcuts fire outside inputs by default."
+        rows={5}
+        cols={60}
+      />
     </div>
   );
 }

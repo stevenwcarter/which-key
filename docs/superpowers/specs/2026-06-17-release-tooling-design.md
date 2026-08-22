@@ -35,11 +35,11 @@ conventional commits and **remove** the Changesets scaffolding.
 
 While the package major version is `0`, `commit-and-tag-version` applies semver-for-0.x:
 
-| Commit type | bump at `0.x` (now) | bump at `≥1.0` |
-|---|---|---|
-| `fix:` | patch | patch |
-| `feat:` | **patch** | minor |
-| `feat!:` / `BREAKING CHANGE:` footer | **minor** | major |
+| Commit type                          | bump at `0.x` (now) | bump at `≥1.0` |
+| ------------------------------------ | ------------------- | -------------- |
+| `fix:`                               | patch               | patch          |
+| `feat:`                              | **patch**           | minor          |
+| `feat!:` / `BREAKING CHANGE:` footer | **minor**           | major          |
 
 This is intentional (pre-1.0 the public API is unstable). We keep this behaviour as-is —
 no `.versionrc.json` bump override (a `preMajor:false` preset option does NOT change it in
@@ -50,6 +50,7 @@ rather than the ≥1.0 "feat→minor" rule.
 ## Components
 
 ### Dev dependencies (add)
+
 - `commit-and-tag-version` — the release engine (changelog + version + tag).
 - `husky` — git hooks (v9+ API: `husky` init, no `husky install`).
 - `@commitlint/cli` + `@commitlint/config-conventional` — commit-message linting.
@@ -57,6 +58,7 @@ rather than the ≥1.0 "feat→minor" rule.
 Install latest stable of each; pin with caret ranges to match existing devDeps style.
 
 ### `package.json` scripts
+
 - `"release": "commit-and-tag-version"` — bump version from commits since last tag,
   regenerate `CHANGELOG.md`, create a `chore(release): x.y.z` commit, create tag
   `vX.Y.Z`. Does **not** push or publish.
@@ -66,12 +68,13 @@ Install latest stable of each; pin with caret ranges to match existing devDeps s
   `npm run release` (it is the npm post-hook for the `release` script). It echoes:
   - `git push --follow-tags origin main`
   - `npm publish`
-  It must NOT itself push or publish (executing-actions-with-care: maintainer does that).
-  `release:dry` is a distinct script name, so `postrelease` does not fire for dry runs.
+    It must NOT itself push or publish (executing-actions-with-care: maintainer does that).
+    `release:dry` is a distinct script name, so `postrelease` does not fire for dry runs.
 - `"prepare": "husky"` — installs husky hooks on `npm install`.
 - Existing `"prepublishOnly": "npm run build"` is kept (so `npm publish` rebuilds first).
 
 ### Config files
+
 - `commitlint.config.js` — the repo is `"type": "module"`, so use **ESM**:
   `export default { extends: ['@commitlint/config-conventional'] };`.
   `eslint .` lints the repo root, so this file (and any other new root config) must pass
@@ -84,11 +87,13 @@ Install latest stable of each; pin with caret ranges to match existing devDeps s
   need arises. If added, document why.
 
 ### Removals
+
 - Delete `.changeset/config.json`, `.changeset/initial.md`, `.changeset/keybinding-layers.md`,
   and the now-empty `.changeset/` directory. Their `minor` intent is already represented
   by the `feat:` commits the changelog will read.
 
 ### Documentation
+
 - **README** — new "Releasing" section: the conventional-commit format (feat/fix/feat!/
   BREAKING CHANGE → minor/patch/major), `npm run release:dry` to preview, `npm run release`
   to cut a release, then the printed publish steps (`git push --follow-tags`, `npm publish`).
@@ -113,7 +118,7 @@ After `v0.2.0` exists as a baseline tag, ongoing `npm run release` derives the b
 commits per the 0.x rules table (e.g. a later `feat:` → `0.2.1`, a `feat!:` → `0.3.0`).
 
 **Note:** the actual version bump/tag is a release action the maintainer performs; this
-spec's deliverable is the *tooling and scripts*, verified via `--dry-run`. Do not create
+spec's deliverable is the _tooling and scripts_, verified via `--dry-run`. Do not create
 the real `v0.2.0` tag as part of implementing/merging this branch — cutting a real release
 is a separate, deliberate maintainer step (documented in the README "Releasing" section).
 
@@ -121,6 +126,7 @@ is a separate, deliberate maintainer step (documented in the README "Releasing" 
 
 There is no application logic to unit-test; the deliverable is configuration. Acceptance
 checks (run during implementation; record output):
+
 1. `npm install` (or `npm ci`) succeeds with the four new dev deps; `prepare` runs husky.
 2. `npm run release:dry` prints the computed next version (**`0.1.1`** by default at `0.x`
    with no tag — this is correct) and a changelog preview, and creates **no** commit, tag,

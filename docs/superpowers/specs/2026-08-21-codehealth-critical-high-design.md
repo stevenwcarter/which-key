@@ -85,7 +85,7 @@ so server rendering throws `ReferenceError: document is not defined`.
   test that currently throws. Put it in a new `src/react/__tests__/ssr.test.tsx`
   using `react-dom/server`. It must exercise the Provider, not just the leaves.
 - **Fix:** stop resolving `target` at construction. Keep `const explicitTarget =
-  options.target;` and resolve inside `start()`:
+options.target;` and resolve inside `start()`:
   `bound = explicitTarget ?? (typeof document !== 'undefined' ? document : null)`,
   then `bound?.addEventListener('keydown', handler)`. Mirror in `stop()`; both
   no-op when `bound` is null. `start()` only runs from the Provider's effect,
@@ -184,7 +184,7 @@ scan runs a second time inside `emit()`.
 
 ### Task 7 — B7: popup `role="dialog"` is silent to screen readers (impact 15, risk medium)
 
-*Sequenced after B5 deliberately:* B5 stops the per-keystroke emit storm, so the
+_Sequenced after B5 deliberately:_ B5 stops the per-keystroke emit storm, so the
 live region introduced here only announces on real state changes.
 
 - **Fix:** replace `role="dialog" aria-label="Keyboard shortcuts"` with
@@ -193,14 +193,14 @@ live region introduced here only announces on real state changes.
 - **Test:** assert the role/aria attributes in both renderers (no such assertion
   exists today in either suite).
 - **Known residual:** the vanilla renderer still rebuilds the popup node on each
-  emit (B18, not in this batch), so while the popup is *open* each candidate
+  emit (B18, not in this batch), so while the popup is _open_ each candidate
   change re-announces. After B5 that only happens on genuine sequence progress,
   which is defensible for a live region. Note it in the B18 finding text rather
   than expanding scope here.
 
 ### Task 8 — B10: shadow-DOM input-guard bypass (impact 12, risk high)
 
-*Sequenced before B9 deliberately:* B9's guard must consume the target B10
+_Sequenced before B9 deliberately:_ B9's guard must consume the target B10
 resolves, or the two fixes disagree about what "the target" is.
 
 - **RED test first:** build an open shadow root containing an `<input>`, dispatch
@@ -225,7 +225,7 @@ text or password field pops the overlay and renders the typed characters.
   target) once at the top of `handleKeyDown` and wrap the popup show/refresh block
   (`matcher.ts:73-81`) in `if (!inInput) { … }`.
 - **Leave `commitBuffer` on :71 unchanged** so a deeper leaf with
-  `enableOnInputs: true` can still complete and fire — only the *visual* display
+  `enableOnInputs: true` can still complete and fire — only the _visual_ display
   is gated. Add a test proving that still works.
 
 ### Task 10 — B8: duplicate-registration warning cries wolf (impact 12, risk medium)
@@ -283,7 +283,7 @@ backdrop — the overlay is the undocumented `wk-backdrop`.
 
 - **Risk downgraded to low:** the finding carried `risk: high` from the lens
   because nothing tests the contract, but a documentation edit cannot regress
-  runtime behaviour. No characterization test is required *for the docs*.
+  runtime behaviour. No characterization test is required _for the docs_.
 - **Fix:** add the 10 missing cheatsheet classes plus `wk-backdrop` to both
   `README.md:226-241` and `docs/API.md:370-384`; correct the `wk-cheatsheet` row
   to "Cheatsheet panel (scrollable content box)"; add a `wk-backdrop` row. Include

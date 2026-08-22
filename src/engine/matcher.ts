@@ -52,22 +52,22 @@ export class Matcher {
     // `event.target` would hide the real <input>. composedPath()[0] is the
     // un-retargeted origin, and equals event.target outside shadow DOM.
     const eventTarget =
-      typeof event.composedPath === 'function' ? (event.composedPath()[0] ?? event.target) : event.target;
+      typeof event.composedPath === 'function'
+        ? (event.composedPath()[0] ?? event.target)
+        : event.target;
 
     const key = eventToCanonical(event);
     const prospective = [...this.buffer, key];
     const prospectiveKeys = prospective.join(' ');
 
-    // Escape cancels a partial sequence unless an explicit Escape leaf is registered for the prospective.
-    if (this.buffer.length > 0 && key === 'Escape') {
-      const escapeLeaf = this.registry.getActive(prospectiveKeys);
-      if (!escapeLeaf) {
-        this.cancel();
-        return;
-      }
-    }
-
     const leaf = this.registry.getActive(prospectiveKeys);
+
+    // Escape cancels a partial sequence unless an explicit Escape leaf is
+    // registered for the prospective sequence.
+    if (this.buffer.length > 0 && key === 'Escape' && !leaf) {
+      this.cancel();
+      return;
+    }
     const hasCandidates = this.registry.hasCandidates(prospectiveKeys);
 
     if (leaf && !hasCandidates) {
@@ -89,15 +89,33 @@ export class Matcher {
       // Leaf-AND-prefix — commit buffer, start timer to fire leaf if no continuation.
       this.commitBuffer(prospective, isInputTarget(eventTarget) && echoesCharacter(event));
       this.clearTimer();
+      // Mirror the prefix-only branch: if the popup is already up it must
+      // track the buffer, or it advertises the PREVIOUS prefix's candidates
+      // for the whole timeout window — keys that would now abort the
+      // sequence. Same input-echo latch applies: never paint a buffer that
+      // echoed characters into a text field.
+      if (this.popupVisible && !this.bufferTouchedInput) {
+        this.options.onShowPopup({ currentSequence: [...this.buffer] });
+      }
       const fireTarget = eventTarget;
+      // Fire the ORIGINAL event, never a synthesized one. A `new
+      // KeyboardEvent(...)` that is never dispatched has target === null,
+      // is not cancelable, and has all modifier flags false — so an
+      // identical handler would behave differently purely because this
+      // shortcut also happens to be a prefix. (This branch's fire always
+      // happens inside the setTimeout below, after the original dispatch
+      // has already completed, so calling preventDefault() here — on
+      // either event — no longer affects any default action either way;
+      // the difference this makes is target/cancelable/modifier-flag
+      // fidelity, not preventDefault's effect.)
+      const fireEvent = event;
       this.timer = setTimeout(() => {
         if (!leaf.enableOnInputs && isInputTarget(fireTarget)) {
           this.resetBuffer();
           return;
         }
-        const synthetic = new KeyboardEvent('keydown', { key });
         try {
-          this.options.onFire(leaf, synthetic);
+          this.options.onFire(leaf, fireEvent);
         } finally {
           this.resetBuffer();
         }
@@ -131,6 +149,9 @@ export class Matcher {
         this.options.onShowPopup({ currentSequence: [...this.buffer] });
       } else {
         this.timer = setTimeout(() => {
+          // Maintain clearTimer()'s invariant: a non-null this.timer means a
+          // timer is still pending. This one just fired.
+          this.timer = null;
           this.popupVisible = true;
           this.options.onShowPopup({ currentSequence: [...this.buffer] });
         }, this.options.timeoutMs);

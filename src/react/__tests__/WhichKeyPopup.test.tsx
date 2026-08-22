@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { WhichKeyProvider, useShortcut } from '../index';
 import { WhichKeyPopup } from '../WhichKeyPopup';
+import { resetNoProviderWarnings } from '../context';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -379,14 +380,95 @@ describe('WhichKeyPopup — wk-row--group class (brief requirement)', () => {
   it('announces as a polite live region, not a dialog', () => {
     vi.useFakeTimers();
     const { getByTestId } = render(
-      <WhichKeyProvider><Setup /><WhichKeyPopup /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <WhichKeyPopup />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' })); });
-    act(() => { vi.advanceTimersByTime(600); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
     const popup = getByTestId('whichkey-popup');
     expect(popup).toHaveAttribute('role', 'status');
     expect(popup).toHaveAttribute('aria-live', 'polite');
     expect(popup).toHaveAttribute('aria-atomic', 'true');
     expect(popup).not.toHaveAttribute('role', 'dialog');
+  });
+});
+
+describe('WhichKeyPopup outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns naming the component instead of failing silently', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<WhichKeyPopup />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyPopup>'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyProvider>'));
+    warn.mockRestore();
+  });
+
+  it('warns once per mount, not once per render', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { rerender } = render(<WhichKeyPopup />);
+    rerender(<WhichKeyPopup layout="horizontal" />);
+    rerender(<WhichKeyPopup maxRows={3} />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  // Distinct from the "once per render" test above: rerender() keeps the same
+  // component instance alive, so React's own effect-dependency comparison
+  // (stable engine/what) is what suppresses re-firing there — the module-level
+  // Set is never consulted. Unmounting and mounting a brand-new instance is
+  // the only way to force a second, independent effect run and actually
+  // exercise the cross-mount dedupe the Set exists for.
+  it('warns exactly once across an unmount + remount, not once per mount', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { unmount } = render(<WhichKeyPopup />);
+    unmount();
+    render(<WhichKeyPopup />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+});
+
+describe('WhichKeyPopup — non-finite props [B29]', () => {
+  it('falls back to the default opacity instead of emitting rgba(..., NaN)', () => {
+    vi.useFakeTimers();
+    const { getByTestId } = render(
+      <WhichKeyProvider timeoutMs={50}>
+        <Setup />
+        <WhichKeyPopup backgroundOpacity={NaN} />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    const popup = getByTestId('whichkey-popup');
+    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.getAttribute('style')).not.toContain('NaN');
+  });
+
+  it('falls back to the default row count instead of repeat(NaN, auto)', () => {
+    vi.useFakeTimers();
+    const { getByTestId } = render(
+      <WhichKeyProvider timeoutMs={50}>
+        <Setup />
+        <WhichKeyPopup layout="horizontal" maxRows={NaN} />
+      </WhichKeyProvider>,
+    );
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    expect(getByTestId('whichkey-popup-grid').style.gridTemplateRows).toBe('repeat(5, auto)');
   });
 });

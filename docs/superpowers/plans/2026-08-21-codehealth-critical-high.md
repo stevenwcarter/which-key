@@ -4,7 +4,7 @@
 
 **Goal:** Fix the 13 highest-impact findings from the code-health audit (all Critical + all High) in `which-key`, each with a regression test and its own commit.
 
-**Architecture:** `which-key` is a published TypeScript library with three entry points: a framework-free engine (`src/engine/`), a React binding (`src/react/`), and an imperative DOM renderer (`src/vanilla/`). React and vanilla are two interchangeable *renderers* over one engine; neither holds state. Most fixes here land in the engine (`controller.ts`, `matcher.ts`, `registry.ts`, `keys.ts`) and must be applied **identically in both renderers** where UI is involved, or the two drift.
+**Architecture:** `which-key` is a published TypeScript library with three entry points: a framework-free engine (`src/engine/`), a React binding (`src/react/`), and an imperative DOM renderer (`src/vanilla/`). React and vanilla are two interchangeable _renderers_ over one engine; neither holds state. Most fixes here land in the engine (`controller.ts`, `matcher.ts`, `registry.ts`, `keys.ts`) and must be applied **identically in both renderers** where UI is involved, or the two drift.
 
 **Tech Stack:** TypeScript 5.7 (strict), Vitest 2.1 + jsdom + Testing Library, tsup (dual ESM/CJS), ESLint 9 flat config, React 19 (optional peer).
 
@@ -29,33 +29,35 @@
 
 ## File Structure
 
-| File | Change | Tasks |
-|---|---|---|
-| `src/engine/controller.ts` | lazy `target` resolution; `onFire` error attribution; `onHidePopup` no-op guard | 1, 4, 5 |
-| `src/engine/matcher.ts` | try/finally around `onFire`; `hasCandidates`; `composedPath` target; input guard on popup | 4, 6, 8, 9 |
-| `src/engine/registry.ts` | new `hasCandidates()`; corrected collision warning | 6, 10 |
-| `src/engine/keys.ts` | Shift-on-punctuation warning; case-insensitive modifier aliases | 2, 11 |
-| `src/react/ShortcutCheatsheet.tsx` | focus management, `aria-modal`, close button | 3 |
-| `src/react/WhichKeyPopup.tsx` | `role="status"` live region | 7 |
-| `src/vanilla/cheatsheet.ts` | focus management, `aria-modal`, close button; returns a destroy fn | 3 |
-| `src/vanilla/mount.ts` | consume the cheatsheet destroy fn | 3 |
-| `src/vanilla/popup.ts` | `role="status"` live region | 7 |
-| `src/styles.css` | `.wk-cheatsheet__close` rule | 3 |
-| `package.json` | per-format nested `exports` conditions | 12 |
-| `README.md`, `docs/API.md` | key-syntax table, CSS class contract table | 2, 13 |
-| `src/react/__tests__/ssr.test.tsx` | **create** — node-env SSR smoke test | 1 |
-| `src/engine/__tests__/package-exports.test.ts` | **create** — exports shape + target existence | 12 |
-| `src/__tests__/class-contract.test.tsx` | **create** — emitted-class vs documented-class drift guard | 13 |
+| File                                           | Change                                                                                    | Tasks      |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------- |
+| `src/engine/controller.ts`                     | lazy `target` resolution; `onFire` error attribution; `onHidePopup` no-op guard           | 1, 4, 5    |
+| `src/engine/matcher.ts`                        | try/finally around `onFire`; `hasCandidates`; `composedPath` target; input guard on popup | 4, 6, 8, 9 |
+| `src/engine/registry.ts`                       | new `hasCandidates()`; corrected collision warning                                        | 6, 10      |
+| `src/engine/keys.ts`                           | Shift-on-punctuation warning; case-insensitive modifier aliases                           | 2, 11      |
+| `src/react/ShortcutCheatsheet.tsx`             | focus management, `aria-modal`, close button                                              | 3          |
+| `src/react/WhichKeyPopup.tsx`                  | `role="status"` live region                                                               | 7          |
+| `src/vanilla/cheatsheet.ts`                    | focus management, `aria-modal`, close button; returns a destroy fn                        | 3          |
+| `src/vanilla/mount.ts`                         | consume the cheatsheet destroy fn                                                         | 3          |
+| `src/vanilla/popup.ts`                         | `role="status"` live region                                                               | 7          |
+| `src/styles.css`                               | `.wk-cheatsheet__close` rule                                                              | 3          |
+| `package.json`                                 | per-format nested `exports` conditions                                                    | 12         |
+| `README.md`, `docs/API.md`                     | key-syntax table, CSS class contract table                                                | 2, 13      |
+| `src/react/__tests__/ssr.test.tsx`             | **create** — node-env SSR smoke test                                                      | 1          |
+| `src/engine/__tests__/package-exports.test.ts` | **create** — exports shape + target existence                                             | 12         |
+| `src/__tests__/class-contract.test.tsx`        | **create** — emitted-class vs documented-class drift guard                                | 13         |
 
 ---
 
 ### Task 1: B1 — SSR crash from eager `document` dereference
 
 **Files:**
+
 - Create: `src/react/__tests__/ssr.test.tsx`
 - Modify: `src/engine/controller.ts:81` (destructure), `src/engine/controller.ts:203-215` (`start`/`stop`)
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks.
 - Produces: `start()` becomes the only place that touches `document`. Tasks 8 and 9 must not reintroduce a construction-time DOM dereference.
 
@@ -93,7 +95,10 @@ describe('server-side rendering', () => {
 
   it('start() is a no-op when there is no document and no explicit target', () => {
     const wk = createWhichKey();
-    expect(() => { wk.start(); wk.stop(); }).not.toThrow();
+    expect(() => {
+      wk.start();
+      wk.stop();
+    }).not.toThrow();
   });
 });
 ```
@@ -104,6 +109,7 @@ describe('server-side rendering', () => {
 export PATH="$HOME/.nvm/versions/node/v24.7.0/bin:$PATH"
 npx vitest run src/react/__tests__/ssr.test.tsx
 ```
+
 Expected: FAIL — `ReferenceError: document is not defined`.
 
 - [ ] **Step 3: Commit the RED test**
@@ -157,6 +163,7 @@ Replace the `start` and `stop` members:
 npx vitest run src/react/__tests__/ssr.test.tsx
 npm run lint && npm run typecheck && npm test && npm run build
 ```
+
 Expected: SSR file passes; full suite ≥195 tests, all green.
 
 - [ ] **Step 7: Strip B1 from bughunt.md and commit**
@@ -175,11 +182,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 2: B2 — `Shift+<punctuation>` silently binds the unshifted key
 
 **Files:**
+
 - Modify: `src/engine/keys.ts:36-37` (comment), `src/engine/keys.ts:105-112` (`parseKey`)
 - Modify: `README.md:81`, `docs/API.md:360`
 - Test: `src/engine/__tests__/keys.test.ts` (append new cases only — do not edit existing ones)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `parseKey` gains a warning path. Task 11 also edits `parseKey`; keep the two edits in separate regions (Task 11 touches the modifier loop, this task touches the base-character handling after it).
 
@@ -225,6 +234,7 @@ Ensure `eventToCanonical` is in the file's import list from `../keys`.
 ```bash
 npx vitest run src/engine/__tests__/keys.test.ts -t "Shift on punctuation"
 ```
+
 Expected: the two warn tests FAIL (no warning is emitted today). The round-trip test already passes — that is fine, it is the regression pin.
 
 - [ ] **Step 3: Add the warning to parseKey**
@@ -236,20 +246,39 @@ In `src/engine/keys.ts`, add this constant near `KNOWN_MODIFIERS`:
 // to decide whether to warn — never to rewrite the key, which would guess wrong
 // on non-US layouts.
 const SHIFT_ALTERS_US = new Set([
-  '`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-  '-', '=', '[', ']', '\\', ';', "'", ',', '.', '/',
+  '`',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '0',
+  '-',
+  '=',
+  '[',
+  ']',
+  '\\',
+  ';',
+  "'",
+  ',',
+  '.',
+  '/',
 ]);
 ```
 
 Then in `parseKey`, immediately after the existing bare-uppercase-letter block and before `return buildCanonical(...)`:
 
 ```ts
-  if (shift && SHIFT_ALTERS_US.has(base)) {
-    console.warn(
-      `[whichkey] "${input}": Shift is dropped for punctuation and digits — write the ` +
-        `shifted character directly (e.g. "?" not "Shift+/"). This binding will match "${base}".`,
-    );
-  }
+if (shift && SHIFT_ALTERS_US.has(base)) {
+  console.warn(
+    `[whichkey] "${input}": Shift is dropped for punctuation and digits — write the ` +
+      `shifted character directly (e.g. "?" not "Shift+/"). This binding will match "${base}".`,
+  );
+}
 ```
 
 - [ ] **Step 4: Fix the misleading comment**
@@ -257,8 +286,8 @@ Then in `parseKey`, immediately after the existing bare-uppercase-letter block a
 In `src/engine/keys.ts`, the casing-rules comment (around line 36-37) currently reads `- Other: drop "Shift+" — the shifted form is already in the base character (Shift+/ → ?)`. Replace that line with:
 
 ```ts
-  //   - Other:     drop "Shift+" — callers must write the shifted character itself
-  //                (write "?" directly; "Shift+/" canonicalizes to "/" and warns).
+//   - Other:     drop "Shift+" — callers must write the shifted character itself
+//                (write "?" directly; "Shift+/" canonicalizes to "/" and warns).
 ```
 
 - [ ] **Step 5: Correct the two doc tables**
@@ -266,7 +295,7 @@ In `src/engine/keys.ts`, the casing-rules comment (around line 36-37) currently 
 In `README.md`, replace the `Shift+/` row of the key-string table:
 
 ```markdown
-| `?`       | The shifted character itself — write `?`, not `Shift+/` |
+| `?` | The shifted character itself — write `?`, not `Shift+/` |
 ```
 
 In `docs/API.md`, replace the examples line `Shift+/        →  ?  (on US keyboard layouts)` with:
@@ -296,6 +325,7 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 3: B3 — cheatsheet has no focus management
 
 **Files:**
+
 - Modify: `src/react/ShortcutCheatsheet.tsx` (whole component)
 - Modify: `src/vanilla/cheatsheet.ts` (`renderCheatsheet` signature + panel setup)
 - Modify: `src/vanilla/mount.ts:37-48, 55-62` (consume the new destroy fn)
@@ -303,6 +333,7 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 - Test: `src/react/__tests__/ShortcutCheatsheet.test.tsx` (append), `src/vanilla/__tests__/mount.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `renderCheatsheet(p, model, onClose)` now returns `{ element: HTMLElement; destroy: () => void }` instead of `HTMLElement`. It is internal (not re-exported from `src/vanilla/index.ts`), so this is not a public break. Task 13's class-contract test must include the new `wk-cheatsheet__close` class.
 
@@ -314,9 +345,14 @@ Append to `src/react/__tests__/ShortcutCheatsheet.test.tsx`:
 describe('cheatsheet focus management', () => {
   it('marks the panel as a modal dialog labelled by its title', () => {
     const { getByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     const panel = getByTestId('whichkey-cheatsheet');
     expect(panel).toHaveAttribute('aria-modal', 'true');
     expect(panel).toHaveAttribute('aria-labelledby', 'wk-cheatsheet-title');
@@ -330,33 +366,52 @@ describe('cheatsheet focus management', () => {
     expect(document.activeElement).toBe(trigger);
 
     const { getByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     expect(getByTestId('whichkey-cheatsheet').contains(document.activeElement)).toBe(true);
 
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
   });
 
   it('exposes a keyboard-reachable close button that closes the sheet', () => {
     const { getByTestId, getByLabelText, queryByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     const close = getByLabelText('Close keyboard shortcuts');
     expect(getByTestId('whichkey-cheatsheet').contains(close)).toBe(true);
-    act(() => { close.click(); });
+    act(() => {
+      close.click();
+    });
     expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
   });
 });
 ```
 
 If the existing file has no `Setup` helper, define one at the top of the new describe block:
+
 ```tsx
-const Setup = () => { useShortcut('q', () => {}, { description: 'Quit' }); return null; };
+const Setup = () => {
+  useShortcut('q', () => {}, { description: 'Quit' });
+  return null;
+};
 ```
+
 and add `useShortcut` plus `act` to the file's imports.
 
 - [ ] **Step 2: Write the failing vanilla test**
@@ -397,6 +452,7 @@ it('gives the cheatsheet panel modal semantics, focus, and a close button', () =
 ```bash
 npx vitest run src/react/__tests__/ShortcutCheatsheet.test.tsx src/vanilla/__tests__/mount.test.ts
 ```
+
 Expected: the new tests FAIL on the missing `aria-modal` attribute.
 
 - [ ] **Step 4: Commit the RED tests**
@@ -433,37 +489,46 @@ The literal `'wk-cheatsheet-title'` is asserted by the tests in Steps 1-2 and mu
 Replace the body of `src/react/ShortcutCheatsheet.tsx` from the `useEffect` through the returned JSX:
 
 ```tsx
-  const panelRef = useRef<HTMLDivElement>(null);
-  const restoreRef = useRef<HTMLElement | null>(null);
+const panelRef = useRef<HTMLDivElement>(null);
+const restoreRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (!engine || !visible) return;
-    restoreRef.current = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
+useEffect(() => {
+  if (!engine || !visible) return;
+  restoreRef.current = document.activeElement as HTMLElement | null;
+  panelRef.current?.focus();
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { engine.closeCheatsheet(); return; }
-      if (e.key !== 'Tab') return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (items.length === 0) { e.preventDefault(); panel.focus(); return; }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && (active === first || active === panel)) {
-        e.preventDefault(); last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault(); first.focus();
-      }
-    };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      engine.closeCheatsheet();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+    if (items.length === 0) {
+      e.preventDefault();
+      panel.focus();
+      return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === panel)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      restoreRef.current?.focus?.();
-    };
-  }, [engine, visible]);
+  document.addEventListener('keydown', onKey);
+  return () => {
+    document.removeEventListener('keydown', onKey);
+    restoreRef.current?.focus?.();
+  };
+}, [engine, visible]);
 ```
 
 Add `useRef` to the React import. Then update the panel element and title, and insert the close button as the panel's first child:
@@ -492,19 +557,19 @@ export const renderCheatsheet = (
 After `panel.setAttribute('aria-label', ...)` — replace that `aria-label` line with:
 
 ```ts
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
-  panel.setAttribute('aria-labelledby', CHEATSHEET_TITLE_ID);
-  panel.tabIndex = -1;
-  panel.addEventListener('click', (e) => e.stopPropagation());
+panel.setAttribute('role', 'dialog');
+panel.setAttribute('aria-modal', 'true');
+panel.setAttribute('aria-labelledby', CHEATSHEET_TITLE_ID);
+panel.tabIndex = -1;
+panel.addEventListener('click', (e) => e.stopPropagation());
 
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = `${p}-cheatsheet__close`;
-  close.setAttribute('aria-label', 'Close keyboard shortcuts');
-  close.textContent = '×';
-  close.addEventListener('click', onClose);
-  panel.appendChild(close);
+const close = document.createElement('button');
+close.type = 'button';
+close.className = `${p}-cheatsheet__close`;
+close.setAttribute('aria-label', 'Close keyboard shortcuts');
+close.textContent = '×';
+close.addEventListener('click', onClose);
+panel.appendChild(close);
 ```
 
 Give the title an id (`title.id = CHEATSHEET_TITLE_ID;` right after its `className` assignment).
@@ -543,32 +608,33 @@ At the end, replace `return backdrop;` with focus wiring and the new return shap
 };
 ```
 
-
 - [ ] **Step 8: Wire mount.ts to the new shape**
 
 In `src/vanilla/mount.ts`, add alongside `cheatsheetNode`:
 
 ```ts
-  let cheatsheetDestroy: (() => void) | null = null;
+let cheatsheetDestroy: (() => void) | null = null;
 ```
 
 Replace the open branch:
 
 ```ts
-      if (snap.cheatsheet.visible && !cheatsheetNode) {
-        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () => engine.closeCheatsheet());
-        cheatsheetNode = sheet.element;
-        cheatsheetDestroy = sheet.destroy;
-        container.appendChild(cheatsheetNode);
-        (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
-        document.addEventListener('keydown', onEscape);
-      } else if (!snap.cheatsheet.visible && cheatsheetNode) {
-        cheatsheetNode.remove();
-        cheatsheetNode = null;
-        cheatsheetDestroy?.();
-        cheatsheetDestroy = null;
-        document.removeEventListener('keydown', onEscape);
-      }
+if (snap.cheatsheet.visible && !cheatsheetNode) {
+  const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () =>
+    engine.closeCheatsheet(),
+  );
+  cheatsheetNode = sheet.element;
+  cheatsheetDestroy = sheet.destroy;
+  container.appendChild(cheatsheetNode);
+  (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
+  document.addEventListener('keydown', onEscape);
+} else if (!snap.cheatsheet.visible && cheatsheetNode) {
+  cheatsheetNode.remove();
+  cheatsheetNode = null;
+  cheatsheetDestroy?.();
+  cheatsheetDestroy = null;
+  document.removeEventListener('keydown', onEscape);
+}
 ```
 
 And in `unmount()`, after `cheatsheetNode?.remove();` add `cheatsheetDestroy?.(); cheatsheetDestroy = null;`.
@@ -581,14 +647,28 @@ Append to `src/styles.css`:
 
 ```css
 .wk-cheatsheet__close {
-  float: right; margin: -0.25rem -0.25rem 0 0;
-  background: none; border: none; cursor: pointer;
-  color: #9ca3af; font-size: 1.25rem; line-height: 1;
-  padding: 0.25rem 0.5rem; border-radius: 0.25rem;
+  float: right;
+  margin: -0.25rem -0.25rem 0 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
 }
-.wk-cheatsheet__close:hover { color: #f3f4f6; }
-.wk-cheatsheet__close:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
-.wk-cheatsheet:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; }
+.wk-cheatsheet__close:hover {
+  color: #f3f4f6;
+}
+.wk-cheatsheet__close:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+.wk-cheatsheet:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
 ```
 
 - [ ] **Step 10: Verify GREEN and run the full gate**
@@ -612,11 +692,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 4: B4 — consumer handler exceptions wedge the matcher
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts:47-48` and `:62-64`
 - Modify: `src/engine/controller.ts:117`
 - Test: `src/engine/__tests__/controller.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `onFire` never propagates a consumer exception; `resetBuffer()` always runs. Tasks 8 and 9 edit adjacent lines in `handleKeyDown` — re-read the file before editing.
 
@@ -630,7 +712,13 @@ describe('handler exceptions', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     const wk = createWhichKey();
     const ok = vi.fn();
-    wk.register('x', () => { throw new Error('boom'); }, { description: 'Boom' });
+    wk.register(
+      'x',
+      () => {
+        throw new Error('boom');
+      },
+      { description: 'Boom' },
+    );
     wk.register('y', ok, { description: 'Fine' });
     wk.start();
 
@@ -650,7 +738,13 @@ describe('handler exceptions', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     const wk = createWhichKey({ timeoutMs: 50 });
     const ok = vi.fn();
-    wk.register('g', () => { throw new Error('boom'); }, { description: 'Leaf' });
+    wk.register(
+      'g',
+      () => {
+        throw new Error('boom');
+      },
+      { description: 'Leaf' },
+    );
     wk.register('g h', vi.fn(), { description: 'Deeper' });
     wk.register('y', ok, { description: 'Fine' });
     wk.start();
@@ -673,6 +767,7 @@ describe('handler exceptions', () => {
 ```bash
 npx vitest run src/engine/__tests__/controller.test.ts -t "handler exceptions"
 ```
+
 Expected: FAIL — the throw escapes and the follow-up shortcut does not fire.
 
 - [ ] **Step 3: Commit the RED tests**
@@ -689,23 +784,23 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 In `src/engine/matcher.ts`, pure-leaf branch:
 
 ```ts
-      try {
-        this.options.onFire(leaf, event);
-      } finally {
-        this.resetBuffer();
-      }
-      return;
+try {
+  this.options.onFire(leaf, event);
+} finally {
+  this.resetBuffer();
+}
+return;
 ```
 
 Deferred branch inside the `setTimeout` callback:
 
 ```ts
-        const synthetic = new KeyboardEvent('keydown', { key });
-        try {
-          this.options.onFire(leaf, synthetic);
-        } finally {
-          this.resetBuffer();
-        }
+const synthetic = new KeyboardEvent('keydown', { key });
+try {
+  this.options.onFire(leaf, synthetic);
+} finally {
+  this.resetBuffer();
+}
 ```
 
 (Leave the synthetic event itself alone — replacing it is B17, not in this batch.)
@@ -748,10 +843,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 5: B5 — no-op snapshot emitted on every keystroke
 
 **Files:**
+
 - Modify: `src/engine/controller.ts:126-131` (the `onHidePopup` callback)
 - Test: `src/engine/__tests__/controller.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `emit()` only fires on real state changes. Task 7 depends on this — it introduces an ARIA live region whose announcements would otherwise be triggered by every keypress.
 
@@ -769,7 +866,11 @@ describe('snapshot emission', () => {
     wk.subscribe(listener);
     const before = wk.getSnapshot();
 
-    press('a'); press('b'); press('c'); press('d'); press('e');
+    press('a');
+    press('b');
+    press('c');
+    press('d');
+    press('e');
 
     expect(listener).not.toHaveBeenCalled();
     expect(wk.getSnapshot()).toBe(before);
@@ -798,6 +899,7 @@ describe('snapshot emission', () => {
 ```bash
 npx vitest run src/engine/__tests__/controller.test.ts -t "snapshot emission"
 ```
+
 Expected: the first test FAILS — listener called 5 times, snapshot identity changed.
 
 - [ ] **Step 3: Guard the callback**
@@ -819,6 +921,7 @@ In `src/engine/controller.ts`, replace the `onHidePopup` option:
 npx vitest run src/engine/__tests__/controller.test.ts
 npm run lint && npm run typecheck && npm test && npm run build
 ```
+
 If any existing test counted emissions and now sees fewer, that test was asserting the bug — re-read it, and only then decide. Do not weaken an assertion to make it pass without understanding why it changed.
 
 - [ ] **Step 5: Strip B5 from bughunt.md and commit**
@@ -837,11 +940,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 6: B6 — full candidate list built per keystroke just to test emptiness
 
 **Files:**
+
 - Modify: `src/engine/registry.ts` (add `hasCandidates`)
 - Modify: `src/engine/matcher.ts:38, 40, 52, 69`
 - Test: `src/engine/__tests__/registry.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `ShortcutRegistry.hasCandidates(prefix: string): boolean` — Task 9 does not need it, but Tasks 8 and 9 edit the same `handleKeyDown` lines, so re-read the file.
 
@@ -887,6 +992,7 @@ Reuse the file's existing `entry(...)` factory; if it is not already defined the
 ```bash
 npx vitest run src/engine/__tests__/registry.test.ts -t "hasCandidates"
 ```
+
 Expected: FAIL — `r.hasCandidates is not a function`.
 
 - [ ] **Step 3: Add the method**
@@ -918,9 +1024,11 @@ In `src/engine/matcher.ts`, replace the candidate lookup and its three consumers
 
     if (leaf && !hasCandidates) {
 ```
+
 ```ts
     if (leaf && hasCandidates) {
 ```
+
 ```ts
     if (!leaf && hasCandidates) {
 ```
@@ -931,6 +1039,7 @@ In `src/engine/matcher.ts`, replace the candidate lookup and its three consumers
 npx vitest run src/engine/__tests__/registry.test.ts src/engine/__tests__/matcher.test.ts
 npm run lint && npm run typecheck && npm test && npm run build
 ```
+
 Behaviour must be identical — this is a pure optimization. Any behavioural test that changes is a bug in the change.
 
 - [ ] **Step 6: Strip B6 from bughunt.md and commit**
@@ -947,11 +1056,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 7: B7 — popup `role="dialog"` is silent to screen readers
 
 **Files:**
+
 - Modify: `src/react/WhichKeyPopup.tsx:34, 44`
 - Modify: `src/vanilla/popup.ts:46-47`
 - Test: `src/react/__tests__/WhichKeyPopup.test.tsx` (append), `src/vanilla/__tests__/mount.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: Task 5's emission guard (so the live region only announces on real changes).
 - Produces: nothing downstream.
 
@@ -964,10 +1075,17 @@ Append to `src/react/__tests__/WhichKeyPopup.test.tsx`:
 ```tsx
 it('announces as a polite live region, not a dialog', () => {
   const { getByTestId } = render(
-    <WhichKeyProvider><Setup /><WhichKeyPopup /></WhichKeyProvider>,
+    <WhichKeyProvider>
+      <Setup />
+      <WhichKeyPopup />
+    </WhichKeyProvider>,
   );
-  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' })); });
-  act(() => { vi.advanceTimersByTime(600); });
+  act(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+  });
+  act(() => {
+    vi.advanceTimersByTime(600);
+  });
   const popup = getByTestId('whichkey-popup');
   expect(popup).toHaveAttribute('role', 'status');
   expect(popup).toHaveAttribute('aria-live', 'polite');
@@ -1003,6 +1121,7 @@ it('renders the popup as a polite live region in the vanilla renderer', () => {
 ```bash
 npx vitest run src/react/__tests__/WhichKeyPopup.test.tsx src/vanilla/__tests__/mount.test.ts
 ```
+
 Expected: FAIL — role is `dialog`.
 
 - [ ] **Step 3: Change the React popup**
@@ -1012,7 +1131,9 @@ In `src/react/WhichKeyPopup.tsx`, in **both** `VerticalCorner` and `HorizontalBa
 ```tsx
        role="dialog" aria-label="Keyboard shortcuts">
 ```
+
 with:
+
 ```tsx
        role="status" aria-live="polite" aria-atomic="true" aria-label="Keyboard shortcuts">
 ```
@@ -1022,15 +1143,17 @@ with:
 In `src/vanilla/popup.ts`, replace:
 
 ```ts
-  el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-label', 'Keyboard shortcuts');
+el.setAttribute('role', 'dialog');
+el.setAttribute('aria-label', 'Keyboard shortcuts');
 ```
+
 with:
+
 ```ts
-  el.setAttribute('role', 'status');
-  el.setAttribute('aria-live', 'polite');
-  el.setAttribute('aria-atomic', 'true');
-  el.setAttribute('aria-label', 'Keyboard shortcuts');
+el.setAttribute('role', 'status');
+el.setAttribute('aria-live', 'polite');
+el.setAttribute('aria-atomic', 'true');
+el.setAttribute('aria-label', 'Keyboard shortcuts');
 ```
 
 - [ ] **Step 5: Verify GREEN and run the full gate**
@@ -1053,10 +1176,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 8: B10 — shadow-DOM input-guard bypass
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts` (top of `handleKeyDown`, plus lines 43 and 56)
 - Test: `src/engine/__tests__/matcher.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `const eventTarget` inside `handleKeyDown`, the un-retargeted event origin. **Task 9 consumes this** — it must call `isInputTarget(eventTarget)`, not `isInputTarget(event.target)`.
 - **Do not change the exported `isInputTarget` signature** — it is public API (`src/engine/index.ts:2`).
@@ -1110,6 +1235,7 @@ describe('shadow DOM input guard', () => {
 ```bash
 npx vitest run src/engine/__tests__/matcher.test.ts -t "shadow DOM"
 ```
+
 Expected: the first test FAILS — the handler fires because the guard sees the host `<div>`.
 
 - [ ] **Step 3: Commit the RED test**
@@ -1126,12 +1252,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 In `src/engine/matcher.ts`, at the very top of `handleKeyDown` (after the `isModifierOnlyEvent` early return):
 
 ```ts
-    // An event crossing an open shadow boundary is retargeted to the host, so
-    // `event.target` would hide the real <input>. composedPath()[0] is the
-    // un-retargeted origin, and equals event.target outside shadow DOM.
-    const eventTarget = typeof event.composedPath === 'function'
-      ? (event.composedPath()[0] ?? event.target)
-      : event.target;
+// An event crossing an open shadow boundary is retargeted to the host, so
+// `event.target` would hide the real <input>. composedPath()[0] is the
+// un-retargeted origin, and equals event.target outside shadow DOM.
+const eventTarget =
+  typeof event.composedPath === 'function'
+    ? (event.composedPath()[0] ?? event.target)
+    : event.target;
 ```
 
 - [ ] **Step 5: Use it at both guard sites**
@@ -1158,10 +1285,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 9: B9 — popup renders keystrokes typed into inputs
 
 **Files:**
+
 - Modify: `src/engine/matcher.ts` (prefix-only branch, lines ~69-83)
 - Test: `src/engine/__tests__/controller.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: `eventTarget` from Task 8. Use it, not `event.target`.
 - Produces: nothing downstream.
 
@@ -1227,6 +1356,7 @@ The file's `press` helper already accepts a target as its second argument.
 ```bash
 npx vitest run src/engine/__tests__/controller.test.ts -t "popup suppression"
 ```
+
 Expected: the first test FAILS — the popup becomes visible with `["g"]`.
 
 - [ ] **Step 3: Commit the RED tests**
@@ -1243,23 +1373,23 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 In `src/engine/matcher.ts`, in the prefix-only branch, wrap **only** the display logic. `commitBuffer` must stay outside the guard so a deeper `enableOnInputs: true` leaf can still complete:
 
 ```ts
-    if (!leaf && hasCandidates) {
-      // Prefix-only — commit buffer, start timer to show popup.
-      this.commitBuffer(prospective);
-      this.clearTimer();
-      // Never surface buffered keystrokes that were typed into a text field:
-      // the characters themselves would be rendered on screen.
-      if (isInputTarget(eventTarget)) return;
-      if (this.popupVisible) {
-        this.options.onShowPopup({ currentSequence: [...this.buffer] });
-      } else {
-        this.timer = setTimeout(() => {
-          this.popupVisible = true;
-          this.options.onShowPopup({ currentSequence: [...this.buffer] });
-        }, this.options.timeoutMs);
-      }
-      return;
-    }
+if (!leaf && hasCandidates) {
+  // Prefix-only — commit buffer, start timer to show popup.
+  this.commitBuffer(prospective);
+  this.clearTimer();
+  // Never surface buffered keystrokes that were typed into a text field:
+  // the characters themselves would be rendered on screen.
+  if (isInputTarget(eventTarget)) return;
+  if (this.popupVisible) {
+    this.options.onShowPopup({ currentSequence: [...this.buffer] });
+  } else {
+    this.timer = setTimeout(() => {
+      this.popupVisible = true;
+      this.options.onShowPopup({ currentSequence: [...this.buffer] });
+    }, this.options.timeoutMs);
+  }
+  return;
+}
 ```
 
 - [ ] **Step 5: Verify GREEN and run the full gate**
@@ -1282,11 +1412,13 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 10: B8 — duplicate-registration warning cries wolf
 
 **Files:**
+
 - Modify: `src/engine/registry.ts:34-47` (the `register` method)
 - Modify: `src/engine/__tests__/registry.test.ts:77-85` — **the one sanctioned existing-test edit in this plan**, because those assertions pin the exact warning text being corrected.
 - Test: `src/engine/__tests__/registry.test.ts` (also append new cases)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: nothing downstream.
 
@@ -1338,6 +1470,7 @@ In `src/engine/__tests__/registry.test.ts:77-85`, the test asserts the substring
 ```bash
 npx vitest run src/engine/__tests__/registry.test.ts
 ```
+
 Expected: the three new tests FAIL (warnings fire where they should not), and the edited assertion FAILS pending the implementation.
 
 - [ ] **Step 4: Rewrite the warning**
@@ -1388,10 +1521,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 11: B11 — lowercase modifiers rejected despite docs
 
 **Files:**
+
 - Modify: `src/engine/keys.ts:65` (`KNOWN_MODIFIERS`), `:73` (bare-modifier check), `:78-102` (the modifier loop)
 - Test: `src/engine/__tests__/keys.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: nothing. Task 2 also edited `parseKey`, in the base-character region — re-read the file before editing.
 - Produces: nothing downstream.
 
@@ -1439,6 +1574,7 @@ describe('modifier case-insensitivity', () => {
 ```bash
 npx vitest run src/engine/__tests__/keys.test.ts -t "modifier case-insensitivity"
 ```
+
 Expected: FAIL — `whichkey: unknown modifier "ctrl"`.
 
 - [ ] **Step 3: Add the alias table**
@@ -1447,10 +1583,14 @@ In `src/engine/keys.ts`, replace the `KNOWN_MODIFIERS` constant:
 
 ```ts
 const MODIFIER_ALIASES = new Map<string, string>([
-  ['ctrl', 'Ctrl'], ['control', 'Ctrl'],
-  ['alt', 'Alt'], ['option', 'Alt'],
+  ['ctrl', 'Ctrl'],
+  ['control', 'Ctrl'],
+  ['alt', 'Alt'],
+  ['option', 'Alt'],
   ['shift', 'Shift'],
-  ['cmd', 'Cmd'], ['meta', 'Cmd'], ['command', 'Cmd'],
+  ['cmd', 'Cmd'],
+  ['meta', 'Cmd'],
+  ['command', 'Cmd'],
   ['mod', 'Mod'],
 ]);
 ```
@@ -1460,9 +1600,9 @@ const MODIFIER_ALIASES = new Map<string, string>([
 Replace the bare-modifier guard:
 
 ```ts
-  if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
-    throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
-  }
+if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
+  throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
+}
 ```
 
 And the loop head:
@@ -1499,10 +1639,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 12: B12 — `exports` never points at the emitted `.d.cts`
 
 **Files:**
+
 - Modify: `package.json:32-48` (the `exports` block)
 - Create: `src/engine/__tests__/package-exports.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: nothing downstream.
 
@@ -1543,12 +1685,19 @@ describe('package exports', () => {
     const targets: string[] = [];
     for (const sub of SUBPATHS) {
       const entry = pkg.exports[sub] as Record<string, Record<string, string>>;
-      targets.push(entry.import.types, entry.import.default, entry.require.types, entry.require.default);
+      targets.push(
+        entry.import.types,
+        entry.import.default,
+        entry.require.types,
+        entry.require.default,
+      );
     }
     targets.push(pkg.exports['./styles.css'] as string);
     for (const t of targets) {
-      expect({ target: t, exists: existsSync(root + t.replace(/^\.\//, '')) })
-        .toEqual({ target: t, exists: true });
+      expect({ target: t, exists: existsSync(root + t.replace(/^\.\//, '')) }).toEqual({
+        target: t,
+        exists: true,
+      });
     }
   });
 });
@@ -1559,6 +1708,7 @@ describe('package exports', () => {
 ```bash
 npm run build && npx vitest run src/engine/__tests__/package-exports.test.ts
 ```
+
 Expected: FAIL — the shape test sees the flat `{ types, import, require }` object.
 
 - [ ] **Step 3: Nest the export conditions**
@@ -1588,6 +1738,7 @@ npx vitest run src/engine/__tests__/package-exports.test.ts
 npm pack --dry-run
 npm run lint && npm run typecheck && npm test
 ```
+
 Expected: all export targets exist; `npm pack --dry-run` still lists LICENSE, README.md, package.json and `dist/**`.
 
 - [ ] **Step 5: Strip B12 from bughunt.md and commit**
@@ -1604,10 +1755,12 @@ Claude-Session: https://claude.ai/code/session_01EVQQ7m3xXEY4CMJqo1BKHC"
 ### Task 13: B13 — CSS class contract table is wrong and incomplete
 
 **Files:**
+
 - Create: `src/__tests__/class-contract.test.tsx`
 - Modify: `README.md:226-241` (class table), `docs/API.md:370-384` (class table)
 
 **Interfaces:**
+
 - Consumes: `wk-cheatsheet__close` from Task 3.
 - Produces: nothing downstream.
 
@@ -1629,14 +1782,30 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 /** The documented CSS class contract. Adding a class to a renderer means adding it here AND to both doc tables. */
 const CONTRACT = [
   'wk-kbd',
-  'wk-popup', 'wk-popup--vertical', 'wk-popup--horizontal',
-  'wk-popup__header', 'wk-popup__body', 'wk-popup__list', 'wk-popup__grid',
-  'wk-row', 'wk-row--group', 'wk-row__label',
-  'wk-sequence', 'wk-sequence__ellipsis',
-  'wk-backdrop', 'wk-cheatsheet', 'wk-cheatsheet__close', 'wk-cheatsheet__title',
-  'wk-cheatsheet__sections', 'wk-cheatsheet__section',
-  'wk-cheatsheet__list', 'wk-cheatsheet__list--nested', 'wk-cheatsheet__item',
-  'wk-cheatsheet__group-title', 'wk-cheatsheet__group-label', 'wk-cheatsheet__hint',
+  'wk-popup',
+  'wk-popup--vertical',
+  'wk-popup--horizontal',
+  'wk-popup__header',
+  'wk-popup__body',
+  'wk-popup__list',
+  'wk-popup__grid',
+  'wk-row',
+  'wk-row--group',
+  'wk-row__label',
+  'wk-sequence',
+  'wk-sequence__ellipsis',
+  'wk-backdrop',
+  'wk-cheatsheet',
+  'wk-cheatsheet__close',
+  'wk-cheatsheet__title',
+  'wk-cheatsheet__sections',
+  'wk-cheatsheet__section',
+  'wk-cheatsheet__list',
+  'wk-cheatsheet__list--nested',
+  'wk-cheatsheet__item',
+  'wk-cheatsheet__group-title',
+  'wk-cheatsheet__group-label',
+  'wk-cheatsheet__hint',
 ] as const;
 
 const collectClasses = (): Set<string> => {
@@ -1663,14 +1832,19 @@ const renderEverything = (layout: 'vertical' | 'horizontal') => {
 
 describe('CSS class contract', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('emits exactly the documented class set across both popup layouts', () => {
     const emitted = new Set<string>();
     for (const layout of ['vertical', 'horizontal'] as const) {
       const { wk, ui } = renderEverything(layout);
       for (const c of collectClasses()) emitted.add(c);
-      ui.unmount(); wk.stop(); document.body.innerHTML = '';
+      ui.unmount();
+      wk.stop();
+      document.body.innerHTML = '';
     }
     expect([...emitted].sort()).toEqual([...CONTRACT].sort());
   });
@@ -1690,6 +1864,7 @@ describe('CSS class contract', () => {
 ```bash
 npx vitest run src/__tests__/class-contract.test.tsx
 ```
+
 Expected: the docs test FAILS listing ~11 classes missing from both tables. If the first test also fails, reconcile `CONTRACT` with what the renderers actually emit — the renderers are the source of truth, not the list.
 
 - [ ] **Step 3: Fix the README table**
@@ -1697,18 +1872,18 @@ Expected: the docs test FAILS listing ~11 classes missing from both tables. If t
 In `README.md`, replace the `wk-cheatsheet` row with the corrected and expanded set:
 
 ```markdown
-| `wk-backdrop`               | Full-screen dimmed overlay behind the cheatsheet |
-| `wk-cheatsheet`             | Cheatsheet panel (scrollable content box)     |
-| `wk-cheatsheet__close`      | Close button in the cheatsheet panel          |
-| `wk-cheatsheet__title`      | Cheatsheet heading                            |
-| `wk-cheatsheet__sections`   | Wrapper around all cheatsheet sections        |
-| `wk-cheatsheet__section`    | One group's section                           |
-| `wk-cheatsheet__list`       | List of shortcut entries                      |
-| `wk-cheatsheet__list--nested` | Modifier: list nested under a group         |
-| `wk-cheatsheet__item`       | One shortcut entry                            |
-| `wk-cheatsheet__group-title` | Group heading row                            |
-| `wk-cheatsheet__group-label` | Group description text                       |
-| `wk-cheatsheet__hint`       | "Press Escape to close" footer                |
+| `wk-backdrop` | Full-screen dimmed overlay behind the cheatsheet |
+| `wk-cheatsheet` | Cheatsheet panel (scrollable content box) |
+| `wk-cheatsheet__close` | Close button in the cheatsheet panel |
+| `wk-cheatsheet__title` | Cheatsheet heading |
+| `wk-cheatsheet__sections` | Wrapper around all cheatsheet sections |
+| `wk-cheatsheet__section` | One group's section |
+| `wk-cheatsheet__list` | List of shortcut entries |
+| `wk-cheatsheet__list--nested` | Modifier: list nested under a group |
+| `wk-cheatsheet__item` | One shortcut entry |
+| `wk-cheatsheet__group-title` | Group heading row |
+| `wk-cheatsheet__group-label` | Group description text |
+| `wk-cheatsheet__hint` | "Press Escape to close" footer |
 ```
 
 - [ ] **Step 4: Fix the docs/API.md table**

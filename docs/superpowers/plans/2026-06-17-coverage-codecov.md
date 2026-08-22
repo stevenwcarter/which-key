@@ -23,11 +23,13 @@
 ### Task 1: Coverage config, test script, and gitignore
 
 **Files:**
+
 - Modify: `vitest.config.ts`
 - Modify: `package.json` (the `test` script; ensure `@vitest/coverage-v8` devDep)
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: nothing (first task).
 - Produces: a `coverage/lcov.info` file on every `npm test` run (Task 2's CI upload depends on this exact path); a passing 80%-gated `npm test`.
 
@@ -122,10 +124,12 @@ git commit -m "test(which-key): enable v8 coverage with 80% global gate; npm tes
 ### Task 2: CI single Node 24 job + Codecov upload + codecov.yml
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 - Create: `codecov.yml`
 
 **Interfaces:**
+
 - Consumes: `coverage/lcov.info` produced by `npm test` (Task 1).
 - Produces: a CI workflow that gates coverage and uploads to Codecov.
 
@@ -197,10 +201,12 @@ git commit -m "ci(which-key): single Node 24 job, upload coverage to Codecov, 80
 ### Task 3: Documentation updates
 
 **Files:**
+
 - Modify: `README.md` (add Codecov badge + a short Coverage note)
 - Modify: `CLAUDE.local.md` (commands table: `npm test` now runs coverage)
 
 **Interfaces:**
+
 - Consumes: behavior from Tasks 1-2 (gated `npm test`, Codecov upload).
 - Produces: docs consistent with the new behavior.
 

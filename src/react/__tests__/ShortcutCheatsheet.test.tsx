@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { WhichKeyProvider, useShortcut, useShortcutGroup } from '../index';
 import { ShortcutCheatsheet } from '../ShortcutCheatsheet';
+import { resetNoProviderWarnings } from '../context';
 
 const Setup = () => {
   useShortcutGroup('g', { description: 'Focus widget' });
@@ -159,9 +160,14 @@ describe('ShortcutCheatsheet', () => {
 describe('cheatsheet focus management', () => {
   it('marks the panel as a modal dialog labelled by its title', () => {
     const { getByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     const panel = getByTestId('whichkey-cheatsheet');
     expect(panel).toHaveAttribute('aria-modal', 'true');
     expect(panel).toHaveAttribute('aria-labelledby', 'wk-cheatsheet-title');
@@ -175,32 +181,51 @@ describe('cheatsheet focus management', () => {
     expect(document.activeElement).toBe(trigger);
 
     const { getByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     expect(getByTestId('whichkey-cheatsheet').contains(document.activeElement)).toBe(true);
 
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
   });
 
   it('exposes a keyboard-reachable close button that closes the sheet', () => {
     const { getByTestId, getByLabelText, queryByTestId } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     const close = getByLabelText('Close keyboard shortcuts');
     expect(getByTestId('whichkey-cheatsheet').contains(close)).toBe(true);
-    act(() => { close.click(); });
+    act(() => {
+      close.click();
+    });
     expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
   });
 
   it('Tab-cycles focus among focusable descendants, wrapping at both ends', () => {
     const { getByTestId, getByLabelText } = render(
-      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+      <WhichKeyProvider>
+        <Setup />
+        <ShortcutCheatsheet />
+      </WhichKeyProvider>,
     );
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+    });
     const panel = getByTestId('whichkey-cheatsheet');
     const close = getByLabelText('Close keyboard shortcuts');
 
@@ -213,30 +238,57 @@ describe('cheatsheet focus management', () => {
     panel.appendChild(second);
 
     // Forward Tab from the last item (second) wraps to the first (close).
-    act(() => { second.focus(); });
+    act(() => {
+      second.focus();
+    });
     expect(document.activeElement).toBe(second);
     act(() => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      );
     });
     expect(document.activeElement).toBe(close);
 
     // Shift+Tab from the first item (close) wraps to the last (second).
     act(() => {
       document.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', {
+          key: 'Tab',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
       );
     });
     expect(document.activeElement).toBe(second);
 
     // Shift+Tab while focus sits on the panel itself also wraps to the last —
     // this is the case the `active === panel` branch exists to cover.
-    act(() => { panel.focus(); });
+    act(() => {
+      panel.focus();
+    });
     expect(document.activeElement).toBe(panel);
     act(() => {
       document.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+        new KeyboardEvent('keydown', {
+          key: 'Tab',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
       );
     });
     expect(document.activeElement).toBe(second);
+  });
+});
+
+describe('ShortcutCheatsheet outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns when mounted outside a provider [B24]', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<ShortcutCheatsheet />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<ShortcutCheatsheet>'));
+    warn.mockRestore();
   });
 });

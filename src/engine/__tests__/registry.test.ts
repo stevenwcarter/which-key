@@ -213,6 +213,54 @@ describe('ShortcutRegistry — getActiveCandidates', () => {
   });
 });
 
+describe('ShortcutRegistry.getActiveCandidates — leaf/deeper collisions [B20]', () => {
+  const build = (order: Array<[string, string]>) => {
+    const registry = new ShortcutRegistry();
+    order.forEach(([keys, description], i) =>
+      registry.register(entry({ id: `e${i}`, keys, description })),
+    );
+    return registry;
+  };
+
+  it('emits one merged group candidate regardless of registration order', () => {
+    const forward = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    const reverse = build([
+      ['g h i', 'Deeper'],
+      ['g h', 'Leaf label'],
+    ]);
+
+    for (const registry of [forward, reverse]) {
+      const candidates = registry.getActiveCandidates('g');
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]).toEqual({
+        keys: 'g h',
+        nextKey: 'h',
+        description: 'Leaf label',
+        isGroup: true,
+      });
+    }
+  });
+
+  it('prefers a registered group label over the leaf description', () => {
+    const registry = build([
+      ['g h', 'Leaf label'],
+      ['g h i', 'Deeper'],
+    ]);
+    registry.registerGroup(groupEntry({ id: 'grp', prefix: 'g h', description: 'Group label' }));
+    expect(registry.getActiveCandidates('g')[0].description).toBe('Group label');
+  });
+
+  it('still emits a plain leaf candidate when no deeper sequence exists', () => {
+    const registry = build([['g h', 'Leaf label']]);
+    expect(registry.getActiveCandidates('g')).toEqual([
+      { keys: 'g h', nextKey: 'h', description: 'Leaf label', isGroup: false },
+    ]);
+  });
+});
+
 describe('ShortcutRegistry — getAllActive', () => {
   it('returns one entry per registered key (the active one)', () => {
     const r = new ShortcutRegistry();
@@ -230,7 +278,9 @@ describe('ShortcutRegistry — getAllActive', () => {
 // Layer tests — added for feat/keybinding-layers Task 1
 // ---------------------------------------------------------------------------
 
-const layerEntry = (over: Partial<ShortcutEntry> & { keys: string; id: string }): ShortcutEntry => ({
+const layerEntry = (
+  over: Partial<ShortcutEntry> & { keys: string; id: string },
+): ShortcutEntry => ({
   handler: () => {},
   description: undefined,
   enableOnInputs: false,
@@ -247,8 +297,8 @@ describe('registry layers', () => {
     r.register(layerEntry({ id: 'base', keys: 'a', level: 0 }));
     r.register(layerEntry({ id: 'modal', keys: 'b', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('a')).toBeUndefined();      // base suppressed
-    expect(r.getActive('b')?.id).toBe('modal');     // layer reachable
+    expect(r.getActive('a')).toBeUndefined(); // base suppressed
+    expect(r.getActive('b')?.id).toBe('modal'); // layer reachable
   });
 
   it('additive layer leaves lower entries reachable', () => {
@@ -270,7 +320,7 @@ describe('registry layers', () => {
     r.register(layerEntry({ id: 'help', keys: '?', level: 0, global: true }));
     r.register(layerEntry({ id: 'modalHelp', keys: '?', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('?')?.id).toBe('modalHelp');  // (level,priority,index): level 1 wins
+    expect(r.getActive('?')?.id).toBe('modalHelp'); // (level,priority,index): level 1 wins
   });
 
   it('deactivateLayer re-reveals the layer beneath', () => {
@@ -296,6 +346,30 @@ describe('registry layers', () => {
     r.activateLayer('L1', 1, true);
     expect(r.getActiveCandidates('g').map((c) => c.keys)).toEqual(['g x']);
     expect(r.getAllActive().map((e) => e.id)).toEqual(['m']);
+  });
+});
+
+describe('ShortcutRegistry.blockLevel caching [B19]', () => {
+  it('reflects a layer activated after an earlier lookup', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'base', keys: 'z', level: 0 }));
+    expect(registry.getActive('z')).toBeDefined();
+
+    registry.activateLayer('modal', 1, true);
+    expect(registry.getActive('z')).toBeUndefined();
+
+    registry.deactivateLayer('modal');
+    expect(registry.getActive('z')).toBeDefined();
+  });
+
+  it('reflects a layer whose exclusivity changes under the same id', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'base', keys: 'z', level: 0 }));
+    registry.activateLayer('l', 1, false);
+    expect(registry.getActive('z')).toBeDefined();
+
+    registry.activateLayer('l', 1, true);
+    expect(registry.getActive('z')).toBeUndefined();
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../controller';
+import type { ShortcutHandler } from '../types';
 
 const press = (key: string, target: EventTarget = document.body) => {
   // Dispatch on the real target (not document with a faked `.target`) so
@@ -13,7 +14,10 @@ const press = (key: string, target: EventTarget = document.body) => {
 // Like `press`, but for keystrokes that need modifier flags (Ctrl/Alt/Meta) —
 // used by the Finding-1 narrowed-latch tests below, which must distinguish
 // character-echoing keystrokes from modifier chords that never insert text.
-const pressWithInit = (init: KeyboardEventInit & { key: string }, target: EventTarget = document.body) => {
+const pressWithInit = (
+  init: KeyboardEventInit & { key: string },
+  target: EventTarget = document.body,
+) => {
   target.dispatchEvent(new KeyboardEvent('keydown', { ...init, bubbles: true }));
 };
 
@@ -129,7 +133,13 @@ describe('createWhichKey', () => {
       const err = vi.spyOn(console, 'error').mockImplementation(() => {});
       const wk = createWhichKey();
       const ok = vi.fn();
-      wk.register('x', () => { throw new Error('boom'); }, { description: 'Boom' });
+      wk.register(
+        'x',
+        () => {
+          throw new Error('boom');
+        },
+        { description: 'Boom' },
+      );
       wk.register('y', ok, { description: 'Fine' });
       wk.start();
 
@@ -149,7 +159,13 @@ describe('createWhichKey', () => {
       const err = vi.spyOn(console, 'error').mockImplementation(() => {});
       const wk = createWhichKey({ timeoutMs: 50 });
       const ok = vi.fn();
-      wk.register('g', () => { throw new Error('boom'); }, { description: 'Leaf' });
+      wk.register(
+        'g',
+        () => {
+          throw new Error('boom');
+        },
+        { description: 'Leaf' },
+      );
       wk.register('g h', vi.fn(), { description: 'Deeper' });
       wk.register('y', ok, { description: 'Fine' });
       wk.start();
@@ -175,7 +191,11 @@ describe('createWhichKey', () => {
       wk.subscribe(listener);
       const before = wk.getSnapshot();
 
-      press('a'); press('b'); press('c'); press('d'); press('e');
+      press('a');
+      press('b');
+      press('c');
+      press('d');
+      press('e');
 
       expect(listener).not.toHaveBeenCalled();
       expect(wk.getSnapshot()).toBe(before);
@@ -510,7 +530,9 @@ describe('controller layers', () => {
     const wk = createWhichKey({ helpKey: null });
     const { pushLayer } = wk;
     let layer: ReturnType<typeof pushLayer> | undefined;
-    expect(() => { layer = pushLayer({ exclusive: true }); }).not.toThrow();
+    expect(() => {
+      layer = pushLayer({ exclusive: true });
+    }).not.toThrow();
     const modal = vi.fn();
     layer!.register('b', modal);
     expect(wk.registry.getActive('b')?.handler).toBeTypeOf('function');
@@ -535,5 +557,208 @@ describe('controller layers', () => {
     expect(wk.getSnapshot().cheatsheet.visible).toBe(false);
 
     wk.stop();
+  });
+});
+
+describe('createWhichKey.register — soft failure on misuse [B14]', () => {
+  it('warns and no-ops on an unparseable key string instead of throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    let unregister: (() => void) | undefined;
+    expect(() => {
+      unregister = wk.register('Hyper+K', vi.fn());
+    }).not.toThrow();
+    // Pin the exact composed text: keys.ts's thrown Error is already prefixed
+    // "whichkey: " on its own, so this also guards against that prefix
+    // doubling up with the "[whichkey] " tag this warning adds.
+    expect(warn).toHaveBeenCalledWith(
+      '[whichkey] invalid key string "Hyper+K": unknown modifier "Hyper" in "Hyper+K"; shortcut not registered.',
+    );
+    expect(warn.mock.calls[0][0]).not.toContain(': whichkey:');
+    expect(() => unregister!()).not.toThrow();
+    warn.mockRestore();
+  });
+
+  it('warns and no-ops on an empty key string', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    expect(() => wk.register('   ', vi.fn())).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid key string'));
+    warn.mockRestore();
+  });
+
+  it('warns and no-ops when the handler is not a function', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    // Deliberate misuse from untyped JS — the whole point of the guard.
+    const notAFunction = 'nope' as unknown as ShortcutHandler;
+    expect(() => wk.register('a', notAFunction)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] handler for "a" is not a function'),
+    );
+    expect(wk.registry.getActive('a')).toBeUndefined();
+    warn.mockRestore();
+  });
+
+  it('still registers a valid shortcut normally', () => {
+    const wk = createWhichKey();
+    const off = wk.register('a', vi.fn(), { description: 'Alpha' });
+    expect(wk.registry.getActive('a')?.description).toBe('Alpha');
+    off();
+    expect(wk.registry.getActive('a')).toBeUndefined();
+  });
+});
+
+describe('createWhichKey.registerGroup — canonical prefix [B22]', () => {
+  it('canonicalizes the prefix into the same namespace as register()', () => {
+    const wk = createWhichKey();
+    wk.registerGroup('Shift+a', { description: 'Shifted group' });
+    wk.register('Shift+a b', vi.fn(), { description: 'Bee' });
+    expect(wk.registry.getActiveGroup('A')?.description).toBe('Shifted group');
+  });
+
+  it('surfaces a nested group label on the popup candidate at its parent prefix', () => {
+    // A depth-1 group's description never reaches getActiveCandidates (it
+    // comes from the LEAF's own description there) — only a NESTED group,
+    // queried from its parent prefix, resolves its label via the
+    // isGroup:true branch. The prefix here is deliberately non-canonical
+    // ('Shift+x a') so the assertion only passes once registerGroup
+    // canonicalizes it into the same namespace as the nested shortcut.
+    const wk = createWhichKey();
+    wk.registerGroup('Shift+x a', { description: 'Nested group' });
+    wk.register('Shift+x a b', vi.fn(), { description: 'Bee' });
+    const candidate = wk.registry.getActiveCandidates('X')[0];
+    expect(candidate.isGroup).toBe(true);
+    expect(candidate.nextKey).toBe('a');
+    expect(candidate.description).toBe('Nested group');
+  });
+
+  it('warns and no-ops on an empty prefix rather than accepting it silently', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    expect(() => wk.registerGroup('   ', { description: 'Nope' })).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid group prefix'));
+    warn.mockRestore();
+  });
+
+  it('is behaviour-compatible for a prefix already in canonical form', () => {
+    const wk = createWhichKey();
+    const off = wk.registerGroup('g', { description: 'Go to' });
+    expect(wk.registry.getActiveGroup('g')?.description).toBe('Go to');
+    off();
+    expect(wk.registry.getActiveGroup('g')).toBeUndefined();
+  });
+});
+
+describe('createWhichKey — invalid helpKey [B23]', () => {
+  it('warns and returns a working engine instead of throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let wk: ReturnType<typeof createWhichKey> | undefined;
+    expect(() => {
+      wk = createWhichKey({ helpKey: 'Hyper+/' });
+    }).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'),
+    );
+
+    // The engine still works — only the help binding is gone. Prove it by
+    // actually firing a registered shortcut (not just checking it landed in
+    // the registry) and by actually toggling the cheatsheet (not just
+    // reading its untouched initial state).
+    const fn = vi.fn();
+    wk!.register('a', fn, { description: 'Alpha' });
+    wk!.start();
+    press('a');
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    expect(wk!.getSnapshot().cheatsheet.visible).toBe(false);
+    wk!.toggleCheatsheet();
+    expect(wk!.getSnapshot().cheatsheet.visible).toBe(true);
+
+    wk!.stop();
+    warn.mockRestore();
+  });
+
+  it('still binds a valid helpKey', () => {
+    const wk = createWhichKey({ helpKey: 'F1' });
+    expect(wk.registry.getActive('F1')).toBeDefined();
+  });
+
+  it('binds nothing when helpKey is null, without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    expect(wk.registry.getAllActive()).toHaveLength(0);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe('createWhichKey — timeoutMs validation [B30]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  // Registers a leaf-and-prefix pair ("g" alone isn't bound, only "g a" is,
+  // so "g" is a pure prefix), presses "g", advances fake timers by `ms`, and
+  // reports whether the popup is visible at that point. Reuses the file's
+  // existing `press` helper rather than dispatching directly on `document`.
+  const popupAppearsAfter = (wk: ReturnType<typeof createWhichKey>, ms: number): boolean => {
+    wk.register('g a', vi.fn());
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(ms);
+    const visible = wk.getSnapshot().popup.visible;
+    wk.stop();
+    return visible;
+  };
+
+  it.each([-1, NaN, -Infinity, 3e9])('clamps %p to the 500ms default', (bad) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ timeoutMs: bad });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid timeoutMs'));
+    expect(popupAppearsAfter(wk, 0)).toBe(false);
+    warn.mockRestore();
+  });
+
+  it('does not warn when timeoutMs is simply absent', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey();
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('timeoutMs'));
+    warn.mockRestore();
+  });
+
+  it('honours a valid explicit timeoutMs', () => {
+    const wk = createWhichKey({ timeoutMs: 50 });
+    expect(popupAppearsAfter(wk, 50)).toBe(true);
+  });
+
+  it('accepts 0 as a deliberate instant popup', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ timeoutMs: 0 });
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('timeoutMs'));
+    expect(popupAppearsAfter(wk, 0)).toBe(true);
+    warn.mockRestore();
+  });
+});
+
+describe('buildCheatsheetModel — labelled single-entry prefix [B37]', () => {
+  it('renders a labelled single-entry prefix as a group, not standalone', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('g', vi.fn(), { description: 'Go' });
+    wk.registerGroup('g', { description: 'Go to' });
+
+    const model = wk.getCheatsheetModel();
+    expect(model.standalone).toEqual([]);
+    expect(model.groups).toEqual([
+      { prefix: 'g', description: 'Go to', entries: [{ keys: 'g', description: 'Go' }] },
+    ]);
+  });
+
+  it('still puts an UNlabelled single-entry prefix in standalone', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('g', vi.fn(), { description: 'Go' });
+
+    const model = wk.getCheatsheetModel();
+    expect(model.standalone).toEqual([{ keys: 'g', description: 'Go' }]);
+    expect(model.groups).toEqual([]);
   });
 });

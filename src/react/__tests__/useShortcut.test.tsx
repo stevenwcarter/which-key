@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { useState } from 'react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
 import { useShortcut } from '../useShortcut';
+import { resetNoProviderWarnings } from '../context';
 
 const Bound = ({
   onFire,
@@ -16,6 +17,8 @@ const Bound = ({
 };
 
 describe('useShortcut', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
   it('registers on mount and fires for the key', () => {
     const handler = vi.fn();
     render(
@@ -126,6 +129,24 @@ describe('useShortcut', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
     expect(handler).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
+    warn.mockRestore();
+  });
+
+  it('does not tear down the consumer tree when the key string is invalid [B14]', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const Child = () => {
+      useShortcut('Hyper+K', () => {});
+      return <div data-testid="alive">ok</div>;
+    };
+    let result: ReturnType<typeof render> | undefined;
+    expect(() => {
+      result = render(
+        <WhichKeyProvider>
+          <Child />
+        </WhichKeyProvider>,
+      );
+    }).not.toThrow();
+    expect(result!.getByTestId('alive')).toBeInTheDocument();
     warn.mockRestore();
   });
 });

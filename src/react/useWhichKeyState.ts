@@ -1,5 +1,5 @@
-import { useContext, useMemo, useSyncExternalStore } from 'react';
-import { WhichKeyContext } from './context';
+import { useContext, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { WhichKeyContext, warnNoProvider } from './context';
 import type { WhichKeyState, WhichKeySnapshot } from '../engine';
 
 const EMPTY: WhichKeySnapshot = {
@@ -9,17 +9,25 @@ const EMPTY: WhichKeySnapshot = {
 const noopSubscribe = () => () => {};
 const getEmptySnapshot = () => EMPTY;
 
-export const useWhichKeyState = (): WhichKeyState => {
+export const useWhichKeyState = (what = 'useWhichKeyState()'): WhichKeyState => {
   const engine = useContext(WhichKeyContext);
+  // From an effect, not render: this hook backs SSR-safe components that must
+  // produce no output (and no console noise) on the server.
+  useEffect(() => {
+    if (!engine) warnNoProvider(what);
+  }, [engine, what]);
   const snapshot = useSyncExternalStore(
     engine ? engine.subscribe : noopSubscribe,
     engine ? engine.getSnapshot : getEmptySnapshot,
     getEmptySnapshot,
   );
-  return useMemo<WhichKeyState>(() => ({
-    visible: snapshot.popup.visible,
-    currentSequence: snapshot.popup.currentSequence,
-    candidates: snapshot.popup.candidates,
-    cancel: engine ? engine.cancel : () => {},
-  }), [snapshot, engine]);
+  return useMemo<WhichKeyState>(
+    () => ({
+      visible: snapshot.popup.visible,
+      currentSequence: snapshot.popup.currentSequence,
+      candidates: snapshot.popup.candidates,
+      cancel: engine ? engine.cancel : () => {},
+    }),
+    [snapshot, engine],
+  );
 };

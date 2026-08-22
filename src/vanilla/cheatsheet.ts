@@ -21,7 +21,9 @@ const item = (p: string, keys: string, description: string | undefined): HTMLEle
 };
 
 export const renderCheatsheet = (
-  p: string, model: CheatsheetModel, onClose: () => void,
+  p: string,
+  model: CheatsheetModel,
+  onClose: () => void,
 ): { element: HTMLElement; destroy: () => void } => {
   const backdrop = document.createElement('div');
   backdrop.className = `${p}-backdrop`;
@@ -94,14 +96,20 @@ export const renderCheatsheet = (
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
     const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (items.length === 0) { e.preventDefault(); panel.focus(); return; }
+    if (items.length === 0) {
+      e.preventDefault();
+      panel.focus();
+      return;
+    }
     const first = items[0];
     const last = items[items.length - 1];
     const active = document.activeElement;
     if (e.shiftKey && (active === first || active === panel)) {
-      e.preventDefault(); last.focus();
+      e.preventDefault();
+      last.focus();
     } else if (!e.shiftKey && active === last) {
-      e.preventDefault(); first.focus();
+      e.preventDefault();
+      first.focus();
     }
   };
   document.addEventListener('keydown', onKey);

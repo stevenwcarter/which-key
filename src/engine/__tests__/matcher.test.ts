@@ -222,6 +222,17 @@ describe('Matcher — sequences', () => {
     expect(onFire).toHaveBeenCalledOnce();
   });
 
+  it('Escape completes a pending compound sequence when a leaf is registered for it, instead of cancelling [B38]', () => {
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire });
+    const e = entry({ keys: 'g Escape' });
+    registry.register(e);
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    matcher.handleKeyDown(ev({ key: 'Escape' }));
+    expect(onFire).toHaveBeenCalledOnce();
+    expect(onFire).toHaveBeenCalledWith(e, expect.any(KeyboardEvent));
+  });
+
   it('mismatched key after a prefix clears buffer', () => {
     const onFire = vi.fn();
     const onHidePopup = vi.fn();
@@ -240,10 +251,11 @@ describe('Matcher — sequences', () => {
     const seq = entry({ id: 'seq', keys: 'g g' });
     registry.register(leaf);
     registry.register(seq);
-    matcher.handleKeyDown(ev({ key: 'g' }));
+    const triggering = ev({ key: 'g' });
+    matcher.handleKeyDown(triggering);
     expect(onFire).not.toHaveBeenCalled();
     vi.advanceTimersByTime(500);
-    expect(onFire).toHaveBeenCalledWith(leaf, expect.any(KeyboardEvent));
+    expect(onFire).toHaveBeenCalledWith(leaf, triggering);
   });
 
   it('leaf-AND-prefix: continues sequence when a follow-up arrives', () => {
@@ -269,6 +281,44 @@ describe('Matcher — sequences', () => {
     vi.advanceTimersByTime(1000);
     expect(onFire).toHaveBeenCalledOnce();
   });
+});
+
+describe('Matcher — leaf-AND-prefix timeout event fidelity [B17]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('hands the handler the real triggering event, not a synthetic one', () => {
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire }, 500);
+    const leaf = entry({ id: 'leaf', keys: 'Ctrl+G' });
+    registry.register(leaf);
+    registry.register(entry({ id: 'deeper', keys: 'Ctrl+G h' }));
+
+    const target = document.createElement('div');
+    const triggering = ev({ key: 'g', ctrlKey: true, cancelable: true }, target);
+    matcher.handleKeyDown(triggering);
+    vi.advanceTimersByTime(500);
+
+    expect(onFire).toHaveBeenCalledOnce();
+    const fired = onFire.mock.calls[0][1];
+    expect(fired).toBe(triggering);
+    expect(fired.target).toBe(target);
+    expect(fired.ctrlKey).toBe(true);
+    expect(fired.cancelable).toBe(true);
+  });
+
+  // A sibling test used to sit here asserting that a handler calling
+  // preventDefault() on the timed-out event left `defaultPrevented === true`,
+  // titled as if this proved the handler could "actually preventDefault the
+  // timed-out event". It didn't: the assertion is trivially true for any
+  // event constructed with `cancelable: true` regardless of dispatch or of
+  // which code path produced it (confirmed empirically — calling
+  // preventDefault() on a freshly constructed, never-dispatched cancelable
+  // KeyboardEvent always sets defaultPrevented, synthetic or real). The
+  // `cancelable` fidelity it depended on is already asserted directly, and
+  // more clearly, by `expect(fired.cancelable).toBe(true)` above, so the
+  // test added no coverage beyond the one above it and has been removed
+  // rather than retitled to a narrower true claim that duplicates it.
 });
 
 describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher half]', () => {
@@ -334,5 +384,56 @@ describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher hal
       expect.objectContaining({ id: 'z' }),
       expect.any(KeyboardEvent),
     );
+  });
+});
+
+describe('Matcher — popup freshness during the leaf-AND-prefix wait [B21]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('refreshes the visible popup when a leaf-AND-prefix key commits', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x' }));
+    registry.register(entry({ id: 'gp', keys: 'g p' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g'] });
+
+    onShowPopup.mockClear();
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onShowPopup).toHaveBeenCalledOnce();
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g', 'h'] });
+  });
+
+  it('does not refresh when the popup is not yet visible', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onShowPopup).not.toHaveBeenCalled();
+  });
+
+  it('never surfaces a buffer tainted by a character echoed into a text field', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const onHidePopup = vi.fn<HideFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup, onHidePopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h', enableOnInputs: true }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x', enableOnInputs: true }));
+    registry.register(entry({ id: 'gp', keys: 'g p', enableOnInputs: true }));
+
+    const input = document.createElement('input');
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    onShowPopup.mockClear();
+
+    // 'h' typed into a text field echoes a character — the latch must hold.
+    matcher.handleKeyDown(ev({ key: 'h' }, input));
+    expect(onShowPopup).not.toHaveBeenCalled();
   });
 });

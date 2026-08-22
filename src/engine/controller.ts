@@ -3,10 +3,23 @@ import { Matcher } from './matcher';
 import { parseKey, parseSequence } from './keys';
 import { resolveSort } from './sort';
 import type {
-  KeyComparator, ShortcutHandler, ShortcutOptions, ShortcutEntry, WhichKeyCandidate, SortMode,
+  KeyComparator,
+  ShortcutHandler,
+  ShortcutOptions,
+  ShortcutEntry,
+  WhichKeyCandidate,
+  SortMode,
 } from './types';
 
 const DEFAULT_HELP_ID = '__whichkey_default_help__';
+
+// keys.ts's thrown Errors are already prefixed "whichkey: " (correct for
+// that Error surfacing on its own, unwrapped). Strip it here so composing it
+// into a "[whichkey] ..." warning doesn't double the tag (was: '[whichkey]
+// invalid key string "...": whichkey: ...'). Any soft-fail site that
+// composes another module's Error message into a [whichkey] warning should
+// route it through this helper.
+const stripWhichkeyPrefix = (message: string): string => message.replace(/^whichkey:\s*/, '');
 
 export type WhichKeyOptions = {
   timeoutMs?: number;
@@ -16,7 +29,11 @@ export type WhichKeyOptions = {
 };
 
 export type CheatsheetEntry = { keys: string; description: string | undefined };
-export type CheatsheetGroup = { prefix: string; description: string | undefined; entries: CheatsheetEntry[] };
+export type CheatsheetGroup = {
+  prefix: string;
+  description: string | undefined;
+  entries: CheatsheetEntry[];
+};
 export type CheatsheetModel = { standalone: CheatsheetEntry[]; groups: CheatsheetGroup[] };
 
 export type WhichKeySnapshot = {
@@ -33,7 +50,10 @@ export type LayerHandle = {
 
 export type WhichKeyEngine = {
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
-  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  registerGroup(
+    prefix: string,
+    options: { description: string; priority?: number; level?: number },
+  ): () => void;
   activateLayer(level: number, exclusive: boolean): () => void;
   pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
   start(): void;
@@ -63,7 +83,11 @@ const buildCheatsheetModel = (
   const standalone: CheatsheetEntry[] = [];
   const groups: CheatsheetGroup[] = [];
   for (const [prefix, entries] of buckets) {
-    if (entries.length === 1 && entries[0].keys === prefix) {
+    // A single entry whose keys ARE the prefix is a standalone shortcut —
+    // unless the consumer registered a group label for that prefix, in which
+    // case standalone would silently drop the label (standalone entries carry
+    // no group description).
+    if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix)) {
       standalone.push(entries[0]);
     } else {
       groups.push({ prefix, description: registry.getActiveGroup(prefix)?.description, entries });
@@ -78,7 +102,22 @@ const buildCheatsheetModel = (
 };
 
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
-  const { timeoutMs = 500, helpKey = '?', sortKeys } = options;
+  const { helpKey = '?', sortKeys } = options;
+  // setTimeout silently coerces NaN / negative / overflow to 0, which turns
+  // "wait before showing the popup" into "fire instantly" with no diagnostic.
+  // Validate at the boundary; the public timeoutMs?: number stays unchanged.
+  // MAX_SETTIMEOUT_DELAY_MS is the largest delay setTimeout honours: it
+  // stores the delay in a signed 32-bit int, so anything past this overflows
+  // and is coerced to fire almost immediately — the same silent-instant-fire
+  // failure as NaN/negative, just reached from the other direction.
+  const MAX_SETTIMEOUT_DELAY_MS = 2147483647;
+  const timeoutMs = ((): number => {
+    const raw = options.timeoutMs;
+    if (raw === undefined) return 500;
+    if (Number.isFinite(raw) && raw >= 0 && raw <= MAX_SETTIMEOUT_DELAY_MS) return raw;
+    console.warn(`[whichkey] invalid timeoutMs ${String(raw)}; falling back to 500ms.`);
+    return 500;
+  })();
   const explicitTarget = options.target;
   let bound: Document | HTMLElement | null = null;
   const registry = new ShortcutRegistry();
@@ -144,17 +183,26 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   });
 
   if (helpKey) {
-    registry.register({
-      id: DEFAULT_HELP_ID,
-      keys: parseKey(helpKey),
-      handler: () => toggleCheatsheet(),
-      description: 'Toggle keyboard shortcuts',
-      enableOnInputs: false,
-      priority: -1,
-      enabled: true,
-      level: 0,
-      global: true,
-    });
+    // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
+    // a throw here unmounts the consumer's entire tree with no error boundary
+    // in between. Matches useShortcut's missing-provider warn convention.
+    try {
+      registry.register({
+        id: DEFAULT_HELP_ID,
+        keys: parseKey(helpKey),
+        handler: () => toggleCheatsheet(),
+        description: 'Toggle keyboard shortcuts',
+        enableOnInputs: false,
+        priority: -1,
+        enabled: true,
+        level: 0,
+        global: true,
+      });
+    } catch (err) {
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      const message = stripWhichkeyPrefix(rawMessage);
+      console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
+    }
   }
 
   const handler = (event: Event) => matcher.handleKeyDown(event as KeyboardEvent);
@@ -162,10 +210,30 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   const engine: WhichKeyEngine = {
     registry,
     register(keys, h, opts) {
+      // Soft-fail on consumer misuse, matching useShortcut's missing-provider
+      // warn. register() runs inside a useEffect in the React binding, where a
+      // throw is unrecoverable and unmounts the consumer's whole subtree.
+      if (typeof h !== 'function') {
+        console.warn(
+          `[whichkey] handler for "${keys}" is not a function; shortcut not registered.`,
+        );
+        return () => {};
+      }
+      let canonical: string;
+      try {
+        canonical = parseSequence(keys).join(' ');
+      } catch (err) {
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        const message = stripWhichkeyPrefix(rawMessage);
+        console.warn(
+          `[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`,
+        );
+        return () => {};
+      }
       const id = `wk_${idCounter++}`;
       const entry: ShortcutEntry = {
         id,
-        keys: parseSequence(keys).join(' '),
+        keys: canonical,
         handler: h,
         description: opts?.description,
         enableOnInputs: opts?.enableOnInputs ?? false,
@@ -178,8 +246,28 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       return () => registry.unregister(id);
     },
     registerGroup(prefix, opts) {
+      // Canonicalize into the SAME namespace register() uses. Storing the raw
+      // prefix meant registerGroup('Shift+a') and register('Shift+a b') keyed
+      // differently ('Shift+a' vs 'A b'), so the label silently never rendered.
+      let canonical: string;
+      try {
+        canonical = parseSequence(prefix).join(' ');
+      } catch (err) {
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        const message = stripWhichkeyPrefix(rawMessage);
+        console.warn(
+          `[whichkey] invalid group prefix "${prefix}": ${message}; group not registered.`,
+        );
+        return () => {};
+      }
       const id = `wkg_${idCounter++}`;
-      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: opts.level ?? 0 });
+      registry.registerGroup({
+        id,
+        prefix: canonical,
+        description: opts.description,
+        priority: opts.priority ?? 0,
+        level: opts.level ?? 0,
+      });
       return () => registry.unregisterGroup(id);
     },
     activateLayer(level, exclusive) {
@@ -195,11 +283,38 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       };
     },
     pushLayer(opts) {
-      const level = opts?.level ?? registry.nextLevel();
+      const nextLevel = registry.nextLevel();
+      // A negative level is permanently unreachable: blockLevel() floors at 0
+      // and isReachable requires entry.level >= block, so every shortcut on
+      // the layer registers fine, the handle looks healthy, and the keys
+      // silently never fire. Non-integers and non-finite values are equally
+      // meaningless as level ordinals.
+      const requested = opts?.level;
+      let level: number;
+      if (requested === undefined) {
+        level = nextLevel;
+      } else if (!Number.isInteger(requested) || requested < 0) {
+        console.warn(
+          `[whichkey] invalid pushLayer level ${String(requested)}; ` +
+            `expected a non-negative integer. Falling back to ${nextLevel}.`,
+        );
+        level = nextLevel;
+      } else {
+        if (requested < nextLevel - 1) {
+          console.warn(
+            `[whichkey] pushLayer level ${requested} undercuts the next free level ` +
+              `(${nextLevel}); shortcuts on this layer may be blocked by an active exclusive layer.`,
+          );
+        }
+        level = requested;
+      }
       const deactivate = engine.activateLayer(level, opts?.exclusive ?? false);
       const owned = new Set<() => void>();
       const track = (un: () => void): (() => void) => {
-        const wrapped = () => { un(); owned.delete(wrapped); };
+        const wrapped = () => {
+          un();
+          owned.delete(wrapped);
+        };
         owned.add(wrapped);
         return wrapped;
       };
@@ -230,16 +345,24 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     subscribe(listener) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     getSnapshot() {
       return snapshot;
     },
     openCheatsheet() {
-      if (!cheatsheetVisible) { cheatsheetVisible = true; emit(); }
+      if (!cheatsheetVisible) {
+        cheatsheetVisible = true;
+        emit();
+      }
     },
     closeCheatsheet() {
-      if (cheatsheetVisible) { cheatsheetVisible = false; emit(); }
+      if (cheatsheetVisible) {
+        cheatsheetVisible = false;
+        emit();
+      }
     },
     toggleCheatsheet,
     cancel() {

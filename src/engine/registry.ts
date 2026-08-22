@@ -4,13 +4,20 @@ export class ShortcutRegistry {
   private shortcuts = new Map<string, ShortcutEntry[]>();
   private groups = new Map<string, GroupEntry[]>();
   private layers = new Map<string, { level: number; exclusive: boolean }>();
+  // blockLevel() is invariant between layer mutations but is called once per
+  // bucket from findActive/getActiveGroup — so a single getAllActive() over N
+  // keys used to cost N full layer scans. activateLayer and deactivateLayer
+  // are the only two writers of `layers`, so nulling here is exhaustive.
+  private blockLevelCache: number | null = null;
 
   activateLayer(id: string, level: number, exclusive: boolean): void {
     this.layers.set(id, { level, exclusive });
+    this.blockLevelCache = null;
   }
 
   deactivateLayer(id: string): void {
     this.layers.delete(id);
+    this.blockLevelCache = null;
   }
 
   nextLevel(): number {
@@ -20,10 +27,12 @@ export class ShortcutRegistry {
   }
 
   private blockLevel(): number {
+    if (this.blockLevelCache !== null) return this.blockLevelCache;
     let block = 0;
     for (const { level, exclusive } of this.layers.values()) {
       if (exclusive && level > block) block = level;
     }
+    this.blockLevelCache = block;
     return block;
   }
 
@@ -44,7 +53,8 @@ export class ShortcutRegistry {
     // own level, independent of which one findActive ends up crowning.
     const block = this.blockLevel();
     const rival = bucket.find(
-      (e) => e.id !== entry.id && e.level === entry.level && e.enabled && this.isReachable(e, block),
+      (e) =>
+        e.id !== entry.id && e.level === entry.level && e.enabled && this.isReachable(e, block),
     );
     if (rival !== undefined) {
       const winner = this.findActive(bucket);
@@ -128,6 +138,11 @@ export class ShortcutRegistry {
 
   getActiveCandidates(prefix: string): WhichKeyCandidate[] {
     const prefixWithSpace = prefix + ' ';
+    // Keyed by nextKey alone. A leaf `g h` and a deeper `g h i` are the SAME
+    // row in the popup — the user presses one key. Keying by the full key
+    // string for leaves but by the sub-prefix for deeper sequences made the
+    // two collide on 'g h' and silently dropped whichever registered second,
+    // so the output depended on registration order.
     const seen = new Map<string, WhichKeyCandidate>();
     for (const [keys, bucket] of this.shortcuts) {
       if (!keys.startsWith(prefixWithSpace)) continue;
@@ -137,15 +152,28 @@ export class ShortcutRegistry {
       const firstSpace = remainder.indexOf(' ');
       const isGroup = firstSpace >= 0;
       const nextKey = isGroup ? remainder.slice(0, firstSpace) : remainder;
-      const subPrefix = prefix + ' ' + nextKey;
-      const candidateKey = isGroup ? subPrefix : keys;
-      if (seen.has(candidateKey)) continue;
-      const description = isGroup ? this.getActiveGroup(subPrefix)?.description : top.description;
-      seen.set(candidateKey, {
-        keys: candidateKey,
+      const subPrefix = prefixWithSpace + nextKey;
+      const existing = seen.get(nextKey);
+      // Merge rather than skip: once ANY deeper continuation exists for this
+      // nextKey the row is a group. `top.description` only ever describes the
+      // exact leaf at `subPrefix` (this iteration's own `keys`) — for a
+      // deeper continuation (isGroup) `top` is the entry at the LONGER key,
+      // whose description belongs to that longer key, not this row, so it
+      // must never be used as a filler here (doing so made the result
+      // order-dependent again: whichever entry got processed first would
+      // plant its own description as a false stand-in for the group's).
+      // The fallback chain is: the registered group label, then whatever
+      // real leaf description this row already picked up (from either
+      // order), then — only when THIS entry is itself the exact leaf — its
+      // own description.
+      const groupDescription = this.getActiveGroup(subPrefix)?.description;
+      seen.set(nextKey, {
+        keys: subPrefix,
         nextKey,
-        description,
-        isGroup,
+        description: isGroup
+          ? (groupDescription ?? existing?.description)
+          : (groupDescription ?? existing?.description ?? top.description),
+        isGroup: isGroup || (existing?.isGroup ?? false),
       });
     }
     return Array.from(seen.values());

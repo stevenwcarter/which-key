@@ -22,11 +22,13 @@
 ### Task 1: Registry layer state + reachability resolution
 
 **Files:**
+
 - Modify: `src/engine/types.ts`
 - Modify: `src/engine/registry.ts`
 - Test: `src/engine/__tests__/registry.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `ShortcutEntry`, `GroupEntry`, `ShortcutRegistry`.
 - Produces:
   - `ShortcutEntry` gains `level: number`, `global: boolean`.
@@ -44,8 +46,14 @@ import { ShortcutRegistry } from '../registry';
 import type { ShortcutEntry } from '../types';
 
 const entry = (over: Partial<ShortcutEntry> & { keys: string; id: string }): ShortcutEntry => ({
-  handler: () => {}, description: undefined, enableOnInputs: false,
-  priority: 0, enabled: true, level: 0, global: false, ...over,
+  handler: () => {},
+  description: undefined,
+  enableOnInputs: false,
+  priority: 0,
+  enabled: true,
+  level: 0,
+  global: false,
+  ...over,
 });
 
 describe('registry layers', () => {
@@ -54,8 +62,8 @@ describe('registry layers', () => {
     r.register(entry({ id: 'base', keys: 'a', level: 0 }));
     r.register(entry({ id: 'modal', keys: 'b', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('a')).toBeUndefined();      // base suppressed
-    expect(r.getActive('b')?.id).toBe('modal');     // layer reachable
+    expect(r.getActive('a')).toBeUndefined(); // base suppressed
+    expect(r.getActive('b')?.id).toBe('modal'); // layer reachable
   });
 
   it('additive layer leaves lower entries reachable', () => {
@@ -77,7 +85,7 @@ describe('registry layers', () => {
     r.register(entry({ id: 'help', keys: '?', level: 0, global: true }));
     r.register(entry({ id: 'modalHelp', keys: '?', level: 1 }));
     r.activateLayer('L1', 1, true);
-    expect(r.getActive('?')?.id).toBe('modalHelp');  // (level,priority,index): level 1 wins
+    expect(r.getActive('?')?.id).toBe('modalHelp'); // (level,priority,index): level 1 wins
   });
 
   it('deactivateLayer re-reveals the layer beneath', () => {
@@ -115,15 +123,20 @@ Expected: FAIL — `activateLayer`/`nextLevel` not a function; `level`/`global` 
 - [ ] **Step 3: Add fields to `types.ts`**
 
 In `ShortcutEntry` add:
+
 ```ts
-  level: number;
-  global: boolean;
+level: number;
+global: boolean;
 ```
+
 In `GroupEntry` add:
+
 ```ts
-  level: number;
+level: number;
 ```
+
 In `ShortcutOptions` add:
+
 ```ts
   global?: boolean;
   level?: number;
@@ -235,11 +248,13 @@ git commit -m "feat(engine): registry layer state + reachability resolution"
 ### Task 2: Controller `pushLayer` handle + global help
 
 **Files:**
+
 - Modify: `src/engine/controller.ts`
 - Modify: `src/engine/index.ts` (export `LayerHandle` type)
 - Test: `src/engine/__tests__/controller.test.ts`
 
 **Interfaces:**
+
 - Consumes: `registry.activateLayer/deactivateLayer/nextLevel` (Task 1).
 - Produces (on `WhichKeyEngine`):
   - `register(keys, handler, options?)` now passes `options.level ?? 0` and `options.global ?? false` into the entry.
@@ -317,12 +332,14 @@ export type LayerHandle = {
 ```
 
 Add to the `WhichKeyEngine` type:
+
 ```ts
   activateLayer(level: number, exclusive: boolean): () => void;
   pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
 ```
 
 In `register`, thread the new fields (the entry object):
+
 ```ts
         priority: opts?.priority ?? 0,
         enabled: opts?.enabled ?? true,
@@ -331,6 +348,7 @@ In `register`, thread the new fields (the entry object):
 ```
 
 In `registerGroup`, accept `level`:
+
 ```ts
     registerGroup(prefix, opts) {
       const id = `wkg_${idCounter++}`;
@@ -341,24 +359,27 @@ In `registerGroup`, accept `level`:
       return () => registry.unregisterGroup(id);
     },
 ```
+
 (Widen the `registerGroup` option type on `WhichKeyEngine` to `{ description: string; priority?: number; level?: number }`.)
 
 In the built-in help registration, add `global: true` and `level: 0`:
+
 ```ts
-    registry.register({
-      id: DEFAULT_HELP_ID,
-      keys: parseKey(helpKey),
-      handler: () => toggleCheatsheet(),
-      description: 'Toggle keyboard shortcuts',
-      enableOnInputs: false,
-      priority: -1,
-      enabled: true,
-      level: 0,
-      global: true,
-    });
+registry.register({
+  id: DEFAULT_HELP_ID,
+  keys: parseKey(helpKey),
+  handler: () => toggleCheatsheet(),
+  description: 'Toggle keyboard shortcuts',
+  enableOnInputs: false,
+  priority: -1,
+  enabled: true,
+  level: 0,
+  global: true,
+});
 ```
 
 Add `activateLayer` and `pushLayer` to the returned object:
+
 ```ts
     activateLayer(level, exclusive) {
       const id = `wklayer_${idCounter++}`;
@@ -392,13 +413,20 @@ Add `activateLayer` and `pushLayer` to the returned object:
       };
     },
 ```
+
 Note: `this` inside the returned object literal refers to the engine object — keep the object as a single returned literal so `this.register`/`this.activateLayer` resolve. (The existing object is already returned directly; these methods can call the sibling methods via `this`.)
 
 - [ ] **Step 4: Export the type** in `src/engine/index.ts` — add `LayerHandle` to the `controller` type export list:
+
 ```ts
 export type {
-  WhichKeyOptions, WhichKeyEngine, WhichKeySnapshot, LayerHandle,
-  CheatsheetEntry, CheatsheetGroup, CheatsheetModel,
+  WhichKeyOptions,
+  WhichKeyEngine,
+  WhichKeySnapshot,
+  LayerHandle,
+  CheatsheetEntry,
+  CheatsheetGroup,
+  CheatsheetModel,
 } from './controller';
 ```
 
@@ -419,9 +447,11 @@ git commit -m "feat(engine): pushLayer handle, activateLayer, global help"
 ### Task 3: Matcher integration tests (no production change expected)
 
 **Files:**
+
 - Test: `src/engine/__tests__/layers.test.ts` (create)
 
 **Interfaces:**
+
 - Consumes: `createWhichKey`, `pushLayer` (Task 2). Drives real `keydown` events through the matcher.
 
 - [ ] **Step 1: Write failing/guarding tests.** This validates invariants 1 & 2 end-to-end. If they pass immediately, that confirms the matcher needed no change — keep them as regression guards.
@@ -486,6 +516,7 @@ git commit -m "test(engine): layer suppression/global integration guards"
 ### Task 4: React `<WhichKeyLayer>` + level-threaded hooks
 
 **Files:**
+
 - Modify: `src/react/context.ts`
 - Create: `src/react/WhichKeyLayer.tsx`
 - Modify: `src/react/useShortcut.ts`
@@ -494,6 +525,7 @@ git commit -m "test(engine): layer suppression/global integration guards"
 - Test: `src/react/__tests__/WhichKeyLayer.test.tsx` (create)
 
 **Interfaces:**
+
 - Consumes: `engine.activateLayer` (Task 2), `WhichKeyContext`.
 - Produces:
   - `LayerContext` (React context) holding `{ level: number }`, default `{ level: 0 }`.
@@ -607,12 +639,16 @@ import { WhichKeyContext, LayerContext } from './context';
 import type { ShortcutHandler, ShortcutOptions } from '../engine';
 
 export const useShortcut = (
-  keys: string, handler: ShortcutHandler, options?: ShortcutOptions,
+  keys: string,
+  handler: ShortcutHandler,
+  options?: ShortcutOptions,
 ): void => {
   const engine = useContext(WhichKeyContext);
   const { level } = useContext(LayerContext);
   const handlerRef = useRef(handler);
-  useLayoutEffect(() => { handlerRef.current = handler; }, [handler]);
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
   const description = options?.description;
   const enableOnInputs = options?.enableOnInputs ?? false;
   const priority = options?.priority ?? 0;
@@ -620,11 +656,18 @@ export const useShortcut = (
   const global = options?.global ?? false;
   useEffect(() => {
     if (!engine) {
-      console.warn('[whichkey] useShortcut called outside <WhichKeyProvider>; shortcut will not register.');
+      console.warn(
+        '[whichkey] useShortcut called outside <WhichKeyProvider>; shortcut will not register.',
+      );
       return;
     }
     return engine.register(keys, (event) => handlerRef.current(event), {
-      description, enableOnInputs, priority, enabled, global, level,
+      description,
+      enableOnInputs,
+      priority,
+      enabled,
+      global,
+      level,
     });
   }, [engine, keys, description, enableOnInputs, priority, enabled, global, level]);
 };
@@ -637,14 +680,17 @@ import { useContext, useEffect } from 'react';
 import { WhichKeyContext, LayerContext } from './context';
 
 export const useShortcutGroup = (
-  prefix: string, options: { description: string; priority?: number },
+  prefix: string,
+  options: { description: string; priority?: number },
 ): void => {
   const engine = useContext(WhichKeyContext);
   const { level } = useContext(LayerContext);
   const { description, priority = 0 } = options;
   useEffect(() => {
     if (!engine) {
-      console.warn('[whichkey] useShortcutGroup called outside <WhichKeyProvider>; group will not register.');
+      console.warn(
+        '[whichkey] useShortcutGroup called outside <WhichKeyProvider>; group will not register.',
+      );
       return;
     }
     return engine.registerGroup(prefix, { description, priority, level });
@@ -653,6 +699,7 @@ export const useShortcutGroup = (
 ```
 
 - [ ] **Step 7: Export from `src/react/index.ts`** — add:
+
 ```ts
 export { WhichKeyLayer } from './WhichKeyLayer';
 export type { WhichKeyLayerProps } from './WhichKeyLayer';
@@ -681,6 +728,7 @@ git commit -m "feat(react): <WhichKeyLayer> and level-aware hooks"
 ### Task 5: Docs, examples, CLAUDE.local.md, changeset
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `examples/react/App.tsx`
 - Modify: `examples/vanilla/index.html`
@@ -688,6 +736,7 @@ git commit -m "feat(react): <WhichKeyLayer> and level-aware hooks"
 - Create: `.changeset/<name>.md`
 
 **Interfaces:**
+
 - Consumes: the full public API from Tasks 2 & 4.
 
 - [ ] **Step 1: README — add a "Layers" section.** Document, with runnable snippets:
@@ -695,7 +744,7 @@ git commit -m "feat(react): <WhichKeyLayer> and level-aware hooks"
   - React: `<WhichKeyLayer exclusive>…</WhichKeyLayer>` and that nested `useShortcut`/`useShortcutGroup` bind to it.
   - The `global: true` option (and that `?` help is global by default).
   - exclusive vs additive semantics and the resolution rule in one paragraph.
-  Place it after the existing shortcuts/cheatsheet sections; match the surrounding heading style.
+    Place it after the existing shortcuts/cheatsheet sections; match the surrounding heading style.
 
 - [ ] **Step 2: `examples/react/App.tsx`** — add a modal demo: a piece of state `modalOpen`, a button/shortcut to open it, and when open render `<WhichKeyLayer exclusive>` containing a couple of `useShortcut` calls (e.g. `j`/`k` or `Escape` to close). Show that page shortcuts don't fire while the modal is open and `?` still does.
 
@@ -711,9 +760,10 @@ Expected: ≤ 500 lines AND ≤ 20000 characters. If over either limit, move the
 - [ ] **Step 6: Add a changeset**
 
 Create `.changeset/keybinding-layers.md`:
+
 ```md
 ---
-"which-key": minor
+'which-key': minor
 ---
 
 Add keybinding layers: `engine.pushLayer({ exclusive })` and React `<WhichKeyLayer>` scope shortcuts to a UI state (e.g. a modal). Exclusive layers suppress lower-layer shortcuts; `global: true` shortcuts (and the `?` help) pierce them.

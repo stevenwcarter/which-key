@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StrictMode } from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { WhichKeyProvider } from '../WhichKeyProvider';
 import { WhichKeyLayer } from '../WhichKeyLayer';
 import { useShortcut } from '../useShortcut';
+import { resetNoProviderWarnings } from '../context';
 
 const Shortcut = ({ k, fn }: { k: string; fn: () => void }) => {
   useShortcut(k, fn);
@@ -93,5 +94,23 @@ describe('<WhichKeyLayer>', () => {
     // Inner shortcut 'b' must fire exactly once (not doubly-registered)
     fireEvent.keyDown(document, { key: 'b' });
     expect(modal).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('<WhichKeyLayer> outside a provider [B24]', () => {
+  beforeEach(() => resetNoProviderWarnings());
+
+  it('warns and does not throw outside a provider', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() =>
+      render(
+        <WhichKeyLayer>
+          <span />
+        </WhichKeyLayer>,
+      ),
+    ).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('<WhichKeyLayer>'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside <WhichKeyProvider>'));
+    warn.mockRestore();
   });
 });

@@ -25,7 +25,13 @@ npm i react react-dom
 > **SSR / client-only:** `<WhichKeyPopup>` and `<ShortcutCheatsheet>` render nothing during server rendering (Next.js, Remix, etc.) and activate after hydration on the client — they are client-only UI components.
 
 ```tsx
-import { WhichKeyProvider, useShortcut, useShortcutGroup, WhichKeyPopup, ShortcutCheatsheet } from 'which-key/react';
+import {
+  WhichKeyProvider,
+  useShortcut,
+  useShortcutGroup,
+  WhichKeyPopup,
+  ShortcutCheatsheet,
+} from 'which-key/react';
 import 'which-key/styles.css';
 
 function Editor() {
@@ -72,15 +78,15 @@ wk.start(); // attach the keydown listener; call wk.stop() to tear down
 
 Shortcuts are strings of one or more space-separated keys:
 
-| String    | Meaning                                    |
-|-----------|--------------------------------------------|
-| `s`       | Single key `s`                             |
-| `g h`     | Leader sequence: press `g`, then `h`       |
-| `Ctrl+s`  | `Control` + `s`                            |
-| `Alt+x`   | `Alt` (or `Option` on macOS) + `x`        |
-| `?`       | The shifted character itself — write `?`, not `Shift+/` |
-| `Cmd+k`   | `Command` (macOS) + `k`                   |
-| `Mod+s`   | `Cmd` on macOS, `Ctrl` elsewhere           |
+| String   | Meaning                                                 |
+| -------- | ------------------------------------------------------- |
+| `s`      | Single key `s`                                          |
+| `g h`    | Leader sequence: press `g`, then `h`                    |
+| `Ctrl+s` | `Control` + `s`                                         |
+| `Alt+x`  | `Alt` (or `Option` on macOS) + `x`                      |
+| `?`      | The shifted character itself — write `?`, not `Shift+/` |
+| `Cmd+k`  | `Command` (macOS) + `k`                                 |
+| `Mod+s`  | `Cmd` on macOS, `Ctrl` elsewhere                        |
 
 Modifiers are case-insensitive and can be combined: `Ctrl+Shift+p`.
 
@@ -114,11 +120,11 @@ In React the same option lives on `<WhichKeyProvider helpKey="F1" />`.
 
 ### Sort modes
 
-| Value              | Behavior                                        |
-|--------------------|-------------------------------------------------|
-| `'registration'`   | (default) Shortcuts appear in registration order |
-| `'alphabetical'`   | Sorted A–Z by key string                        |
-| custom comparator  | `(a: string, b: string) => number`              |
+| Value             | Behavior                                         |
+| ----------------- | ------------------------------------------------ |
+| `'registration'`  | (default) Shortcuts appear in registration order |
+| `'alphabetical'`  | Sorted A–Z by key string                         |
+| custom comparator | `(a: string, b: string) => number`               |
 
 ---
 
@@ -142,12 +148,12 @@ layer.pop();
 
 `pushLayer` returns a `LayerHandle`:
 
-| Property / method        | Description                                                         |
-|--------------------------|---------------------------------------------------------------------|
-| `level`                  | Numeric level assigned to this layer                                |
-| `register(keys, fn, opts?)` | Register a shortcut bound to this layer                          |
-| `registerGroup(prefix, opts)` | Register a group label bound to this layer                   |
-| `pop()`                  | Unregister all shortcuts on this layer and deactivate the layer     |
+| Property / method             | Description                                                     |
+| ----------------------------- | --------------------------------------------------------------- |
+| `level`                       | Numeric level assigned to this layer                            |
+| `register(keys, fn, opts?)`   | Register a shortcut bound to this layer                         |
+| `registerGroup(prefix, opts)` | Register a group label bound to this layer                      |
+| `pop()`                       | Unregister all shortcuts on this layer and deactivate the layer |
 
 **React**
 
@@ -155,8 +161,11 @@ Wrap the modal (or any conditional UI) in `<WhichKeyLayer>`. Every `useShortcut`
 
 ```tsx
 import {
-  WhichKeyProvider, WhichKeyLayer,
-  useShortcut, WhichKeyPopup, ShortcutCheatsheet,
+  WhichKeyProvider,
+  WhichKeyLayer,
+  useShortcut,
+  WhichKeyPopup,
+  ShortcutCheatsheet,
 } from 'which-key/react';
 import { useState } from 'react';
 
@@ -167,7 +176,9 @@ function Modal({ onClose }: { onClose: () => void }) {
   useShortcut('k', () => console.log('prev'), { description: 'Previous item' });
   return (
     <div role="dialog">
-      <p>Modal open — press <kbd>j</kbd>/<kbd>k</kbd> to navigate, <kbd>Escape</kbd> to close.</p>
+      <p>
+        Modal open — press <kbd>j</kbd>/<kbd>k</kbd> to navigate, <kbd>Escape</kbd> to close.
+      </p>
       <button onClick={onClose}>Close</button>
     </div>
   );
@@ -221,35 +232,36 @@ Import the prebuilt stylesheet:
 import 'which-key/styles.css';
 ```
 
-Or bring your own by targeting the `wk-*` CSS class contract. All classes use the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`):
+Or bring your own by targeting the `wk-*` CSS class contract. The class _contract_ uses the `wk-` prefix, or whatever you pass as `classPrefix` to `mountWhichKey` (vanilla only) — but the _shipped stylesheet_ (`which-key/styles.css`) is always written against `wk-` regardless of `classPrefix`; see the warning below the custom-prefix example. Most of these carry the default theme's styling and can be overridden to customize appearance; a few (like `wk-popup-host`) are deliberately unstyled structural hooks the theme leaves alone:
 
-| Class                         | Element                                          |
-|-------------------------------|--------------------------------------------------|
-| `wk-popup`                    | Popup container                                  |
-| `wk-popup--vertical`          | Modifier: corner popup layout                    |
-| `wk-popup--horizontal`        | Modifier: bottom-bar layout                      |
-| `wk-popup__header`            | Header area (vertical layout)                    |
-| `wk-popup__body`              | Body area (horizontal layout)                    |
-| `wk-popup__list`              | Candidate list (vertical layout)                 |
-| `wk-popup__grid`              | Candidate grid (horizontal layout)               |
-| `wk-row`                      | Single candidate row                             |
-| `wk-row--group`               | Modifier: row represents a group                 |
-| `wk-row__label`               | Candidate label text                             |
-| `wk-kbd`                      | `<kbd>` key chip                                 |
-| `wk-sequence`                 | Current-sequence display                         |
-| `wk-sequence__ellipsis`       | `…` trailing the current sequence                |
-| `wk-backdrop`                 | Full-screen dimmed overlay behind the cheatsheet |
-| `wk-cheatsheet`               | Cheatsheet panel (scrollable content box)        |
-| `wk-cheatsheet__close`        | Close button in the cheatsheet panel             |
-| `wk-cheatsheet__title`        | Cheatsheet heading                               |
-| `wk-cheatsheet__sections`     | Wrapper around all cheatsheet sections           |
-| `wk-cheatsheet__section`      | One group's section                              |
-| `wk-cheatsheet__list`         | List of shortcut entries                         |
-| `wk-cheatsheet__list--nested` | Modifier: list nested under a group              |
-| `wk-cheatsheet__item`         | One shortcut entry                               |
-| `wk-cheatsheet__group-title`  | Group heading row                                |
-| `wk-cheatsheet__group-label`  | Group description text                           |
-| `wk-cheatsheet__hint`         | "Press Escape to close" footer                   |
+| Class                         | Element                                                          |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `wk-popup`                    | Popup container                                                  |
+| `wk-popup-host`               | Structural wrapper holding the popup; unstyled; **vanilla only** |
+| `wk-popup--vertical`          | Modifier: corner popup layout                                    |
+| `wk-popup--horizontal`        | Modifier: bottom-bar layout                                      |
+| `wk-popup__header`            | Header area (vertical layout)                                    |
+| `wk-popup__body`              | Body area (horizontal layout)                                    |
+| `wk-popup__list`              | Candidate list (vertical layout)                                 |
+| `wk-popup__grid`              | Candidate grid (horizontal layout)                               |
+| `wk-row`                      | Single candidate row                                             |
+| `wk-row--group`               | Modifier: row represents a group                                 |
+| `wk-row__label`               | Candidate label text                                             |
+| `wk-kbd`                      | `<kbd>` key chip                                                 |
+| `wk-sequence`                 | Current-sequence display                                         |
+| `wk-sequence__ellipsis`       | `…` trailing the current sequence                                |
+| `wk-backdrop`                 | Full-screen dimmed overlay behind the cheatsheet                 |
+| `wk-cheatsheet`               | Cheatsheet panel (scrollable content box)                        |
+| `wk-cheatsheet__close`        | Close button in the cheatsheet panel                             |
+| `wk-cheatsheet__title`        | Cheatsheet heading                                               |
+| `wk-cheatsheet__sections`     | Wrapper around all cheatsheet sections                           |
+| `wk-cheatsheet__section`      | One group's section                                              |
+| `wk-cheatsheet__list`         | List of shortcut entries                                         |
+| `wk-cheatsheet__list--nested` | Modifier: list nested under a group                              |
+| `wk-cheatsheet__item`         | One shortcut entry                                               |
+| `wk-cheatsheet__group-title`  | Group heading row                                                |
+| `wk-cheatsheet__group-label`  | Group description text                                           |
+| `wk-cheatsheet__hint`         | "Press Escape to close" footer                                   |
 
 Custom `classPrefix` example (vanilla only):
 
@@ -258,11 +270,67 @@ mountWhichKey(wk, { classPrefix: 'myapp' });
 // produces: myapp-popup, myapp-kbd, etc.
 ```
 
+> **`classPrefix` opts you out of `which-key/styles.css` entirely.** The shipped stylesheet hardcodes `.wk-*` in every selector, so a custom prefix matches none of it — the popup and backdrop lose even their `position: fixed`, and everything renders inline in the body flow. This also swallows the `--wk-z-index`/`--wk-z-index-backdrop` custom properties described below: they only take effect inside the same `.wk-popup`/`.wk-backdrop` rules a custom prefix bypasses, so they don't offer a partial override either. If you set `classPrefix`, supply your own stylesheet covering the whole class table above. Do not import `which-key/styles.css` alongside it and expect a partial effect; there is none.
+>
+> `classPrefix` is **vanilla-only**. The React components always emit `wk-`.
+
+### Stacking order
+
+The overlay's `z-index` is exposed as a CSS custom property so you can place which-key relative to your own modal layer without out-specifying the shipped selectors:
+
+| Property                | Default             | Applies to                                        |
+| ----------------------- | ------------------- | ------------------------------------------------- |
+| `--wk-z-index`          | `1000`              | `.wk-popup`, and `.wk-backdrop` unless overridden |
+| `--wk-z-index-backdrop` | `var(--wk-z-index)` | `.wk-backdrop` only                               |
+
+```css
+:root {
+  --wk-z-index: 1400; /* above MUI's modal layer (1300) */
+}
+```
+
+The default of `1000` clears Ant Design's modal layer but sits below Bootstrap's `.modal` (1055) and MUI's modal (1300) — raise it if you need the cheatsheet over one of those.
+
+---
+
+## Troubleshooting
+
+which-key's failure mode is almost always "nothing happens". Work down this list.
+
+**1. Is `<WhichKeyProvider>` an ancestor, and did you call `engine.start()`?**
+The React hooks and both renderer components warn on the console when they are used outside the provider. The engine does not attach its `keydown` listener until `start()` is called — `mountWhichKey` deliberately does **not** call it for you.
+
+**2. Is focus in a text field?**
+Shortcuts are suppressed while focus is in an `<input>`, `<textarea>` or `contenteditable` element unless you register them with `enableOnInputs: true`.
+
+**3. Does your key string canonicalize to what the browser actually reports?**
+This is the most common silent failure. Registration and runtime both funnel through the same canonicalizer and the registry looks up plain strings, so a mismatch means the lookup simply misses:
+
+```ts
+import { parseKey, eventToCanonical } from 'which-key';
+
+document.addEventListener('keydown', (e) => {
+  console.log('pressed:', eventToCanonical(e), 'registered:', parseKey('g'));
+});
+```
+
+If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the _unshifted_ character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names being **case-sensitive and exact** — `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. Use the exact `KeyboardEvent.key` spelling.
+
+**4. Is an exclusive layer active?**
+An exclusive layer makes every shortcut below its level unreachable. Register with `global: true` to punch through, or check what is live with `engine.registry.getAllActive()`.
+
+**5. Is another registration winning?**
+Multiple components may bind the same key. The winner is decided by **level, then priority, then most-recent registration**. A same-level collision emits a console warning naming both entries; raise the loser's `priority` or unregister one.
+
+### Console warnings
+
+which-key writes diagnostics to the console prefixed with `[whichkey]`. Nearly all are `console.warn` advisories for consumer misuse; one is a `console.error` logged when your own shortcut handler throws. None of them propagates an exception into your app. See the [warning reference](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md#console-warnings) for what each one means.
+
 ---
 
 ## API
 
-See **[docs/API.md](./docs/API.md)** for the full reference.
+See **[docs/API.md](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md)** for the full reference.
 
 ---
 
@@ -274,7 +342,7 @@ The test suite is gated at **80%** (lines, statements, functions, branches). `np
 
 ## Contributing
 
-See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
+See **[CONTRIBUTING.md](https://github.com/stevenwcarter/which-key/blob/main/CONTRIBUTING.md)**.
 
 ---
 

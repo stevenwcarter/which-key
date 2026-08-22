@@ -40,7 +40,11 @@ describe('WhichKeyProvider', () => {
     // ADAPTED: engine.registry replaces ctx.registry
     expect(captured!.registry).toBeDefined();
     // ADAPTED: engine.getSnapshot().popup replaces ctx.popupState
-    expect(captured!.getSnapshot().popup).toEqual({ visible: false, currentSequence: [], candidates: [] });
+    expect(captured!.getSnapshot().popup).toEqual({
+      visible: false,
+      currentSequence: [],
+      candidates: [],
+    });
     // ADAPTED: engine.cancel replaces ctx.cancel
     expect(typeof captured!.cancel).toBe('function');
   });
@@ -81,7 +85,12 @@ describe('WhichKeyProvider', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -142,8 +151,15 @@ describe('WhichKeyProvider', () => {
 
   it('starts the engine on mount and stops it on unmount', () => {
     const fn = vi.fn();
-    const P = () => { useShortcut('x', fn); return null; };
-    const { unmount } = render(<WhichKeyProvider><P /></WhichKeyProvider>);
+    const P = () => {
+      useShortcut('x', fn);
+      return null;
+    };
+    const { unmount } = render(
+      <WhichKeyProvider>
+        <P />
+      </WhichKeyProvider>,
+    );
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
     expect(fn).toHaveBeenCalledTimes(1);
     unmount();
@@ -173,7 +189,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -204,7 +225,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>;
     };
@@ -229,7 +255,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return <span data-testid="cs">{snapshot.cheatsheet.visible ? 'on' : 'off'}</span>;
     };
@@ -251,7 +282,12 @@ describe('WhichKeyProvider — cheatsheet', () => {
       const ctx = useContext(WhichKeyContext);
       const snapshot = useSyncExternalStore(
         ctx ? ctx.subscribe : () => () => {},
-        ctx ? ctx.getSnapshot : () => ({ popup: { visible: false, currentSequence: [], candidates: [] }, cheatsheet: { visible: false } }),
+        ctx
+          ? ctx.getSnapshot
+          : () => ({
+              popup: { visible: false, currentSequence: [], candidates: [] },
+              cheatsheet: { visible: false },
+            }),
       );
       return (
         <>
@@ -281,5 +317,31 @@ describe('WhichKeyProvider — cheatsheet', () => {
     });
     expect(handler).toHaveBeenCalledOnce();
     expect(getByTestId('cs').textContent).toBe('off');
+  });
+});
+
+describe('WhichKeyProvider — invalid helpKey [B23]', () => {
+  // Deviation from the task brief: the brief's illustrative value ('ctrl/')
+  // has no '+' in it, so parseKey treats the whole string as a single
+  // (unusual but valid) base key rather than "ctrl" + "/" — it does not
+  // throw, pre- or post-fix. 'Hyper+/' is the invalid-modifier fixture
+  // already used for this purpose in useShortcut.test.tsx's B14 test, and it
+  // genuinely throws out of createWhichKey pre-fix, which is what this test
+  // needs to demonstrate.
+  it('does not throw during render for an invalid helpKey', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let result: ReturnType<typeof render> | undefined;
+    expect(() => {
+      result = render(
+        <WhichKeyProvider helpKey="Hyper+/">
+          <div data-testid="alive">ok</div>
+        </WhichKeyProvider>,
+      );
+    }).not.toThrow();
+    expect(result!.getByTestId('alive')).toBeInTheDocument();
+    // Confirm the render succeeded VIA the soft-fail path (the warn actually
+    // fired), not via some unrelated swallow of the assertion above.
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

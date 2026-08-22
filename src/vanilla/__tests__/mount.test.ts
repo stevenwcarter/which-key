@@ -1,12 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../../engine';
 import { mountWhichKey } from '../mount';
+import type { PopupOptions, WhichKeyMountHandle } from '../index';
 
 const press = (key: string) => document.dispatchEvent(new KeyboardEvent('keydown', { key }));
 
 describe('mountWhichKey', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ''; });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
 
   it('renders no popup until a prefix is pending, then renders candidate rows', () => {
     const wk = createWhichKey({ sortKeys: 'alphabetical' });
@@ -196,6 +200,222 @@ describe('mountWhichKey', () => {
     expect(popup.getAttribute('aria-live')).toBe('polite');
     expect(popup.getAttribute('aria-atomic')).toBe('true');
     ui.unmount();
+    wk.stop();
+  });
+
+  it('vanilla popup falls back to defaults for non-finite options [B29]', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, {
+      popup: { layout: 'horizontal', maxRows: NaN, backgroundOpacity: NaN },
+    });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+
+    const popup = document.querySelector('.wk-popup') as HTMLElement;
+    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.getAttribute('style')).not.toContain('NaN');
+    const grid = document.querySelector('.wk-popup__grid') as HTMLElement;
+    expect(grid.style.gridTemplateRows).toBe('repeat(5, auto)');
+
+    ui.unmount();
+    wk.stop();
+  });
+});
+
+describe('mountWhichKey — stable popup host [B18]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('keeps the popup below the cheatsheet backdrop in DOM order', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+
+    press('?'); // open the cheatsheet
+    press('g'); // then start a sequence
+    vi.advanceTimersByTime(500);
+
+    const popup = document.querySelector('.wk-popup')!;
+    const backdrop = document.querySelector('.wk-backdrop')!;
+    expect(popup).not.toBeNull();
+    expect(backdrop).not.toBeNull();
+    // DOCUMENT_POSITION_FOLLOWING === 4: backdrop comes AFTER the popup,
+    // so with equal z-index the backdrop paints on top, matching React.
+    expect(popup.compareDocumentPosition(backdrop) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    ui.unmount();
+    wk.stop();
+  });
+
+  // Tightened from the brief: comparing `.wk-popup`'s `.parentElement` across
+  // renders is a weak check whenever that parent happens to be `container`
+  // both times (which it is, pre-fix, since the popup is always appended
+  // straight into `container`) — it would pass for the wrong reason. Assert
+  // instead that a `.wk-popup-host` element exists and that the very same
+  // instance persists across two separate popup appearances.
+  it('reuses the same host element across separate popup appearances', () => {
+    const wk = createWhichKey({ sortKeys: 'alphabetical' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    wk.register('g b', vi.fn(), { description: 'Bravo' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+
+    press('g');
+    vi.advanceTimersByTime(500);
+    const hostFirst = document.querySelector('.wk-popup-host');
+    expect(hostFirst).not.toBeNull();
+    expect(document.querySelector('.wk-popup')!.parentElement).toBe(hostFirst);
+
+    wk.cancel();
+    press('g');
+    vi.advanceTimersByTime(500);
+    const hostSecond = document.querySelector('.wk-popup-host');
+
+    expect(hostSecond).toBe(hostFirst);
+
+    ui.unmount();
+    wk.stop();
+  });
+
+  it('unmount removes the host from the container', () => {
+    const wk = createWhichKey();
+    const ui = mountWhichKey(wk);
+    wk.start();
+    ui.unmount();
+    expect(document.querySelector('.wk-popup-host')).toBeNull();
+    wk.stop();
+  });
+});
+
+describe('mountWhichKey — double-mount guard [B32]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('warns and renders only one popup host for a repeated mount', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+
+    const first = mountWhichKey(wk);
+    const second = mountWhichKey(wk);
+    wk.start();
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('[whichkey] mountWhichKey called twice'),
+    );
+    press('g');
+    vi.advanceTimersByTime(500);
+    expect(document.querySelectorAll('[data-testid="whichkey-popup"]')).toHaveLength(1);
+
+    second.unmount(); // the no-op handle must not tear down the live mount
+    // Reset the pending 'g' buffer before pressing '?'. Per the matcher
+    // (src/engine/matcher.ts, final branch — also documented at the
+    // ReactFixture comment in class-contract.test.tsx), an unrelated
+    // keystroke while a prefix is buffered doesn't fall back to a top-level
+    // match; it's treated as "nothing matches" and aborts the sequence. The
+    // brief's original test pressed '?' straight after 'g' timed out and so
+    // never actually exercised the cheatsheet open — corrected here.
+    wk.cancel();
+    press('?');
+    expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
+
+    first.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+
+  it('allows a fresh mount after the first one unmounts', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    const first = mountWhichKey(wk);
+    first.unmount();
+    warn.mockClear();
+
+    const second = mountWhichKey(wk);
+    expect(warn).not.toHaveBeenCalled();
+    second.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+
+  it('unmount is idempotent', () => {
+    const wk = createWhichKey();
+    const ui = mountWhichKey(wk);
+    ui.unmount();
+    expect(() => ui.unmount()).not.toThrow();
+    wk.stop();
+  });
+});
+
+describe('mountWhichKey — classPrefix validation [B36]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it.each(['my app', '1x', 'a.b', 'a#b', 'a:b', ''])(
+    'warns and falls back to "wk" for %p',
+    (bad) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const wk = createWhichKey();
+      wk.register('g a', vi.fn(), { description: 'Alpha' });
+      const ui = mountWhichKey(wk, { classPrefix: bad });
+      wk.start();
+      press('g');
+      vi.advanceTimersByTime(500);
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid classPrefix'));
+      expect(document.querySelector('.wk-popup')).not.toBeNull();
+
+      ui.unmount();
+      wk.stop();
+      warn.mockRestore();
+    },
+  );
+
+  it('accepts a valid custom prefix without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk, { classPrefix: 'my-app_1' });
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(document.querySelector('.my-app_1-popup')).not.toBeNull();
+
+    ui.unmount();
+    wk.stop();
+    warn.mockRestore();
+  });
+});
+
+describe('which-key/vanilla type exports [B25]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  it('exposes PopupOptions and WhichKeyMountHandle to consumers', () => {
+    const popup: Partial<PopupOptions> = { layout: 'horizontal', maxRows: 3 };
+    const wk = createWhichKey();
+    const handle: WhichKeyMountHandle = mountWhichKey(wk, { popup });
+    expect(typeof handle.unmount).toBe('function');
+    handle.unmount();
     wk.stop();
   });
 });

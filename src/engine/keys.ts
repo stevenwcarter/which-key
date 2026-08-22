@@ -17,7 +17,20 @@ const SPECIAL_KEYS = new Set([
 
 const MODIFIER_KEY_NAMES = new Set(['Shift', 'Control', 'Alt', 'Meta']);
 
-const isMacPlatform = (): boolean => /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+// `navigator` is absent on Node < 21 (package.json allows >= 20) and on any
+// SSR/prerender runtime, and `navigator.platform` is deprecated and frozen by
+// anti-fingerprinting modes. Reached from parseKey for EVERY `Mod+` binding —
+// the spelling the README recommends — so it must never throw.
+type PlatformSource = { userAgentData?: { platform?: string }; platform?: string };
+
+const isMacPlatform = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as PlatformSource;
+  const platform = nav.userAgentData?.platform ?? nav.platform ?? '';
+  // Case-insensitive: `userAgentData.platform` reports 'macOS' (lowercase m),
+  // which the legacy case-sensitive /Mac/ pattern would miss.
+  return /Mac|iPod|iPhone|iPad/i.test(platform);
+};
 
 const buildCanonical = (
   base: string,
@@ -64,10 +77,14 @@ export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
 
 const MODIFIER_ALIASES = new Map<string, string>([
-  ['ctrl', 'Ctrl'], ['control', 'Ctrl'],
-  ['alt', 'Alt'], ['option', 'Alt'],
+  ['ctrl', 'Ctrl'],
+  ['control', 'Ctrl'],
+  ['alt', 'Alt'],
+  ['option', 'Alt'],
   ['shift', 'Shift'],
-  ['cmd', 'Cmd'], ['meta', 'Cmd'], ['command', 'Cmd'],
+  ['cmd', 'Cmd'],
+  ['meta', 'Cmd'],
+  ['command', 'Cmd'],
   ['mod', 'Mod'],
 ]);
 
@@ -75,8 +92,27 @@ const MODIFIER_ALIASES = new Map<string, string>([
 // to decide whether to warn — never to rewrite the key, which would guess wrong
 // on non-US layouts.
 const SHIFT_ALTERS_US = new Set([
-  '`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-  '-', '=', '[', ']', '\\', ';', "'", ',', '.', '/',
+  '`',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '0',
+  '-',
+  '=',
+  '[',
+  ']',
+  '\\',
+  ';',
+  "'",
+  ',',
+  '.',
+  '/',
 ]);
 
 export const parseKey = (input: string): CanonicalKey => {

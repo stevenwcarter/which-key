@@ -7,14 +7,14 @@
 ## Problem
 
 Today which-key has no notion of a "layer" or scope. When a modal opens, there is no
-way to say *"suppress all base-page shortcuts while the modal is open, but register a
-fresh set of modal-only shortcuts that vanish when it closes."*
+way to say _"suppress all base-page shortcuts while the modal is open, but register a
+fresh set of modal-only shortcuts that vanish when it closes."_
 
 The existing primitives only partially overlap:
 
 - **`priority` + per-key stacking** (`registry.ts`): each canonical key maps to a
   priority-sorted bucket; `findActive` returns the highest-priority **enabled** entry.
-  A modal can shadow a base key *only by re-registering that exact key* at higher
+  A modal can shadow a base key _only by re-registering that exact key_ at higher
   priority. A base shortcut the modal does not override (e.g. `g d`) still fires.
 - **`enabled` flag**: set at register time only; no post-registration toggle, and no
   grouping.
@@ -66,32 +66,37 @@ matcher needs no changes**.
 ## Engine API (`controller.ts`, `registry.ts`, `types.ts`)
 
 ### Types
+
 - `ShortcutEntry` gains `level: number` and `global: boolean`.
 - `GroupEntry` gains `level: number`.
 - `ShortcutOptions` gains `global?: boolean` (public) and `level?: number` (advanced —
   used by the layer machinery / React binding; defaults to `0`).
 
 ### Registry
+
 - `activateLayer(id: string, level: number, exclusive: boolean): void`
 - `deactivateLayer(id: string): void`
 - `nextLevel(): number` — `(max active level) + 1` (1 when no layers active).
 - `findActive` / candidate / cheatsheet methods apply the reachability filter above.
 
 ### Controller (`WhichKeyEngine`)
+
 - `pushLayer(opts?: { exclusive?: boolean; level?: number }): LayerHandle` — the
   documented **imperative engine/vanilla API**. Assigns an id, `level = opts.level ??
-  registry.nextLevel()`, calls `activateLayer`, and returns:
+registry.nextLevel()`, calls `activateLayer`, and returns:
 
   ```ts
   type LayerHandle = {
     readonly level: number;
-    register(keys, handler, options?): () => void;     // bound to this layer's level
-    registerGroup(prefix, options): () => void;          // bound to this layer's level
-    pop(): void;   // unregisters all entries registered via this handle + deactivates the layer
+    register(keys, handler, options?): () => void; // bound to this layer's level
+    registerGroup(prefix, options): () => void; // bound to this layer's level
+    pop(): void; // unregisters all entries registered via this handle + deactivates the layer
   };
   ```
+
   `pop()` is idempotent. Push and pop `emit()` a new snapshot (reachability changes can
   alter a visible popup).
+
 - `register` / `registerGroup` honour `options.level` (default `0`) and
   `options.global` so the React binding and `pushLayer` share one code path.
 - The built-in `?` help entry is registered with `global: true`.
@@ -111,9 +116,10 @@ level `0`).
   signature change for existing callers.**
 
 ### Effect-ordering invariant (subtle — pin with a test)
+
 React runs child effects **before** parent effects on mount. Therefore the layer's
 `level` is threaded as a **pure context value computed at render** (`parentLevel + 1`),
-*not* derived from registry mutation order. A child `useShortcut` reads its `level` from
+_not_ derived from registry mutation order. A child `useShortcut` reads its `level` from
 context at render and registers it in its own effect; the parent `WhichKeyLayer` updates
 the **active-layers set** in its effect. Reachability is only consulted at keypress time,
 by which point all effects have settled — so child-before-parent effect ordering is safe.
@@ -141,7 +147,7 @@ README documents the modal open/close pattern.
 
 1. **The matcher reads all matches solely via `registry.getActive` /
    `registry.getActiveCandidates`.** Centralizing reachability in the registry is only
-   sufficient *because* of this. → Pin with an integration test: a base `g d` does **not**
+   sufficient _because_ of this. → Pin with an integration test: a base `g d` does **not**
    fire while an exclusive layer is active, and fires again after the layer pops.
 2. **The popup and cheatsheet must show only reachable shortcuts** (else they advertise
    shortcuts that won't fire). → Integration test: under an exclusive layer the popup
@@ -156,6 +162,7 @@ README documents the modal open/close pattern.
 ## Testing plan (TDD, co-located in `__tests__/`)
 
 **Registry / resolution unit tests** (`src/engine/__tests__/registry.test.ts`):
+
 - exclusive layer blocks lower-level entries; additive layer leaves them reachable;
 - `global` entry reachable through an exclusive layer; a layer can still override a
   global key by registering the same key at higher level;
