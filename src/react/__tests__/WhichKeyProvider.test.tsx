@@ -166,6 +166,28 @@ describe('WhichKeyProvider', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it('takes the sequence timeout from the engine default when the prop is omitted [T18]', () => {
+    vi.useFakeTimers();
+    let captured: WhichKeyEngine | null = null;
+    render(
+      <WhichKeyProvider>
+        <Probe onCtx={(c) => (captured = c)} />
+      </WhichKeyProvider>,
+    );
+    captured!.register('g n', () => {}, { description: 'Notes' });
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }));
+    });
+    act(() => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(captured!.getSnapshot().popup.visible).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(captured!.getSnapshot().popup.visible).toBe(true);
+  });
 });
 
 describe('WhichKeyProvider — cheatsheet', () => {

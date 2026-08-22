@@ -74,13 +74,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract a module-private hook in the same file, `const useCheatsheetFocusTrap = (panelRef: RefObject<HTMLDivElement | null>, active: boolean, onEscape: () => void): void`, holding lines 41-77 verbatim — same document-level listener, same Escape call, no semantic change (the modality/Escape-propagation question is bughunt's open decision-needed marker and must not be touched here). Also extract a module-private `const EntryRow = ({ entry }: { entry: CheatsheetEntry }) => …` for the `<li>` markup duplicated at 138-143 and 155-160, and `const GroupSection = ({ group }: { group: CheatsheetGroup }) => …` for 146-163. The body drops to roughly 40 lines. Keep the two long explanatory comments on the `useMemo` — they document a real invariant. Sequencing: T16 extracts the shared `trapTab` body this hook should call, and T19 replaces the store-subscription lines the component opens with — do T16 and T19 first, then this one.
 - [x] execute [ ] skip
 
-### T18. Engine defaults re-declared in the React provider (src/react/WhichKeyProvider.tsx:13)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: `createWhichKey` already owns both defaults (`helpKey = '?'` at controller.ts:122, `return 500` at controller.ts:134 and :137). The provider's `timeoutMs = 500` / `helpKey = '?'` are a second source of truth that silently wins, so changing an engine default would leave every React consumer on the old value. Since `createWhichKey({ timeoutMs: undefined, helpKey: undefined })` hits exactly those defaults, drop the provider's defaults and pass the props straight through — prop types and observable defaults unchanged. `helpKey: null` must keep meaning "disabled", and passing `undefined` through preserves that, because the destructuring default in `createWhichKey` only fires for `undefined`. Separately hoist the engine-side literal to `const DEFAULT_TIMEOUT_MS = 500;` beside `DEFAULT_HELP_ID`, collapsing the three occurrences in controller.ts — that constant belongs to T1's `resolveTimeoutMs`, so land T1 first if both are taken.
-- [x] execute [ ] skip
-
 ### T19. `useSyncExternalStore` no-provider boilerplate written twice with two different sentinels (src/react/useWhichKeyState.ts:5-23 and src/react/ShortcutCheatsheet.tsx:14-15,27-31,37-39)
 
 - Lenses: duplication, idioms

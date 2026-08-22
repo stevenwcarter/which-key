@@ -26,10 +26,16 @@ export type WhichKeyProviderProps = {
  */
 export const WhichKeyProvider = ({
   children,
-  timeoutMs = 500,
-  helpKey = '?',
+  timeoutMs,
+  helpKey,
   sortKeys,
 }: WhichKeyProviderProps) => {
+  // No defaults here on purpose. createWhichKey owns them (DEFAULT_TIMEOUT_MS
+  // and helpKey = '?' in src/engine/controller.ts); a second set here would
+  // silently win, so changing an engine default would leave every React
+  // consumer on the old value. Passing `undefined` through hits exactly those
+  // defaults, and `helpKey: null` still means "disabled" because the engine's
+  // destructuring default only fires for `undefined`.
   // Lazy initializer runs once on mount and is ignored thereafter, same as the
   // former ref-based lazy-init — but doesn't read a ref during render, which
   // react-hooks/refs (added in eslint-plugin-react-hooks v7) correctly flags.
