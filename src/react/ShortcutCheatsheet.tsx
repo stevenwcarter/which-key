@@ -1,11 +1,10 @@
-import { useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useRef } from 'react';
 import { WhichKeyContext } from './context';
+import { Kbd } from './Kbd';
 import { useEngineSnapshot } from './useEngineSnapshot';
 import type { CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
-
-const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
 // Hoisted so the closed-sheet case returns the same object identity on every
 // render — a fresh `{ standalone: [], groups: [] }` literal per call would

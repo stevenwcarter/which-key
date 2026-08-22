@@ -69,13 +69,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: `document.activeElement` is `Element | null`; the cast asserts something the runtime does not guarantee (an `SVGElement` or bare `Element` both reach here), which is why the restore call at line 75 is written `restoreRef.current?.focus?.()`. An `instanceof` narrow removes both: `const active = document.activeElement; restoreRef.current = active instanceof HTMLElement ? active : null;` and then plain `restoreRef.current?.focus();`. The identical two-line pattern at src/vanilla/cheatsheet.ts:94 and :121 should be changed in the same pass — that pair is the save/restore half T16 deliberately leaves in each renderer.
 - [x] execute [ ] skip
 
-### T32. `Kbd` component declared identically in both React renderers (src/react/WhichKeyPopup.tsx:13 and src/react/ShortcutCheatsheet.tsx:12)
-
-- Lenses: duplication
-- Risk: low
-- Proposed fix: Both files declare the same `({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>`. Move it to a module-private `src/react/Kbd.tsx` and import from both; do not add it to src/react/index.ts — keeping it unexported avoids a public-API change and puts the `wk-kbd` string at exactly one place on the React side, which src/**tests**/class-contract.test.tsx already polices.
-- [x] execute [ ] skip
-
 ### T34. Shared preamble followed by two large inline layout branches: `renderPopup` (src/vanilla/popup.ts:40-84, 45 lines)
 
 - Lenses: long-methods

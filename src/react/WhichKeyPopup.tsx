@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
+import { Kbd } from './Kbd';
 import { useWhichKeyState } from './useWhichKeyState';
 import type { WhichKeyCandidate, WhichKeyState } from '../engine';
 import { clamp01, clampRows, DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
@@ -22,8 +23,6 @@ export type WhichKeyPopupProps = {
    */
   backgroundOpacity?: number;
 };
-
-const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
 const Sequence = ({ sequence }: { sequence: readonly string[] }) => (
   <div data-testid="whichkey-popup-sequence" className="wk-sequence">
