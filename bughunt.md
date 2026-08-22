@@ -52,16 +52,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: create a stable popup host element once at mount, append it once, and replace only its children each render (`host.replaceChildren(...)`), toggling `host.hidden` when the snapshot has no visible popup. Fixes both the stacking order and the churn in one change to mount.ts:31-37.
 - [x] execute   [ ] skip
 
-### B22. registerGroup never canonicalizes its prefix, so group labels silently vanish: `WhichKeyEngine.registerGroup` (src/engine/controller.ts:168)
-- Category: api-surface
-- Impact: 6 (severity 3 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: `register` runs `parseSequence(keys)` (controller.ts:156) but `registerGroup` passes `prefix` straight through untouched (:170), so the two key into different namespaces whenever the raw string differs from its canonical form. Verified against the built bundle: `registerGroup('Shift+a', {description:'Shifted group'})` + `register('Shift+a b', …)` leaves the shortcut under `'A b'` while the group sits under `'Shift+a'`; `getActiveGroup('A')` returns undefined and the popup shows a bare key with no label. Also asymmetric on empty input: `register('')` throws, `registerGroup('')` is accepted silently. Same asymmetry in `useShortcutGroup`.
-- Blast radius: src/engine/controller.ts:168,170; src/engine/registry.ts:60,84; src/react/useShortcutGroup.ts:15; docs/API.md:82
-- Proposed fix: canonicalize before storing — `registry.registerGroup({ id, prefix: parseSequence(prefix).join(' '), … })`. This also makes `registerGroup` reject empty/whitespace prefixes the same way `register` does. Behaviour-compatible for every prefix already in canonical form.
-- [x] execute   [ ] skip
-
 ### B23. An invalid helpKey makes createWhichKey (and WhichKeyProvider's render) throw, undocumented: `createWhichKey` (src/engine/controller.ts:137)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)

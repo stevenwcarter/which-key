@@ -583,3 +583,44 @@ describe('createWhichKey.register — soft failure on misuse [B14]', () => {
     expect(wk.registry.getActive('a')).toBeUndefined();
   });
 });
+
+describe('createWhichKey.registerGroup — canonical prefix [B22]', () => {
+  it('canonicalizes the prefix into the same namespace as register()', () => {
+    const wk = createWhichKey();
+    wk.registerGroup('Shift+a', { description: 'Shifted group' });
+    wk.register('Shift+a b', vi.fn(), { description: 'Bee' });
+    expect(wk.registry.getActiveGroup('A')?.description).toBe('Shifted group');
+  });
+
+  it('surfaces a nested group label on the popup candidate at its parent prefix', () => {
+    // A depth-1 group's description never reaches getActiveCandidates (it
+    // comes from the LEAF's own description there) — only a NESTED group,
+    // queried from its parent prefix, resolves its label via the
+    // isGroup:true branch. The prefix here is deliberately non-canonical
+    // ('Shift+x a') so the assertion only passes once registerGroup
+    // canonicalizes it into the same namespace as the nested shortcut.
+    const wk = createWhichKey();
+    wk.registerGroup('Shift+x a', { description: 'Nested group' });
+    wk.register('Shift+x a b', vi.fn(), { description: 'Bee' });
+    const candidate = wk.registry.getActiveCandidates('X')[0];
+    expect(candidate.isGroup).toBe(true);
+    expect(candidate.nextKey).toBe('a');
+    expect(candidate.description).toBe('Nested group');
+  });
+
+  it('warns and no-ops on an empty prefix rather than accepting it silently', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey();
+    expect(() => wk.registerGroup('   ', { description: 'Nope' })).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid group prefix'));
+    warn.mockRestore();
+  });
+
+  it('is behaviour-compatible for a prefix already in canonical form', () => {
+    const wk = createWhichKey();
+    const off = wk.registerGroup('g', { description: 'Go to' });
+    expect(wk.registry.getActiveGroup('g')?.description).toBe('Go to');
+    off();
+    expect(wk.registry.getActiveGroup('g')).toBeUndefined();
+  });
+});

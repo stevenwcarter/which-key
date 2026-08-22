@@ -8,6 +8,14 @@ import type {
 
 const DEFAULT_HELP_ID = '__whichkey_default_help__';
 
+// keys.ts's thrown Errors are already prefixed "whichkey: " (correct for
+// that Error surfacing on its own, unwrapped). Strip it here so composing it
+// into a "[whichkey] ..." warning doesn't double the tag (was: '[whichkey]
+// invalid key string "...": whichkey: ...'). Any soft-fail site that
+// composes another module's Error message into a [whichkey] warning should
+// route it through this helper.
+const stripWhichkeyPrefix = (message: string): string => message.replace(/^whichkey:\s*/, '');
+
 export type WhichKeyOptions = {
   timeoutMs?: number;
   helpKey?: string | null;
@@ -174,13 +182,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         canonical = parseSequence(keys).join(' ');
       } catch (err) {
         const rawMessage = err instanceof Error ? err.message : String(err);
-        // keys.ts's thrown Errors are already prefixed "whichkey: " (correct
-        // for that Error surfacing on its own, unwrapped). Strip it here so
-        // composing it into this [whichkey]-prefixed warning doesn't double
-        // the tag (was: '[whichkey] invalid key string "...": whichkey: ...').
-        // Any later soft-fail site that composes another module's Error
-        // message into a [whichkey] warning should strip the same way.
-        const message = rawMessage.replace(/^whichkey:\s*/, '');
+        const message = stripWhichkeyPrefix(rawMessage);
         console.warn(`[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`);
         return () => {};
       }
@@ -200,8 +202,26 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       return () => registry.unregister(id);
     },
     registerGroup(prefix, opts) {
+      // Canonicalize into the SAME namespace register() uses. Storing the raw
+      // prefix meant registerGroup('Shift+a') and register('Shift+a b') keyed
+      // differently ('Shift+a' vs 'A b'), so the label silently never rendered.
+      let canonical: string;
+      try {
+        canonical = parseSequence(prefix).join(' ');
+      } catch (err) {
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        const message = stripWhichkeyPrefix(rawMessage);
+        console.warn(`[whichkey] invalid group prefix "${prefix}": ${message}; group not registered.`);
+        return () => {};
+      }
       const id = `wkg_${idCounter++}`;
-      registry.registerGroup({ id, prefix, description: opts.description, priority: opts.priority ?? 0, level: opts.level ?? 0 });
+      registry.registerGroup({
+        id,
+        prefix: canonical,
+        description: opts.description,
+        priority: opts.priority ?? 0,
+        level: opts.level ?? 0,
+      });
       return () => registry.unregisterGroup(id);
     },
     activateLayer(level, exclusive) {
