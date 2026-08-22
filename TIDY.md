@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T21. 111-line function with a 33-line nested render closure: `mountWhichKey` (src/vanilla/mount.ts:28-138)
-
-- Lenses: long-methods
-- Risk: low
-- Proposed fix: Extract two pure module-private helpers: `const resolveClassPrefix = (requested: string | undefined): string` (lines 44-57, the `CLASS_PREFIX_RE` test and warn) and `const resolvePopupOptions = (popup: MountOptions['popup']): PopupOptions | null` (59-66). Then split the render closure into two named closures declared beside it — `const renderPopupInto = (snap: WhichKeySnapshot): void` (90-99) and `const syncCheatsheet = (snap: WhichKeySnapshot): void` (101-118) — leaving `render` three lines long. The cheatsheet-sync closure is exactly the code bughunt B49 proposes to change (the vanilla cheatsheet never refreshes while open); do this extraction strictly before or after B49, never concurrently.
-- [x] execute [ ] skip
-
 ### T22. Cast where the same codebase uses the generic overload: `querySelector(...) as HTMLElement | null` (src/vanilla/mount.ts:109)
 
 - Lenses: idioms

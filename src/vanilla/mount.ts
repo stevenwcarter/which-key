@@ -1,4 +1,4 @@
-import type { WhichKeyEngine } from '../engine';
+import type { WhichKeyEngine, WhichKeySnapshot } from '../engine';
 import { renderPopup, type PopupOptions } from './popup';
 import { renderCheatsheet } from './cheatsheet';
 import { DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
@@ -40,6 +40,29 @@ const mountedContainers = new WeakSet<HTMLElement>();
 // escaping — either way the consumer's stylesheet silently never applies.
 const CLASS_PREFIX_RE = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
 
+/** Validates `classPrefix`, warning and falling back to `'wk'` when unusable. */
+const resolveClassPrefix = (requested: string | undefined): string => {
+  if (requested === undefined) return 'wk';
+  if (CLASS_PREFIX_RE.test(requested)) return requested;
+  console.warn(
+    `[whichkey] invalid classPrefix "${requested}"; ` +
+      'must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first ' +
+      'character (or the character right after a leading "-") is a letter or "_", never a digit. ' +
+      'Falling back to "wk".',
+  );
+  return 'wk';
+};
+
+/** Fills `MountOptions.popup` out to a full `PopupOptions`; `false` means none. */
+const resolvePopupOptions = (popup: MountOptions['popup']): PopupOptions | null =>
+  popup === false
+    ? null
+    : {
+        layout: popup?.layout ?? 'vertical',
+        maxRows: popup?.maxRows ?? DEFAULT_MAX_ROWS,
+        backgroundOpacity: popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
+      };
+
 /**
  * Subscribes a vanilla-DOM renderer to the engine and renders once immediately.
  * Returns a handle whose `unmount()` removes every node and listener the
@@ -65,29 +88,9 @@ export const mountWhichKey = (
   }
   mountedContainers.add(container);
 
-  const requestedPrefix = opts.classPrefix;
-  let prefix = 'wk';
-  if (requestedPrefix !== undefined) {
-    if (CLASS_PREFIX_RE.test(requestedPrefix)) {
-      prefix = requestedPrefix;
-    } else {
-      console.warn(
-        `[whichkey] invalid classPrefix "${requestedPrefix}"; ` +
-          'must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first ' +
-          'character (or the character right after a leading "-") is a letter or "_", never a digit. ' +
-          'Falling back to "wk".',
-      );
-    }
-  }
+  const prefix = resolveClassPrefix(opts.classPrefix);
   const showCheatsheet = opts.cheatsheet ?? true;
-  const popupOpts: PopupOptions | null =
-    opts.popup === false
-      ? null
-      : {
-          layout: opts.popup?.layout ?? 'vertical',
-          maxRows: opts.popup?.maxRows ?? DEFAULT_MAX_ROWS,
-          backgroundOpacity: opts.popup?.backgroundOpacity ?? DEFAULT_BACKGROUND_OPACITY,
-        };
+  const popupOpts = resolvePopupOptions(opts.popup);
 
   // A stable host appended ONCE, before any cheatsheet backdrop. The previous
   // code removed and re-appended the popup on every emit, so once the
@@ -108,38 +111,43 @@ export const mountWhichKey = (
     if (e.key === 'Escape') engine.closeCheatsheet();
   };
 
+  // Replace the host's children in place; never move the host itself.
+  const renderPopupInto = (snap: WhichKeySnapshot): void => {
+    if (!popupOpts) return;
+    const node = renderPopup(prefix, snap, popupOpts);
+    if (node) {
+      popupHost.replaceChildren(node);
+      popupHost.hidden = false;
+    } else {
+      popupHost.replaceChildren();
+      popupHost.hidden = true;
+    }
+  };
+
+  const syncCheatsheet = (snap: WhichKeySnapshot): void => {
+    if (!showCheatsheet) return;
+    if (snap.cheatsheet.visible && !cheatsheetNode) {
+      const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () =>
+        engine.closeCheatsheet(),
+      );
+      cheatsheetNode = sheet.element;
+      cheatsheetDestroy = sheet.destroy;
+      container.appendChild(cheatsheetNode);
+      cheatsheetNode.querySelector<HTMLElement>(`.${prefix}-cheatsheet`)?.focus();
+      document.addEventListener('keydown', onEscape);
+    } else if (!snap.cheatsheet.visible && cheatsheetNode) {
+      cheatsheetNode.remove();
+      cheatsheetNode = null;
+      cheatsheetDestroy?.();
+      cheatsheetDestroy = null;
+      document.removeEventListener('keydown', onEscape);
+    }
+  };
+
   const render = () => {
     const snap = engine.getSnapshot();
-    // Popup — replace children in place; never move the host.
-    if (popupOpts) {
-      const node = renderPopup(prefix, snap, popupOpts);
-      if (node) {
-        popupHost.replaceChildren(node);
-        popupHost.hidden = false;
-      } else {
-        popupHost.replaceChildren();
-        popupHost.hidden = true;
-      }
-    }
-    // Cheatsheet
-    if (showCheatsheet) {
-      if (snap.cheatsheet.visible && !cheatsheetNode) {
-        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () =>
-          engine.closeCheatsheet(),
-        );
-        cheatsheetNode = sheet.element;
-        cheatsheetDestroy = sheet.destroy;
-        container.appendChild(cheatsheetNode);
-        cheatsheetNode.querySelector<HTMLElement>(`.${prefix}-cheatsheet`)?.focus();
-        document.addEventListener('keydown', onEscape);
-      } else if (!snap.cheatsheet.visible && cheatsheetNode) {
-        cheatsheetNode.remove();
-        cheatsheetNode = null;
-        cheatsheetDestroy?.();
-        cheatsheetDestroy = null;
-        document.removeEventListener('keydown', onEscape);
-      }
-    }
+    renderPopupInto(snap);
+    syncCheatsheet(snap);
   };
 
   const unsubscribe = engine.subscribe(render);
