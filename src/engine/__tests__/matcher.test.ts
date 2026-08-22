@@ -270,3 +270,69 @@ describe('Matcher — sequences', () => {
     expect(onFire).toHaveBeenCalledOnce();
   });
 });
+
+describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher half]', () => {
+  // `Matcher`/`MatcherOptions` are exported public API (src/engine/index.ts).
+  // createWhichKey's own `onFire` swallows every handler exception, so the
+  // `finally` blocks around `this.options.onFire(...)` are unreachable through
+  // the public engine — but a third-party consumer's `onFire` can still
+  // throw, and the buffer must not be left dirty when it does. There is no
+  // catch at the Matcher level (by design), so the throw is expected to
+  // propagate out of `handleKeyDown` / the deferred timer callback; these
+  // tests assert only that the *buffer* was still reset despite the throw.
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('pure-leaf branch: resets the buffer even though onFire throws', () => {
+    const onFire = vi.fn<FireFn>().mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const { registry, matcher } = buildMatcher({ onFire });
+    // 'g h' is a leaf with no further continuation, so firing it takes the
+    // pure-leaf immediate branch. It is reached via a prefix step first so
+    // there is an actual buffer (['g']) for a leaked `finally` to fail to
+    // clear — a single top-level key never dirties `this.buffer` in the
+    // first place, so it wouldn't discriminate a reverted `finally`.
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'z', keys: 'z' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' })); // prefix-only: commits buffer ['g']
+    expect(() => matcher.handleKeyDown(ev({ key: 'h' }))).toThrow('boom');
+
+    // If the buffer were left dirty at ['g'], this single 'z' keystroke would
+    // be interpreted as the mismatched sequence 'g z' and swallowed silently
+    // (no fire) rather than matching the standalone leaf 'z'.
+    matcher.handleKeyDown(ev({ key: 'z' }));
+    expect(onFire).toHaveBeenCalledTimes(2);
+    expect(onFire).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'z' }),
+      expect.any(KeyboardEvent),
+    );
+  });
+
+  it('leaf-AND-prefix branch: resets the buffer even though the deferred onFire throws', () => {
+    const onFire = vi.fn<FireFn>().mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const { registry, matcher } = buildMatcher({ onFire }, 500);
+    registry.register(entry({ id: 'leaf', keys: 'g' }));
+    registry.register(entry({ id: 'seq', keys: 'g g' }));
+    registry.register(entry({ id: 'z', keys: 'z' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' })); // leaf-AND-prefix: commits buffer ['g'], arms deferred-fire timer
+    expect(() => vi.advanceTimersByTime(500)).toThrow('boom');
+
+    // Same discrimination as above: a leaked buffer would turn this into the
+    // mismatched sequence 'g z' and swallow it instead of firing leaf 'z'.
+    matcher.handleKeyDown(ev({ key: 'z' }));
+    expect(onFire).toHaveBeenCalledTimes(2);
+    expect(onFire).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 'z' }),
+      expect.any(KeyboardEvent),
+    );
+  });
+});
