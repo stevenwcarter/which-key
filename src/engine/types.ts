@@ -58,25 +58,25 @@ export type GroupEntry = {
 /** One popup row: a key that can be pressed next from the current prefix. */
 export type WhichKeyCandidate = {
   /** Full key string this row stands for — the pressed prefix plus `nextKey`. */
-  keys: string;
+  readonly keys: string;
   /** The single key to press next, e.g. `'h'` under the prefix `'g'`. */
-  nextKey: string;
+  readonly nextKey: string;
   /** Label for the row: the group's description, or the leaf shortcut's. */
-  description: string | undefined;
+  readonly description: string | undefined;
   /** True when further keys follow this one, i.e. the row is a prefix, not a leaf. */
-  isGroup: boolean;
+  readonly isGroup: boolean;
 };
 
 /** The React-shaped view of `WhichKeySnapshot.popup` returned by `useWhichKeyState`. */
 export type WhichKeyState = {
   /** Whether the popup should be rendered. */
-  visible: boolean;
-  /** Keys pressed so far in the pending sequence. Read-only. */
-  currentSequence: string[];
-  /** Rows to offer for the pending sequence. Read-only. */
-  candidates: WhichKeyCandidate[];
+  readonly visible: boolean;
+  /** Keys pressed so far in the pending sequence. Enforced read-only. */
+  readonly currentSequence: readonly string[];
+  /** Rows to offer for the pending sequence. Enforced read-only. */
+  readonly candidates: readonly WhichKeyCandidate[];
   /** Aborts the pending sequence and hides the popup. */
-  cancel: () => void;
+  readonly cancel: () => void;
 };
 
 /** Comparator over full canonical key strings; same contract as `Array.prototype.sort`. */

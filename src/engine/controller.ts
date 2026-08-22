@@ -124,15 +124,15 @@ export type WhichKeyOptions = {
 };
 
 /** One cheatsheet row: a shortcut's canonical key string and its label. */
-export type CheatsheetEntry = { keys: string; description: string | undefined };
+export type CheatsheetEntry = { readonly keys: string; readonly description: string | undefined };
 /**
  * A first key and the shortcuts filed under it. `description` is the label from
  * a matching `registerGroup`, or `undefined` when no group was registered.
  */
 export type CheatsheetGroup = {
-  prefix: string;
-  description: string | undefined;
-  entries: CheatsheetEntry[];
+  readonly prefix: string;
+  readonly description: string | undefined;
+  readonly entries: readonly CheatsheetEntry[];
 };
 /**
  * The cheatsheet view model returned by `engine.getCheatsheetModel()`. A
@@ -140,7 +140,10 @@ export type CheatsheetGroup = {
  * key, its whole key string is that one key, and no group label is registered
  * for it; everything else is bucketed by first key into `groups`.
  */
-export type CheatsheetModel = { standalone: CheatsheetEntry[]; groups: CheatsheetGroup[] };
+export type CheatsheetModel = {
+  readonly standalone: readonly CheatsheetEntry[];
+  readonly groups: readonly CheatsheetGroup[];
+};
 
 /**
  * Immutable view of the engine's UI state, handed to `subscribe` listeners and
@@ -152,8 +155,12 @@ export type CheatsheetModel = { standalone: CheatsheetEntry[]; groups: Cheatshee
  * `currentSequence` and `candidates` included — must be treated as read-only.
  */
 export type WhichKeySnapshot = {
-  popup: { visible: boolean; currentSequence: string[]; candidates: WhichKeyCandidate[] };
-  cheatsheet: { visible: boolean };
+  readonly popup: {
+    readonly visible: boolean;
+    readonly currentSequence: readonly string[];
+    readonly candidates: readonly WhichKeyCandidate[];
+  };
+  readonly cheatsheet: { readonly visible: boolean };
 };
 
 /**
@@ -222,6 +229,16 @@ export type WhichKeyEngine = {
   readonly registry: ShortcutRegistry;
 };
 
+// Mutable working shape for buildCheatsheetModel. The published CheatsheetGroup
+// is deeply readonly — a model handed to a consumer must never be written into —
+// but the builder assembles one and widens on return, which is always safe in
+// that direction.
+type MutableCheatsheetGroup = {
+  prefix: string;
+  description: string | undefined;
+  entries: CheatsheetEntry[];
+};
+
 // Phase 1 of buildCheatsheetModel: file every active shortcut under its
 // leading key. Bucket insertion order follows registry.getAllActive(), which
 // is what makes sortKeys: 'registration' mean "registration order".
@@ -245,7 +262,7 @@ const buildCheatsheetModel = (
 
   // 2. partition into standalone shortcuts vs labelled groups
   const standalone: CheatsheetEntry[] = [];
-  const groups: CheatsheetGroup[] = [];
+  const groups: MutableCheatsheetGroup[] = [];
   for (const [prefix, entries] of buckets) {
     // A single entry whose keys ARE the prefix is a standalone shortcut —
     // unless the consumer registered a group label for that prefix, in which

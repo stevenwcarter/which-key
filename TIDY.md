@@ -18,13 +18,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Medium severity
 
-### T4. Snapshot immutability is documented but not typed: `WhichKeySnapshot` (src/engine/controller.ts:56-59)
-
-- Lenses: idioms
-- Risk: medium
-- Proposed fix: decision-needed: CLAUDE.md requires snapshots to be "deeply immutable" but no public data shape carries `readonly`, so the invariant lives only in comments. Adding `readonly` to the published snapshot/candidate/cheatsheet types is a public-API signature change (`blocked_by: public-api-signature-change`) that can break consumers assigning into these shapes, so the tidy pass must not invent a fix here — decide the API direction first, alongside bughunt.md's open "public-API break" marker on the published engine internals.
-- [x] execute [ ] skip
-
 ### T13. Four terminal branches inline, with the popup refresh-or-hide decision written twice: `Matcher.handleKeyDown` (src/engine/matcher.ts:48-175, 127 lines)
 
 - Lenses: long-methods

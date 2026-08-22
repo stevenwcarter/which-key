@@ -24,7 +24,7 @@ export type WhichKeyPopupProps = {
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
-const Sequence = ({ sequence }: { sequence: string[] }) => (
+const Sequence = ({ sequence }: { sequence: readonly string[] }) => (
   <div data-testid="whichkey-popup-sequence" className="wk-sequence">
     {sequence.map((k, i) => (
       <Kbd key={i}>{k}</Kbd>

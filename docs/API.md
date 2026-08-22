@@ -220,23 +220,25 @@ Reference to the underlying `ShortcutRegistry`. Advanced use only — treat it a
 
 ### `WhichKeySnapshot`
 
+Snapshots are deeply immutable and typed that way: every field, and both arrays, are `readonly`. The engine caches and re-emits the same object, so writing into one would corrupt state other subscribers have already read. Copy before mutating (`[...snapshot.popup.candidates]`).
+
 ```ts
 type WhichKeySnapshot = {
-  popup: {
-    visible: boolean;
-    currentSequence: string[]; // keys pressed so far, e.g. ['g']
-    candidates: WhichKeyCandidate[];
+  readonly popup: {
+    readonly visible: boolean;
+    readonly currentSequence: readonly string[]; // keys pressed so far, e.g. ['g']
+    readonly candidates: readonly WhichKeyCandidate[];
   };
-  cheatsheet: {
-    visible: boolean;
+  readonly cheatsheet: {
+    readonly visible: boolean;
   };
 };
 
 type WhichKeyCandidate = {
-  keys: string; // full key string of the shortcut, e.g. 'g h'
-  nextKey: string; // the next key to press, e.g. 'h'
-  description: string | undefined;
-  isGroup: boolean; // true if this candidate is a group prefix
+  readonly keys: string; // full key string of the shortcut, e.g. 'g h'
+  readonly nextKey: string; // the next key to press, e.g. 'h'
+  readonly description: string | undefined;
+  readonly isGroup: boolean; // true if this candidate is a group prefix
 };
 ```
 
@@ -246,19 +248,19 @@ type WhichKeyCandidate = {
 
 ```ts
 type CheatsheetModel = {
-  standalone: CheatsheetEntry[]; // single-key shortcuts (no group)
-  groups: CheatsheetGroup[]; // shortcuts grouped by prefix
+  readonly standalone: readonly CheatsheetEntry[]; // single-key shortcuts (no group)
+  readonly groups: readonly CheatsheetGroup[]; // shortcuts grouped by prefix
 };
 
 type CheatsheetEntry = {
-  keys: string;
-  description: string | undefined;
+  readonly keys: string;
+  readonly description: string | undefined;
 };
 
 type CheatsheetGroup = {
-  prefix: string;
-  description: string | undefined;
-  entries: CheatsheetEntry[];
+  readonly prefix: string;
+  readonly description: string | undefined;
+  readonly entries: readonly CheatsheetEntry[];
 };
 ```
 
@@ -343,10 +345,10 @@ Returns the current `WhichKeyState` (a view of the snapshot shaped for React ren
 
 ```ts
 type WhichKeyState = {
-  visible: boolean;
-  currentSequence: string[];
-  candidates: WhichKeyCandidate[];
-  cancel: () => void;
+  readonly visible: boolean;
+  readonly currentSequence: readonly string[];
+  readonly candidates: readonly WhichKeyCandidate[];
+  readonly cancel: () => void;
 };
 ```
 

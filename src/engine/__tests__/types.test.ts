@@ -47,8 +47,8 @@ describe('whichkey types', () => {
   it('WhichKeyState has visible flag and cancel function', () => {
     expectTypeOf<WhichKeyState>().toMatchTypeOf<{
       visible: boolean;
-      currentSequence: string[];
-      candidates: WhichKeyCandidate[];
+      currentSequence: readonly string[];
+      candidates: readonly WhichKeyCandidate[];
       cancel: () => void;
     }>();
   });

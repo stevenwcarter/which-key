@@ -30,7 +30,7 @@ const row = (p: string, c: WhichKeyCandidate): HTMLElement => {
   return r;
 };
 
-const sequence = (p: string, seq: string[]): HTMLElement => {
+const sequence = (p: string, seq: readonly string[]): HTMLElement => {
   const wrap = document.createElement('div');
   wrap.className = `${p}-sequence`;
   wrap.dataset.testid = 'whichkey-popup-sequence';
