@@ -53,13 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
 - [x] execute [ ] skip
 
-### T11. Assertion cancels out the guard on the next line: `segments.pop() as string` (src/engine/keys.ts:194)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: Fold the `undefined` case into the existing throw instead of asserting it away — `const baseRaw = segments.pop(); if (baseRaw === undefined || baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) { throw new Error(...) }`. Behavior is identical (`String.prototype.split` never returns an empty array, so the new branch is unreachable at runtime), the assertion disappears, and the code stays correct if `noUncheckedIndexedAccess` is ever enabled. Same file region as T10 and T12 — see the note on T10.
-- [x] execute [ ] skip
-
 ### T12. The `+` key is unbindable — `eventToCanonical` can emit it, `parseKey` never can (src/engine/keys.ts:195)
 
 - Lenses: opportunistic

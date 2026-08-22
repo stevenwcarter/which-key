@@ -254,8 +254,8 @@ export const parseKey = (input: string): CanonicalKey => {
     throw new Error('whichkey: empty key string');
   }
   const segments = input.split('+');
-  const baseRaw = segments.pop() as string;
-  if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
+  const baseRaw = segments.pop();
+  if (baseRaw === undefined || baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
     throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
   }
   const mods = parseModifiers(segments, input);
