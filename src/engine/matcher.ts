@@ -58,16 +58,14 @@ export class Matcher {
     const prospective = [...this.buffer, key];
     const prospectiveKeys = prospective.join(' ');
 
-    // Escape cancels a partial sequence unless an explicit Escape leaf is registered for the prospective.
-    if (this.buffer.length > 0 && key === 'Escape') {
-      const escapeLeaf = this.registry.getActive(prospectiveKeys);
-      if (!escapeLeaf) {
-        this.cancel();
-        return;
-      }
-    }
-
     const leaf = this.registry.getActive(prospectiveKeys);
+
+    // Escape cancels a partial sequence unless an explicit Escape leaf is
+    // registered for the prospective sequence.
+    if (this.buffer.length > 0 && key === 'Escape' && !leaf) {
+      this.cancel();
+      return;
+    }
     const hasCandidates = this.registry.hasCandidates(prospectiveKeys);
 
     if (leaf && !hasCandidates) {

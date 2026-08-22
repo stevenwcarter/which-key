@@ -248,16 +248,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: require that no group label exists for the prefix — `if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix))` — so a labelled prefix always renders as a single-entry group section.
 - [x] execute   [ ] skip
 
-### B38. Escape path calls registry.getActive with identical arguments twice in one event: `Matcher.handleKeyDown` (src/engine/matcher.ts:30)
-- Category: caching
-- Impact: 2 (severity 1 × blast-radius 2)
-- Effort: S
-- Risk: low
-- Evidence: line 30 computes `const escapeLeaf = this.registry.getActive(prospectiveKeys)`; if truthy the code falls through to line 37 which recomputes the byte-identical `this.registry.getActive(prospectiveKeys)` into `leaf`. Each call is a `Map.get` plus `findActive`, which itself does a full `blockLevel()` scan. Pure duplicate work on the Escape-with-pending-buffer path — a micro-optimization, but free to remove.
-- Blast radius: src/engine/matcher.ts:30,37
-- Proposed fix: hoist the lookup — compute `const leaf = this.registry.getActive(prospectiveKeys);` once before the Escape guard, and change the guard to `if (this.buffer.length > 0 && key === 'Escape' && !leaf) { this.cancel(); return; }`.
-- [x] execute   [ ] skip
-
 ### B39. Vanilla example styles a class the renderer never emits, so the demo cheatsheet renders broken: inline stylesheet (examples/vanilla/index.html:52)
 - Category: frontend
 - Impact: 2 (severity 2 × blast-radius 1)
