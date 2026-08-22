@@ -845,3 +845,23 @@ describe('createWhichKey — timeoutMs boundary and warning text [T1]', () => {
     warn.mockRestore();
   });
 });
+
+describe('createWhichKey — composed warning text is byte-exact [T6]', () => {
+  it('emits the exact invalid-group-prefix warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey({ helpKey: null }).registerGroup('', { description: 'x' });
+    expect(warn).toHaveBeenCalledWith(
+      '[whichkey] invalid group prefix "": empty sequence string; group not registered.',
+    );
+    warn.mockRestore();
+  });
+
+  it('emits the exact invalid-helpKey warning, with keys.ts’s own prefix stripped', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createWhichKey({ helpKey: 'Hyper+/' });
+    expect(warn).toHaveBeenCalledWith(
+      '[whichkey] invalid helpKey "Hyper+/": unknown modifier "Hyper" in "Hyper+/"; help shortcut disabled.',
+    );
+    warn.mockRestore();
+  });
+});

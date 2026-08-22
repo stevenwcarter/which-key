@@ -27,6 +27,27 @@ const MAX_SETTIMEOUT_DELAY_MS = 2147483647;
 // route it through this helper.
 const stripWhichkeyPrefix = (message: string): string => message.replace(/^whichkey:\s*/, '');
 
+// Every soft-fail site that composes another module's Error into a
+// [whichkey] warning needs the same two steps: coerce a non-Error throw to a
+// string, then strip keys.ts's own "whichkey: " prefix so the composed
+// warning isn't double-tagged.
+const describeError = (err: unknown): string =>
+  stripWhichkeyPrefix(err instanceof Error ? err.message : String(err));
+
+// register() and registerGroup() canonicalize into the SAME namespace and
+// soft-fail the same way; only the noun and the consequence clause differ.
+// Returns null rather than throwing so the caller can hand back a no-op
+// unregister. The emitted strings are enumerated in docs/API.md's Console
+// warnings table — keep them byte-identical.
+const canonicalizeOrWarn = (input: string, noun: string, consequence: string): string | null => {
+  try {
+    return parseSequence(input).join(' ');
+  } catch (err) {
+    console.warn(`[whichkey] invalid ${noun} "${input}": ${describeError(err)}; ${consequence}.`);
+    return null;
+  }
+};
+
 // `level` is public on ShortcutOptions and on registerGroup's options. A
 // negative or non-integer value is silently fatal: blockLevel() floors at 0
 // and isReachable requires entry.level >= block, so the entry registers, the
@@ -241,9 +262,9 @@ const registerHelpShortcut = (
       global: true,
     });
   } catch (err) {
-    const rawMessage = err instanceof Error ? err.message : String(err);
-    const message = stripWhichkeyPrefix(rawMessage);
-    console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
+    console.warn(
+      `[whichkey] invalid helpKey "${helpKey}": ${describeError(err)}; help shortcut disabled.`,
+    );
   }
 };
 
@@ -343,17 +364,8 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
         );
         return () => {};
       }
-      let canonical: string;
-      try {
-        canonical = parseSequence(keys).join(' ');
-      } catch (err) {
-        const rawMessage = err instanceof Error ? err.message : String(err);
-        const message = stripWhichkeyPrefix(rawMessage);
-        console.warn(
-          `[whichkey] invalid key string "${keys}": ${message}; shortcut not registered.`,
-        );
-        return () => {};
-      }
+      const canonical = canonicalizeOrWarn(keys, 'key string', 'shortcut not registered');
+      if (canonical === null) return () => {};
       const id = `wk_${idCounter++}`;
       const entry: ShortcutEntry = {
         id,
@@ -373,17 +385,8 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       // Canonicalize into the SAME namespace register() uses. Storing the raw
       // prefix meant registerGroup('Shift+a') and register('Shift+a b') keyed
       // differently ('Shift+a' vs 'A b'), so the label silently never rendered.
-      let canonical: string;
-      try {
-        canonical = parseSequence(prefix).join(' ');
-      } catch (err) {
-        const rawMessage = err instanceof Error ? err.message : String(err);
-        const message = stripWhichkeyPrefix(rawMessage);
-        console.warn(
-          `[whichkey] invalid group prefix "${prefix}": ${message}; group not registered.`,
-        );
-        return () => {};
-      }
+      const canonical = canonicalizeOrWarn(prefix, 'group prefix', 'group not registered');
+      if (canonical === null) return () => {};
       const id = `wkg_${idCounter++}`;
       registry.registerGroup({
         id,

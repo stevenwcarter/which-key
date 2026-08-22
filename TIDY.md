@@ -32,13 +32,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Wrap the per-listener call exactly the way `onFire` already is: `for (const l of listeners) { try { l(snapshot); } catch (err) { console.error('[whichkey] A subscriber threw while receiving a snapshot; other subscribers were still notified.', err); } }`. Today the throw propagates out of `emit()` → `onShowPopup` → `Matcher.handleKeyDown` at matcher.ts:107/159, which is _before_ `this.timer = setTimeout(...)` at matcher.ts:122/161 — so the leaf never fires, the popup never appears, the buffer stays committed with no pending timer, and every listener after the thrower in the Set misses that snapshot. Realistic triggers: one engine driving both `<WhichKeyProvider>` and `mountWhichKey`, a consumer `engine.subscribe(cb)` that throws, or a custom `sortKeys` comparator throwing inside `getCheatsheetModel` during the vanilla `render` subscriber. Add the new console.error to docs/API.md's Console warnings table.
 - [x] execute [ ] skip
 
-### T6. Canonicalize-or-warn-and-no-op written three times (src/engine/controller.ts:248, sites at 224-228, 246-255, 275-285)
-
-- Lenses: duplication
-- Risk: medium
-- Proposed fix: All three sites run `const rawMessage = err instanceof Error ? err.message : String(err); const message = stripWhichkeyPrefix(rawMessage); console.warn(...)`, and the latter two additionally wrap the identical `parseSequence(x).join(' ')` call and `return () => {}`. Two steps, smallest first: (1) add a file-local `const describeError = (err: unknown): string => stripWhichkeyPrefix(err instanceof Error ? err.message : String(err))` and collapse the two-line preamble at all three sites — purely mechanical, zero message change; (2) optionally add `const canonicalizeOrWarn = (input: string, noun: string, consequence: string): string | null` wrapping the try/catch for the two register paths, returning `null` so callers do `if (canonical === null) return () => {};`. Keep the three warning strings verbatim — they are enumerated in docs/API.md's Console warnings table and asserted in src/engine/**tests**/controller.test.ts. Do NOT extend this into a global `warn()` funnel taking an `onWarn` sink: that is the open public-API decision-needed marker in bughunt.md. The 224-228 site moves into `registerHelpShortcut` under T1 — sequence T1 first.
-- [x] execute [ ] skip
-
 ### T7. Validation ladder, activation, ownership tracking and handle construction in one method: `pushLayer` (src/engine/controller.ts:308-353, 46 lines)
 
 - Lenses: long-methods
