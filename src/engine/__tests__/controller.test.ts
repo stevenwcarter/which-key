@@ -624,3 +624,42 @@ describe('createWhichKey.registerGroup — canonical prefix [B22]', () => {
     expect(wk.registry.getActiveGroup('g')).toBeUndefined();
   });
 });
+
+describe('createWhichKey — invalid helpKey [B23]', () => {
+  it('warns and returns a working engine instead of throwing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let wk: ReturnType<typeof createWhichKey> | undefined;
+    expect(() => { wk = createWhichKey({ helpKey: 'Hyper+/' }); }).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[whichkey] invalid helpKey "Hyper+/"'));
+
+    // The engine still works — only the help binding is gone. Prove it by
+    // actually firing a registered shortcut (not just checking it landed in
+    // the registry) and by actually toggling the cheatsheet (not just
+    // reading its untouched initial state).
+    const fn = vi.fn();
+    wk!.register('a', fn, { description: 'Alpha' });
+    wk!.start();
+    press('a');
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    expect(wk!.getSnapshot().cheatsheet.visible).toBe(false);
+    wk!.toggleCheatsheet();
+    expect(wk!.getSnapshot().cheatsheet.visible).toBe(true);
+
+    wk!.stop();
+    warn.mockRestore();
+  });
+
+  it('still binds a valid helpKey', () => {
+    const wk = createWhichKey({ helpKey: 'F1' });
+    expect(wk.registry.getActive('F1')).toBeDefined();
+  });
+
+  it('binds nothing when helpKey is null, without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const wk = createWhichKey({ helpKey: null });
+    expect(wk.registry.getAllActive()).toHaveLength(0);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});

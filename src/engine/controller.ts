@@ -152,17 +152,26 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
   });
 
   if (helpKey) {
-    registry.register({
-      id: DEFAULT_HELP_ID,
-      keys: parseKey(helpKey),
-      handler: () => toggleCheatsheet(),
-      description: 'Toggle keyboard shortcuts',
-      enableOnInputs: false,
-      priority: -1,
-      enabled: true,
-      level: 0,
-      global: true,
-    });
+    // Soft-fail: WhichKeyProvider calls createWhichKey in its RENDER body, so
+    // a throw here unmounts the consumer's entire tree with no error boundary
+    // in between. Matches useShortcut's missing-provider warn convention.
+    try {
+      registry.register({
+        id: DEFAULT_HELP_ID,
+        keys: parseKey(helpKey),
+        handler: () => toggleCheatsheet(),
+        description: 'Toggle keyboard shortcuts',
+        enableOnInputs: false,
+        priority: -1,
+        enabled: true,
+        level: 0,
+        global: true,
+      });
+    } catch (err) {
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      const message = stripWhichkeyPrefix(rawMessage);
+      console.warn(`[whichkey] invalid helpKey "${helpKey}": ${message}; help shortcut disabled.`);
+    }
   }
 
   const handler = (event: Event) => matcher.handleKeyDown(event as KeyboardEvent);

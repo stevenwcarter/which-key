@@ -52,16 +52,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: create a stable popup host element once at mount, append it once, and replace only its children each render (`host.replaceChildren(...)`), toggling `host.hidden` when the snapshot has no visible popup. Fixes both the stacking order and the churn in one change to mount.ts:31-37.
 - [x] execute   [ ] skip
 
-### B23. An invalid helpKey makes createWhichKey (and WhichKeyProvider's render) throw, undocumented: `createWhichKey` (src/engine/controller.ts:137)
-- Category: api-surface
-- Impact: 6 (severity 3 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: `parseKey(helpKey)` runs unguarded in the constructor and throws plain `Error`s for an empty string, a trailing `+`, or an unknown modifier. Neither docs/API.md:40-49 nor README.md:107-113 (which shows `createWhichKey({ helpKey: 'F1' })`) mentions that `helpKey` can throw. Worse in React: `WhichKeyProvider` calls `createWhichKey` in its render body, so `<WhichKeyProvider helpKey="ctrl/">` throws during render and unmounts the consumer's entire tree with no error boundary in between. `useShortcut`'s missing-provider path degrades to a `console.warn`, so the surrounding API sets an expectation of soft failure that this path violates.
-- Blast radius: src/engine/controller.ts:134,137; src/react/WhichKeyProvider.tsx:17; docs/API.md:45; README.md:110
-- Proposed fix: wrap the helpKey registration in try/catch — on parse failure emit `console.warn('[whichkey] invalid helpKey "…": <message>; help shortcut disabled')` and skip registration, matching the soft-failure convention already used in useShortcut.ts:19. Add a "Throws" note to the `helpKey` row in docs/API.md:45.
-- [x] execute   [ ] skip
-
 ### B24. Renderer components silently render nothing outside a provider while the three hooks warn: `useWhichKeyState` / `ShortcutCheatsheet` (src/react/useWhichKeyState.ts:15)
 - Category: observability
 - Impact: 6 (severity 2 × blast-radius 3)

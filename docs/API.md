@@ -42,7 +42,7 @@ const wk = createWhichKey({
 | Property    | Type                                        | Default         | Description                                                                 |
 |-------------|---------------------------------------------|-----------------|-----------------------------------------------------------------------------|
 | `timeoutMs` | `number`                                    | `500`           | Milliseconds of inactivity before a partial sequence is cancelled.          |
-| `helpKey`   | `string \| null`                            | `'?'`           | Key that opens the cheatsheet. `null` disables the built-in help shortcut.  |
+| `helpKey`   | `string \| null`                            | `'?'`           | Key that opens the cheatsheet. `null` disables the built-in help shortcut. An unparseable value emits a `console.warn` and disables the help shortcut; it never throws. |
 | `sortKeys`  | `'registration' \| 'alphabetical' \| KeyComparator` | `'registration'` | Controls the order of candidates in the popup and cheatsheet.               |
 | `target`    | `Document \| HTMLElement`                   | `document`      | DOM node on which the `keydown` listener is installed.                      |
 
