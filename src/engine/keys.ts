@@ -45,7 +45,6 @@ const KNOWN_BASES = new Set([
 const SPECIAL_KEY_ALIASES = new Map<string, string>([
   ...[...KNOWN_BASES].map((k): [string, string] => [k.toLowerCase(), k]),
   ['esc', 'Escape'],
-  ['space', 'Space'],
   ['spacebar', 'Space'],
   ['up', 'ArrowUp'],
   ['down', 'ArrowDown'],

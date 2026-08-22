@@ -192,13 +192,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Either extract `const bucketByFirstKey = (entries: ShortcutEntry[]): Map<string, CheatsheetEntry[]>` (lines 92-99) and `const sortModel = (model: CheatsheetModel, cmp: KeyComparator): void` (113-117), leaving the partition loop as the body; or, if the single readable pipeline is preferred, add three section comments — `// 1. bucket entries by their leading key`, `// 2. partition into standalone shortcuts vs labelled groups`, `// 3. apply the caller's key comparator`. Keep the existing explanatory comment at 103-106 attached to the partition condition.
 - [x] execute [ ] skip
 
-### T27. Redundant map entry: `['space', 'Space']` in `SPECIAL_KEY_ALIASES` (src/engine/keys.ts:47)
-
-- Lenses: dead-code
-- Risk: low
-- Proposed fix: Delete the line. The Map is built as `[...[...KNOWN_BASES].map(k => [k.toLowerCase(), k]), ...explicit entries]`, and `KNOWN_BASES` contains `'Space'` (keys.ts:27), so the derived spread already inserts the exact key `'space'` with the exact value `'Space'`. Verified by reconstructing both halves in node: `'space'` is the only explicit entry whose key collides with a derived one, and the collision is same-key/same-value, so the Map is byte-identical either way. The other nine explicit entries (`esc`, `spacebar`, `up`, `down`, `left`, `right`, `pgup`, `pgdn`, `pagedn`) are genuinely unique and must stay. `parseKey('space')` keeps resolving through the derived entry, so src/engine/**tests**/keys.test.ts and docs/API.md's special-key alias table are unaffected. Note bughunt B48 is open on `SPECIAL_KEYS` doing double duty in this same file — keep the two changes separate.
-- [x] execute [ ] skip
-
 ### T28. Switch over `MODIFIER_ALIASES` values cannot be exhaustiveness-checked (src/engine/keys.ts:150)
 
 - Lenses: idioms
