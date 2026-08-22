@@ -54,7 +54,9 @@ export const ShortcutCheatsheet = () => {
   const model = engine.getCheatsheetModel();
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-dismiss backdrop; the keyboard equivalent is the Escape handler installed in the useEffect above, and the panel (not the backdrop) is the focus target of this modal.
     <div data-testid="whichkey-cheatsheet-backdrop" className="wk-backdrop" onClick={engine.closeCheatsheet}>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- onClick here only stops propagation to the backdrop's close handler; it has no interactive behavior of its own, so no keyboard equivalent is needed. */}
       <div ref={panelRef} data-testid="whichkey-cheatsheet" className="wk-cheatsheet"
            onClick={(e) => e.stopPropagation()} tabIndex={-1}
            role="dialog" aria-modal="true" aria-labelledby={CHEATSHEET_TITLE_ID}>

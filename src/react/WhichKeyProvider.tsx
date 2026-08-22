@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createWhichKey, type WhichKeyEngine, type SortMode } from '../engine';
 import { WhichKeyContext } from './context';
 
@@ -12,11 +12,10 @@ export type WhichKeyProviderProps = {
 export const WhichKeyProvider = ({
   children, timeoutMs = 500, helpKey = '?', sortKeys,
 }: WhichKeyProviderProps) => {
-  const engineRef = useRef<WhichKeyEngine | null>(null);
-  if (engineRef.current === null) {
-    engineRef.current = createWhichKey({ timeoutMs, helpKey, sortKeys });
-  }
-  const engine = engineRef.current;
+  // Lazy initializer runs once on mount and is ignored thereafter, same as the
+  // former ref-based lazy-init — but doesn't read a ref during render, which
+  // react-hooks/refs (added in eslint-plugin-react-hooks v7) correctly flags.
+  const [engine] = useState<WhichKeyEngine>(() => createWhichKey({ timeoutMs, helpKey, sortKeys }));
   useEffect(() => {
     engine.start();
     return () => engine.stop();

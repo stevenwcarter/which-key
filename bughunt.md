@@ -152,16 +152,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: replace both literals with `z-index: var(--wk-z-index, 1000);` and `z-index: var(--wk-z-index-backdrop, var(--wk-z-index, 1000));`, and document the two variables in the README Styling section.
 - [x] execute   [ ] skip
 
-### B27. eslint config lacks jsx-a11y and react-hooks plugins for a package whose product is shipped UI: `eslint.config.js` (eslint.config.js:5)
-- Category: frontend
-- Impact: 6 (severity 2 × blast-radius 3)
-- Effort: S
-- Risk: low
-- Evidence: the whole config is `tseslint.configs.recommended` with `examples` ignored. For a library that ships JSX overlays into third-party apps there is no `eslint-plugin-jsx-a11y` — which would have flagged the backdrop's `onClick` on a plain `<div>` (ShortcutCheatsheet.tsx:29) under `no-static-element-interactions`/`click-events-have-key-events`, and the bare `role="dialog"` sites — and no `eslint-plugin-react-hooks`, so there is no `exhaustive-deps` checking over the six hook call sites in src/react/. `npm run lint` is green, which is why the a11y gaps in B3 and B7 shipped in v0.1.1.
-- Blast radius: eslint.config.js:5; package.json:78; src/react/ShortcutCheatsheet.tsx:29; src/react/WhichKeyPopup.tsx:34; src/react/useShortcut.ts:17
-- Proposed fix: add `eslint-plugin-jsx-a11y` and `eslint-plugin-react-hooks` as devDependencies and append their recommended flat configs scoped to `src/react/**/*.tsx`. Expect B3 and B7 to light up — fix or schedule those first, or the lint gate will fail.
-- [x] execute   [ ] skip
-
 ### B28. The debugging exports that answer "why doesn't my shortcut fire" are undocumented: `parseKey` / `eventToCanonical` / `registry` (docs/API.md:142)
 - Category: observability
 - Impact: 6 (severity 2 × blast-radius 3)
