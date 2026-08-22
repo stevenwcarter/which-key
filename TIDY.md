@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T20. 102-line DOM builder with no internal structure: `renderCheatsheet` (src/vanilla/cheatsheet.ts:23-124)
-
-- Lenses: long-methods
-- Risk: medium
-- Proposed fix: Extract three module-private helpers beside the existing `kbd`/`item`: `const buildPanel = (p: string, onClose: () => void): { panel: HTMLElement; backdrop: HTMLElement }` (lines 28-54: backdrop, panel, close button, title), `const buildSections = (p: string, model: CheatsheetModel): HTMLElement` (56-83, with a nested `const buildGroupSection = (p, g)` for the group body at 65-83), and `const installFocusTrap = (panel: HTMLElement): (() => void)` (94-121, returning the teardown that removes the listener and restores focus). `renderCheatsheet` becomes ~12 lines of assembly. Keep the existing NB comment about focus not being moved here. Sequencing: `installFocusTrap` should call T16's shared `trapTab`, and T33 replaces the literal copy strings inside `buildPanel`/`buildSections` — land T16 first, T33 either before or after but not concurrently.
-- [x] execute [ ] skip
-
 ### T21. 111-line function with a 33-line nested render closure: `mountWhichKey` (src/vanilla/mount.ts:28-138)
 
 - Lenses: long-methods
