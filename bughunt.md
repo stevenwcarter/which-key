@@ -148,6 +148,16 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 
 ## Low
 
+### B44. A tainted leaf-AND-prefix keystroke leaves the popup visible-but-stale with no hide: `Matcher.handleKeyDown` (src/engine/matcher.ts, leaf-AND-prefix branch)
+- Category: correctness
+- Impact: 4 (severity 2 × blast-radius 2)
+- Effort: S
+- Risk: medium
+- Evidence: found during B21's review (2026-08-21), not by the original triage. B21 added an input-echo-latched popup refresh to the leaf-AND-prefix branch: `if (this.popupVisible && !this.bufferTouchedInput) onShowPopup(...)`. The latch correctly suppresses painting newly-tainted characters, but unlike the prefix-only branch — which hides an already-visible popup when the buffer becomes tainted — the leaf-AND-prefix branch never calls `onHidePopup`. So a popup showing untainted content stays on screen, stale, after a tainted keystroke. Verified by trace: with `g`, `g h`, `g h x` all registered (each a leaf and a prefix), pressing `g` outside a field then `h` inside one leaves `['g']` displayed with no hide call. **No disclosure** — the stale content was already on screen before the taint, and the latch still blocks the new characters. The window is bounded only incidentally, by (depth of the app's leaf-AND-prefix chain) × `timeoutMs`, since every terminal outcome eventually reaches `resetBuffer`; it is not a designed bound. A two-level chain already defeats the "the next keystroke will hide it" assumption.
+- Blast radius: src/engine/matcher.ts (leaf-AND-prefix branch, prefix-only branch's hide at the `bufferTouchedInput` guard, `resetBuffer`)
+- Proposed fix: mirror the prefix-only branch — when `this.bufferTouchedInput` is latched and `this.popupVisible` is true, set `popupVisible = false` and call `onHidePopup()` instead of merely skipping the refresh, so both branches share the same safety property rather than relying on eventual termination. Add a test registering a two-level leaf-AND-prefix chain and asserting the hide fires.
+- [ ] execute   [ ] skip
+
 ### B29. clamp01 and clampRows pass NaN straight through, emitting invalid CSS in both renderers: `clamp01` / `clampRows` (src/react/WhichKeyPopup.tsx:12)
 - Category: api-surface
 - Impact: 4 (severity 2 × blast-radius 2)
