@@ -53,31 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: src/vanilla/cheatsheet.ts:98 and src/react/ShortcutCheatsheet.tsx:54 both spell this `panel.querySelectorAll<HTMLElement>(FOCUSABLE)`; only this site casts. `querySelector` is generic in exactly the same way — ``cheatsheetNode.querySelector<HTMLElement>(`.${prefix}-cheatsheet`)?.focus();`` — and the wrapping parens go away too.
 - [x] execute [ ] skip
 
-### T23. `kbd()` copy-pasted between the vanilla renderers, and the create/className/textContent triple written ~18 more times (src/vanilla/popup.ts:10-15 and src/vanilla/cheatsheet.ts:6-11)
-
-- Lenses: duplication, idioms
-- Risk: low
-- Proposed fix: The two `kbd` helpers are byte-identical, and both files then repeat `document.createElement(tag)` + `.className =` + optional `.textContent =` (8 times in popup.ts:17-38,46-81, 10 times in cheatsheet.ts:13-89). Add a module-private `src/vanilla/dom.ts` (not re-exported from src/vanilla/index.ts, so no public-API change):
-
-  ```ts
-  export const el = <K extends keyof HTMLElementTagNameMap>(
-    tag: K,
-    className: string,
-    text?: string,
-  ): HTMLElementTagNameMap[K] => {
-    const node = document.createElement(tag);
-    node.className = className;
-    if (text !== undefined) node.textContent = text;
-    return node;
-  };
-
-  export const kbd = (p: string, text: string): HTMLElement => el('kbd', `${p}-kbd`, text);
-  ```
-
-  Then e.g. popup.ts:21-22 becomes ``const label = el('span', `${p}-row__label`, …)`` and cheatsheet.ts:50-53 becomes ``const title = el('h2', `${p}-cheatsheet__title`, 'Keyboard shortcuts');``. The `kbd` half is the true cross-file dupe and is the minimum change; the ~18 `el()` conversions are a bigger diff and can land separately. No `innerHTML` is introduced — every helper keeps using `textContent`, already the project's consistent choice.
-
-- [x] execute [ ] skip
-
 ## Low severity
 
 ### T30. Group labels have no `global` escape hatch from an exclusive layer: `getActiveGroup` (src/engine/registry.ts:133)

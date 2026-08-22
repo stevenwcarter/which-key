@@ -1,17 +1,10 @@
 import type { CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
-
-const kbd = (p: string, text: string): HTMLElement => {
-  const el = document.createElement('kbd');
-  el.className = `${p}-kbd`;
-  el.textContent = text;
-  return el;
-};
+import { el, kbd } from './dom';
 
 const item = (p: string, keys: string, description: string | undefined): HTMLElement => {
-  const li = document.createElement('li');
-  li.className = `${p}-cheatsheet__item`;
+  const li = el('li', `${p}-cheatsheet__item`);
   li.appendChild(kbd(p, keys));
   const span = document.createElement('span');
   span.textContent = description ?? NO_DESCRIPTION;
@@ -24,13 +17,11 @@ export const renderCheatsheet = (
   model: CheatsheetModel,
   onClose: () => void,
 ): { element: HTMLElement; destroy: () => void } => {
-  const backdrop = document.createElement('div');
-  backdrop.className = `${p}-backdrop`;
+  const backdrop = el('div', `${p}-backdrop`);
   backdrop.dataset.testid = 'whichkey-cheatsheet-backdrop';
   backdrop.addEventListener('click', onClose);
 
-  const panel = document.createElement('div');
-  panel.className = `${p}-cheatsheet`;
+  const panel = el('div', `${p}-cheatsheet`);
   panel.dataset.testid = 'whichkey-cheatsheet';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
@@ -38,54 +29,39 @@ export const renderCheatsheet = (
   panel.tabIndex = -1;
   panel.addEventListener('click', (e) => e.stopPropagation());
 
-  const close = document.createElement('button');
+  const close = el('button', `${p}-cheatsheet__close`, '×');
   close.type = 'button';
-  close.className = `${p}-cheatsheet__close`;
   close.setAttribute('aria-label', 'Close keyboard shortcuts');
-  close.textContent = '×';
   close.addEventListener('click', onClose);
   panel.appendChild(close);
 
-  const title = document.createElement('h2');
-  title.className = `${p}-cheatsheet__title`;
+  const title = el('h2', `${p}-cheatsheet__title`, SHORTCUTS_LABEL);
   title.id = CHEATSHEET_TITLE_ID;
-  title.textContent = SHORTCUTS_LABEL;
   panel.appendChild(title);
 
-  const sections = document.createElement('div');
-  sections.className = `${p}-cheatsheet__sections`;
+  const sections = el('div', `${p}-cheatsheet__sections`);
 
   if (model.standalone.length > 0) {
-    const ul = document.createElement('ul');
-    ul.className = `${p}-cheatsheet__list`;
+    const ul = el('ul', `${p}-cheatsheet__list`);
     model.standalone.forEach((e) => ul.appendChild(item(p, e.keys, e.description)));
     sections.appendChild(ul);
   }
   model.groups.forEach((g) => {
-    const section = document.createElement('section');
-    section.className = `${p}-cheatsheet__section`;
-    const h3 = document.createElement('h3');
-    h3.className = `${p}-cheatsheet__group-title`;
+    const section = el('section', `${p}-cheatsheet__section`);
+    const h3 = el('h3', `${p}-cheatsheet__group-title`);
     h3.appendChild(kbd(p, g.prefix));
     if (g.description) {
-      const span = document.createElement('span');
-      span.className = `${p}-cheatsheet__group-label`;
-      span.textContent = g.description;
-      h3.appendChild(span);
+      h3.appendChild(el('span', `${p}-cheatsheet__group-label`, g.description));
     }
     section.appendChild(h3);
-    const ul = document.createElement('ul');
-    ul.className = `${p}-cheatsheet__list ${p}-cheatsheet__list--nested`;
+    const ul = el('ul', `${p}-cheatsheet__list ${p}-cheatsheet__list--nested`);
     g.entries.forEach((e) => ul.appendChild(item(p, e.keys, e.description)));
     section.appendChild(ul);
     sections.appendChild(section);
   });
 
   panel.appendChild(sections);
-  const hint = document.createElement('div');
-  hint.className = `${p}-cheatsheet__hint`;
-  hint.textContent = CHEATSHEET_HINT;
-  panel.appendChild(hint);
+  panel.appendChild(el('div', `${p}-cheatsheet__hint`, CHEATSHEET_HINT));
   backdrop.appendChild(panel);
 
   // NB: focus is NOT moved here — the node is not in the document yet, so
