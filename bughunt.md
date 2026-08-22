@@ -18,16 +18,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. Toolchain: np
 
 ## High
 
-### B12. Package `exports` never points at the emitted `.d.cts` files, breaking types for node16 CJS consumers: `exports` (package.json:32)
-- Category: api-surface
-- Impact: 12 (severity 4 × blast-radius 3)
-- Effort: S
-- Risk: medium
-- Evidence: each subpath uses a flat `{ types, import, require }` object, so a single ESM-flavoured `types: "./dist/*/index.d.ts"` serves both conditions (the package is `"type": "module"`). tsup **does** emit `dist/engine/index.d.cts`, `dist/react/index.d.cts`, `dist/vanilla/index.d.cts` — confirmed present in `npm pack --dry-run` — but nothing in `exports` references them, so they ship as dead weight. A consumer compiling with `moduleResolution: "node16"`/`"nodenext"` from a CJS file doing `require('which-key')` resolves the `require` runtime target but the ESM `.d.ts` for types, which TS rejects on the declaration-format mismatch. Bundler-resolution consumers are unaffected, which is why it is invisible in-repo.
-- Blast radius: package.json:32,34,39,44
-- Proposed fix: nest conditions per-format with `types` first inside each branch — `".": { "import": { "types": "./dist/engine/index.d.ts", "default": "./dist/engine/index.js" }, "require": { "types": "./dist/engine/index.d.cts", "default": "./dist/engine/index.cjs" } }` — and likewise for `./react` and `./vanilla`. The files already exist; no build change needed.
-- [x] execute   [ ] skip
-
 ### B13. Documented CSS class contract omits 11 emitted classes and mislabels `wk-cheatsheet` as the backdrop: CSS class contract table (README.md:241)
 - Category: frontend
 - Impact: 12 (severity 3 × blast-radius 4)
