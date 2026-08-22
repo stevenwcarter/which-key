@@ -17,8 +17,9 @@
    - [`<ShortcutCheatsheet>`](#shortcutcheatsheet)
 3. [Vanilla — `which-key/vanilla`](#vanilla--which-keyvanilla)
    - [`mountWhichKey(engine, options?) => WhichKeyMountHandle`](#mountwhichkey)
-4. [Key-string syntax](#key-string-syntax)
-5. [CSS class contract (`wk-*`)](#css-class-contract-wk-)
+4. [Debugging](#debugging)
+5. [Key-string syntax](#key-string-syntax)
+6. [CSS class contract (`wk-*`)](#css-class-contract-wk-)
 
 ---
 
@@ -191,7 +192,7 @@ Returns the current cheatsheet data model. Useful for building custom cheatsheet
 
 #### `engine.registry`
 
-Read-only reference to the underlying `ShortcutRegistry`. Advanced use only.
+Reference to the underlying `ShortcutRegistry`. Advanced use only — treat it as read-only. The supported read method is `getAllActive()`, documented under [Debugging](#debugging). The mutating methods (`register`, `unregister`, `activateLayer`) exist on the class but are driven by the engine; calling them directly bypasses the engine's bookkeeping.
 
 ---
 
@@ -446,6 +447,54 @@ Ctrl+s         →  Control+s
 Mod+k g        →  (Cmd/Ctrl)+k, then g
 ?              →  ?  (write the shifted character directly, not "Shift+/")
 ```
+
+---
+
+## Debugging
+
+When a shortcut "just doesn't fire", it is almost always one of three things: the key string canonicalizes differently than the runtime event, an exclusive layer is blocking it (see [`<WhichKeyLayer>`](#whichkeylayer)), or another registration is winning the collision. These exports let you check each from the console.
+
+### `parseKey(keys)` / `parseSequence(keys)`
+
+Canonicalize a key string exactly the way registration does. `parseKey` handles a single chord; `parseSequence` splits on spaces and returns an array of chords.
+
+```ts
+import { parseKey, parseSequence } from 'which-key';
+
+parseKey('n');               // 'n'   — bare lowercase, no modifier implied
+parseKey('N');               // 'N'   — a bare uppercase letter implies Shift was held
+parseKey('Mod+k');           // 'Cmd+K' on macOS, 'Ctrl+K' elsewhere
+parseKey('Shift+/');         // '/'   — Shift is dropped for punctuation (warns — see below)
+parseSequence('g h');        // ['g', 'h']
+```
+
+Both **throw** for an unparseable string (an unknown modifier, a trailing `+`, an empty string). That is how you tell a typo from a mismatch. Contrast this with [`engine.register`](#engine-register), which catches that same error internally and **warns instead of throwing** — call `parseKey`/`parseSequence` yourself and a bad string is an exception; register it through the engine and a bad string is a console warning plus a no-op.
+
+### `eventToCanonical(event)`
+
+Canonicalize a live `KeyboardEvent` the way the matcher does at runtime. **Registration and runtime must produce byte-identical strings** — registry lookups are plain `Map` gets — so comparing the two is the fastest way to find a mismatch. Log both sides from a raw listener next to your registered key:
+
+```ts
+import { parseKey, eventToCanonical } from 'which-key';
+
+document.addEventListener('keydown', (e) => {
+  console.log('pressed:', eventToCanonical(e), '| registered:', parseKey('?'));
+});
+```
+
+If those two strings differ, that is your bug. This is exactly what happens with the `Shift+/` example above: physically holding Shift and pressing `/` on a US layout delivers a `KeyboardEvent` whose `key` is already `'?'`, so `eventToCanonical(e)` reports `'?'`. But `parseKey('Shift+/')` reports `'/'` (see above) — the two never match, and a shortcut registered as `'Shift+/'` silently never fires. Registering the shifted character directly, `'?'`, fixes it.
+
+### `engine.registry.getAllActive()`
+
+Lists every shortcut currently winning its bucket — i.e. what would actually fire right now, after level, priority, and layer blocking are resolved. Use it to confirm a binding is live and to see which entry won a collision:
+
+```ts
+console.table(engine.registry.getAllActive().map((e) => ({
+  keys: e.keys, description: e.description, level: e.level, priority: e.priority,
+})));
+```
+
+A shortcut you registered that is **absent** from this list is either blocked by an active exclusive layer (see [`<WhichKeyLayer>`](#whichkeylayer) — register it with `global: true` to punch through) or has lost its bucket to a higher-level or higher-priority entry.
 
 ---
 
