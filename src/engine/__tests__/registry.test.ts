@@ -515,3 +515,70 @@ describe('ShortcutRegistry — priority-ordered insertion [T14]', () => {
     expect(registry.getActive('x')?.id).toBe('lo');
   });
 });
+
+describe('registry resolution cascade — characterization [T15]', () => {
+  let warn: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
+  it('findActive: a higher level beats a higher priority', () => {
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: 'low', keys: 'x', level: 0, priority: 99 }));
+    r.register(entry({ id: 'high', keys: 'x', level: 1, priority: 0 }));
+    expect(r.getActive('x')?.id).toBe('high');
+  });
+
+  it('findActive: at equal level, the higher priority wins', () => {
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: 'p9', keys: 'x', level: 1, priority: 9 }));
+    r.register(entry({ id: 'p1', keys: 'x', level: 1, priority: 1 }));
+    expect(r.getActive('x')?.id).toBe('p9');
+  });
+
+  it('findActive: at equal level and priority, the later registration wins', () => {
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: 'first', keys: 'x', level: 1, priority: 1 }));
+    r.register(entry({ id: 'second', keys: 'x', level: 1, priority: 1 }));
+    expect(r.getActive('x')?.id).toBe('second');
+  });
+
+  it('findActive: a disabled entry is skipped even when it would win the cascade', () => {
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: 'live', keys: 'x', level: 0, priority: 0 }));
+    r.register(entry({ id: 'dead', keys: 'x', level: 5, priority: 9, enabled: false }));
+    expect(r.getActive('x')?.id).toBe('live');
+  });
+
+  it('getActiveGroup: runs the same level -> priority -> latest cascade', () => {
+    const byLevel = new ShortcutRegistry();
+    byLevel.registerGroup({ id: 'a', prefix: 'g', description: 'a', priority: 9, level: 0 });
+    byLevel.registerGroup({ id: 'b', prefix: 'g', description: 'b', priority: 0, level: 1 });
+    expect(byLevel.getActiveGroup('g')?.id).toBe('b');
+
+    const byPriority = new ShortcutRegistry();
+    byPriority.registerGroup({ id: 'a', prefix: 'g', description: 'a', priority: 1, level: 1 });
+    byPriority.registerGroup({ id: 'b', prefix: 'g', description: 'b', priority: 9, level: 1 });
+    expect(byPriority.getActiveGroup('g')?.id).toBe('b');
+
+    const byRecency = new ShortcutRegistry();
+    byRecency.registerGroup({ id: 'a', prefix: 'g', description: 'a', priority: 1, level: 1 });
+    byRecency.registerGroup({ id: 'b', prefix: 'g', description: 'b', priority: 1, level: 1 });
+    expect(byRecency.getActiveGroup('g')?.id).toBe('b');
+  });
+
+  it('a global shortcut escapes an exclusive layer but a group at the same level cannot [T30 — deliberately unfixed]', () => {
+    // The two eligibility predicates are NOT interchangeable: GroupEntry has
+    // no `global` field, so there is no group-side escape hatch. Any future
+    // unification of the cascade must keep this test red-if-changed.
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: 'esc', keys: 'g', level: 0, global: true }));
+    r.registerGroup({ id: 'grp', prefix: 'g', description: 'Go', priority: 0, level: 0 });
+    r.activateLayer('modal', 1, true);
+    expect(r.getActive('g')?.id).toBe('esc');
+    expect(r.getActiveGroup('g')).toBeUndefined();
+  });
+});
