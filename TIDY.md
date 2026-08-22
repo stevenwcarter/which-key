@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: decision-needed: CLAUDE.md requires snapshots to be "deeply immutable" but no public data shape carries `readonly`, so the invariant lives only in comments. Adding `readonly` to the published snapshot/candidate/cheatsheet types is a public-API signature change (`blocked_by: public-api-signature-change`) that can break consumers assigning into these shapes, so the tidy pass must not invent a fix here — decide the API direction first, alongside bughunt.md's open "public-API break" marker on the published engine internals.
 - [x] execute [ ] skip
 
-### T7. Validation ladder, activation, ownership tracking and handle construction in one method: `pushLayer` (src/engine/controller.ts:308-353, 46 lines)
-
-- Lenses: long-methods
-- Risk: low
-- Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
-- [x] execute [ ] skip
-
 ### T13. Four terminal branches inline, with the popup refresh-or-hide decision written twice: `Matcher.handleKeyDown` (src/engine/matcher.ts:48-175, 127 lines)
 
 - Lenses: long-methods

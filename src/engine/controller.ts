@@ -77,6 +77,29 @@ const resolveTimeoutMs = (raw: number | undefined): number => {
   return DEFAULT_TIMEOUT_MS;
 };
 
+// A negative level is permanently unreachable: blockLevel() floors at 0 and
+// isReachable requires entry.level >= block, so every shortcut on the layer
+// registers fine, the handle looks healthy, and the keys silently never
+// fire. Non-integers and non-finite values are equally meaningless as level
+// ordinals. Closure-free: the caller supplies nextLevel.
+const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number => {
+  if (requested === undefined) return nextLevel;
+  if (!Number.isInteger(requested) || requested < 0) {
+    console.warn(
+      `[whichkey] invalid pushLayer level ${String(requested)}; ` +
+        `expected a non-negative integer. Falling back to ${nextLevel}.`,
+    );
+    return nextLevel;
+  }
+  if (requested < nextLevel - 1) {
+    console.warn(
+      `[whichkey] pushLayer level ${requested} undercuts the next free level ` +
+        `(${nextLevel}); shortcuts on this layer may be blocked by an active exclusive layer.`,
+    );
+  }
+  return requested;
+};
+
 /**
  * Options accepted by `createWhichKey`. Every field is optional, and an invalid
  * value warns and falls back to its default rather than throwing.
@@ -441,31 +464,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       };
     },
     pushLayer(opts) {
-      const nextLevel = registry.nextLevel();
-      // A negative level is permanently unreachable: blockLevel() floors at 0
-      // and isReachable requires entry.level >= block, so every shortcut on
-      // the layer registers fine, the handle looks healthy, and the keys
-      // silently never fire. Non-integers and non-finite values are equally
-      // meaningless as level ordinals.
-      const requested = opts?.level;
-      let level: number;
-      if (requested === undefined) {
-        level = nextLevel;
-      } else if (!Number.isInteger(requested) || requested < 0) {
-        console.warn(
-          `[whichkey] invalid pushLayer level ${String(requested)}; ` +
-            `expected a non-negative integer. Falling back to ${nextLevel}.`,
-        );
-        level = nextLevel;
-      } else {
-        if (requested < nextLevel - 1) {
-          console.warn(
-            `[whichkey] pushLayer level ${requested} undercuts the next free level ` +
-              `(${nextLevel}); shortcuts on this layer may be blocked by an active exclusive layer.`,
-          );
-        }
-        level = requested;
-      }
+      const level = resolvePushLayerLevel(opts?.level, registry.nextLevel());
       const deactivate = engine.activateLayer(level, opts?.exclusive ?? false);
       const owned = new Set<() => void>();
       const track = (un: () => void): (() => void) => {
