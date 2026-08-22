@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   eventToCanonical,
   parseKey,
@@ -172,6 +172,33 @@ describe('parseKey', () => {
   });
 });
 
+describe('Shift on punctuation and digits', () => {
+  it('warns that Shift is dropped and names the key it will actually match', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseKey('Shift+/');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('Shift+/');
+    expect(warn.mock.calls[0][0]).toContain('"/"');
+    warn.mockRestore();
+  });
+
+  it('does not warn when the shifted character is written directly', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    parseKey('?');
+    parseKey('Shift+?');
+    parseKey('Ctrl+s');
+    parseKey('Shift+A');
+    parseKey('Shift+Tab');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('round-trips the documented spelling against a real Shift+/ keypress', () => {
+    const event = new KeyboardEvent('keydown', { key: '?', shiftKey: true });
+    expect(parseKey('?')).toBe(eventToCanonical(event));
+  });
+});
+
 describe('parseSequence', () => {
   it('splits on single spaces', () => {
     expect(parseSequence('g n')).toEqual(['g', 'n']);
@@ -223,5 +250,55 @@ describe('isInputTarget', () => {
 
   it('is false for null target', () => {
     expect(isInputTarget(null)).toBe(false);
+  });
+});
+
+describe('modifier case-insensitivity', () => {
+  it('accepts every documented modifier in any case', () => {
+    expect(parseKey('ctrl+s')).toBe('Ctrl+S');
+    expect(parseKey('CTRL+s')).toBe('Ctrl+S');
+    expect(parseKey('Ctrl+s')).toBe('Ctrl+S');
+    expect(parseKey('alt+x')).toBe('Alt+X');
+    expect(parseKey('shift+Tab')).toBe('Shift+Tab');
+    expect(parseKey('cmd+k')).toBe('Cmd+K');
+  });
+
+  it('accepts the common spelled-out aliases', () => {
+    expect(parseKey('control+s')).toBe('Ctrl+S');
+    expect(parseKey('option+x')).toBe('Alt+X');
+    expect(parseKey('meta+k')).toBe('Cmd+K');
+    expect(parseKey('command+k')).toBe('Cmd+K');
+  });
+
+  it('round-trips a lowercase modifier against a real keypress', () => {
+    const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true });
+    expect(parseKey('ctrl+s')).toBe(eventToCanonical(event));
+  });
+
+  it('still rejects a genuinely unknown modifier', () => {
+    expect(() => parseKey('Hyper+K')).toThrow(/unknown modifier/);
+    expect(() => parseKey('hyper+K')).toThrow(/unknown modifier/);
+  });
+
+  it('still rejects a bare modifier with no key', () => {
+    expect(() => parseKey('ctrl+')).toThrow();
+    expect(() => parseKey('ctrl')).toThrow();
+  });
+
+  it('rejects a modifier word in base position regardless of case', () => {
+    // Pre-task, case-insensitive matching made this inconsistent: Ctrl+Shift threw,
+    // but Ctrl+shift silently produced a dead binding ('Ctrl+shift' key, not fireable).
+    // Now both throw. This is intentional: no alias word (ctrl, control, alt, option,
+    // shift, cmd, meta, command, mod) is ever emitted by event.key, so every such
+    // string was unfireable. The throw converts a silent dead binding into a loud error.
+    // Regression pins: Ctrl+Shift was already throwing pre-task (not widening, finishing
+    // the generalization). Genuinely new: Ctrl+shift, Mod+alt, Alt+cmd now throw instead
+    // of parsing as dead literal keys.
+    expect(() => parseKey('Ctrl+Shift')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Ctrl+shift')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Mod+Alt')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Mod+alt')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Alt+Cmd')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Alt+cmd')).toThrow(/missing key after modifier/);
   });
 });

@@ -2,9 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createWhichKey } from '../controller';
 
 const press = (key: string, target: EventTarget = document.body) => {
-  const ev = new KeyboardEvent('keydown', { key, bubbles: true });
-  Object.defineProperty(ev, 'target', { value: target });
-  document.dispatchEvent(ev);
+  // Dispatch on the real target (not document with a faked `.target`) so
+  // `event.composedPath()[0]` — what Matcher now reads — genuinely resolves
+  // to `target`, matching real browser behavior. `target` must be connected
+  // to `document` (the matcher's default bound target) so the event bubbles
+  // up and the listener actually sees it.
+  target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+};
+
+// Like `press`, but for keystrokes that need modifier flags (Ctrl/Alt/Meta) —
+// used by the Finding-1 narrowed-latch tests below, which must distinguish
+// character-echoing keystrokes from modifier chords that never insert text.
+const pressWithInit = (init: KeyboardEventInit & { key: string }, target: EventTarget = document.body) => {
+  target.dispatchEvent(new KeyboardEvent('keydown', { ...init, bubbles: true }));
 };
 
 describe('createWhichKey', () => {
@@ -114,6 +124,318 @@ describe('createWhichKey', () => {
     expect(wk.getCheatsheetModel().groups[0].description).toBeUndefined();
   });
 
+  describe('handler exceptions', () => {
+    it('resets sequence state when an immediate leaf handler throws', () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wk = createWhichKey();
+      const ok = vi.fn();
+      wk.register('x', () => { throw new Error('boom'); }, { description: 'Boom' });
+      wk.register('y', ok, { description: 'Fine' });
+      wk.start();
+
+      expect(() => press('x')).not.toThrow();
+      press('y');
+
+      expect(ok).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      expect(err).toHaveBeenCalled();
+      expect(String(err.mock.calls[0][0])).toContain('[whichkey]');
+      wk.stop();
+      err.mockRestore();
+    });
+
+    it('resets sequence state when a deferred leaf-and-prefix handler throws', () => {
+      const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wk = createWhichKey({ timeoutMs: 50 });
+      const ok = vi.fn();
+      wk.register('g', () => { throw new Error('boom'); }, { description: 'Leaf' });
+      wk.register('g h', vi.fn(), { description: 'Deeper' });
+      wk.register('y', ok, { description: 'Fine' });
+      wk.start();
+
+      press('g');
+      expect(() => vi.advanceTimersByTime(60)).not.toThrow();
+      press('y');
+
+      expect(ok).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      expect(err).toHaveBeenCalled();
+      wk.stop();
+      err.mockRestore();
+    });
+  });
+
+  describe('snapshot emission', () => {
+    it('does not notify subscribers for keystrokes that match nothing', () => {
+      const wk = createWhichKey();
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+      const listener = vi.fn();
+      wk.subscribe(listener);
+      const before = wk.getSnapshot();
+
+      press('a'); press('b'); press('c'); press('d'); press('e');
+
+      expect(listener).not.toHaveBeenCalled();
+      expect(wk.getSnapshot()).toBe(before);
+      wk.stop();
+    });
+
+    it('still notifies exactly once when the popup actually opens', () => {
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+      const listener = vi.fn();
+      wk.subscribe(listener);
+
+      press('g');
+      vi.advanceTimersByTime(60);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      wk.stop();
+    });
+  });
+
+  describe('popup suppression in text fields', () => {
+    it('does not show the popup for a leader key typed into a password field', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep', enableOnInputs: false });
+      wk.start();
+
+      press('g', input);
+      vi.advanceTimersByTime(60);
+
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+      wk.stop();
+      input.remove();
+    });
+
+    it('still shows the popup for the same key outside a text field', () => {
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      press('g');
+      vi.advanceTimersByTime(60);
+
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      wk.stop();
+    });
+
+    it('still completes a deeper sequence whose leaf opted in with enableOnInputs', () => {
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      const fn = vi.fn();
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', fn, { description: 'Deep', enableOnInputs: true });
+      wk.start();
+
+      press('g', input);
+      press('h', input);
+
+      expect(fn).toHaveBeenCalledTimes(1);
+      wk.stop();
+      input.remove();
+    });
+
+    it('does not leak a keystroke typed into a field once the sequence continues outside it', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h i j', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      press('g');
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual(['g']);
+
+      // 'h' is typed into the password field — buffered, but must never be displayed.
+      press('h', input);
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('h');
+
+      // The sequence continues OUTSIDE the field. The buffer now holds
+      // ['g','h','i'], but this buffer was touched by an in-field keystroke,
+      // so the popup must stay suppressed for the rest of it — 'h' (and the
+      // buffer containing it) must never reach the display.
+      press('i');
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('h');
+
+      wk.stop();
+      input.remove();
+    });
+
+    it('clears the field-touched flag on reset so a later outside-only sequence still displays', () => {
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      // First sequence touches the field, then aborts on an unmatched key —
+      // this resets the buffer (and must clear the field-touched flag with it).
+      press('g', input);
+      press('z');
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      // A second, wholly-outside sequence must display normally — the flag
+      // must not leak across a reset and over-suppress an unrelated sequence.
+      press('g');
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual(['g']);
+
+      wk.stop();
+      input.remove();
+    });
+
+    it('does not leak a field-typed key committed via the leaf-AND-prefix branch', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g', vi.fn(), { description: 'Leaf' });
+      wk.register('g h i', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      // 'g' is both a registered leaf and a prefix of 'g h i', so it takes
+      // the leaf-AND-prefix branch, not the prefix-only branch. Typed into
+      // the password field, that branch must still latch the field-touched
+      // flag on the buffer it commits.
+      press('g', input);
+
+      // Before the leaf's deferred-fire timer elapses, continue OUTSIDE the
+      // field. This takes the prefix-only branch; the buffer now holds
+      // ['g','h'], but 'g' was typed into the field and must never reach
+      // the display.
+      press('h');
+
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('g');
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      // Confirm the suppression holds for the rest of this buffer, not just
+      // for the instant 'h' was pressed.
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.currentSequence).not.toContain('g');
+
+      wk.stop();
+      input.remove();
+    });
+
+    describe('narrowed latch: only character-echoing keystrokes taint the buffer [Finding 1]', () => {
+      it('still shows the popup for a modifier-prefixed leader key pressed in an input (Ctrl+k does not echo a character)', () => {
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        const fn = vi.fn();
+
+        const wk = createWhichKey({ timeoutMs: 50 });
+        wk.register('Ctrl+k p', fn, { description: 'Command palette', enableOnInputs: true });
+        wk.start();
+
+        pressWithInit({ key: 'k', ctrlKey: true }, input);
+        vi.advanceTimersByTime(60);
+
+        const snap = wk.getSnapshot();
+        expect(snap.popup.visible).toBe(true);
+        // Canonical form uppercases the letter when paired with a modifier
+        // (matches how a bare `register('Ctrl+k p', ...)` call canonicalizes).
+        expect(snap.popup.currentSequence).toEqual(['Ctrl+K']);
+
+        wk.stop();
+        input.remove();
+      });
+
+      it('still suppresses the popup for a bare printable leader key typed into a password field (security property unchanged)', () => {
+        const input = document.createElement('input');
+        input.type = 'password';
+        document.body.appendChild(input);
+
+        const wk = createWhichKey({ timeoutMs: 50 });
+        wk.register('g h', vi.fn(), { description: 'Deep', enableOnInputs: false });
+        wk.start();
+
+        press('g', input);
+        vi.advanceTimersByTime(60);
+
+        expect(wk.getSnapshot().popup.visible).toBe(false);
+        expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+        wk.stop();
+        input.remove();
+      });
+
+      it('still latches for an AltGr keystroke (Ctrl+Alt+single-char) typed into a field', () => {
+        const input = document.createElement('input');
+        input.type = 'password';
+        document.body.appendChild(input);
+
+        const wk = createWhichKey({ timeoutMs: 50 });
+        // AltGr on many European layouts produces '@' via Ctrl+Alt+2 — a
+        // character that could plausibly appear in a password. It must still
+        // taint the buffer even though a plain Ctrl-chord would not. Use a
+        // 3-key sequence so the buffer is still a prefix (not a completed
+        // leaf) after the second keystroke, exercising latch persistence.
+        wk.register('Ctrl+Alt+@ h i', vi.fn(), { description: 'Deep', enableOnInputs: false });
+        wk.start();
+
+        pressWithInit({ key: '@', ctrlKey: true, altKey: true }, input);
+        vi.advanceTimersByTime(60);
+
+        expect(wk.getSnapshot().popup.visible).toBe(false);
+        expect(wk.getSnapshot().popup.currentSequence).toEqual([]);
+
+        // The taint must survive even as the sequence continues outside the field.
+        press('h');
+        vi.advanceTimersByTime(60);
+        expect(wk.getSnapshot().popup.visible).toBe(false);
+        expect(wk.getSnapshot().popup.currentSequence).not.toContain('Ctrl+Alt+@');
+
+        wk.stop();
+        input.remove();
+      });
+    });
+
+    it('hides a stale popup once the buffer is tainted mid-sequence [Finding 3]', () => {
+      const input = document.createElement('input');
+      input.type = 'password';
+      document.body.appendChild(input);
+
+      const wk = createWhichKey({ timeoutMs: 50 });
+      wk.register('g h i j', vi.fn(), { description: 'Deep' });
+      wk.start();
+
+      // 'g' outside the field — popup shows ['g'].
+      press('g');
+      vi.advanceTimersByTime(60);
+      expect(wk.getSnapshot().popup.visible).toBe(true);
+      expect(wk.getSnapshot().popup.currentSequence).toEqual(['g']);
+
+      // 'h' typed into the password field echoes a character — taints the
+      // buffer. The stale ['g'] popup must be hidden immediately, not merely
+      // left on screen for the rest of the buffer.
+      press('h', input);
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      // The buffer itself is untouched by the hide — a further keystroke
+      // still contributes to it (verified indirectly: no popup reappears).
+      press('i', input);
+      expect(wk.getSnapshot().popup.visible).toBe(false);
+
+      wk.stop();
+      input.remove();
+    });
+  });
 });
 
 describe('controller layers', () => {

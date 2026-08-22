@@ -79,7 +79,7 @@ describe('ShortcutRegistry — register/unregister/getActive', () => {
     r.register(entry({ id: 'a', description: 'Focus Notes' }));
     r.register(entry({ id: 'b', description: 'Other' }));
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('Shortcut "g n" registered while another is active'),
+      expect.stringContaining('Shortcut "g n" has a same-level collision'),
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Focus Notes'));
   });
@@ -296,5 +296,85 @@ describe('registry layers', () => {
     r.activateLayer('L1', 1, true);
     expect(r.getActiveCandidates('g').map((c) => c.keys)).toEqual(['g x']);
     expect(r.getAllActive().map((e) => e.id)).toEqual(['m']);
+  });
+});
+
+describe('hasCandidates', () => {
+  const build = () => new ShortcutRegistry();
+
+  it('agrees with getActiveCandidates across leaf, group, mixed and empty prefixes', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a' }));
+    r.register(entry({ id: '2', keys: 'g b c' }));
+    r.register(entry({ id: '3', keys: 'z' }));
+    for (const prefix of ['g', 'g b', 'z', 'nope', '']) {
+      expect(r.hasCandidates(prefix)).toBe(r.getActiveCandidates(prefix).length > 0);
+    }
+  });
+
+  it('returns false when the only matching entry is disabled', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a', enabled: false }));
+    expect(r.hasCandidates('g')).toBe(false);
+    expect(r.getActiveCandidates('g').length).toBe(0);
+  });
+
+  it('returns false when the only matching entry is blocked by an exclusive layer', () => {
+    const r = build();
+    r.register(entry({ id: '1', keys: 'g a', level: 0 }));
+    r.activateLayer('L', 1, true);
+    expect(r.hasCandidates('g')).toBe(false);
+    expect(r.getActiveCandidates('g').length).toBe(0);
+  });
+});
+
+describe('collision warning precision', () => {
+  it('stays silent when an exclusive layer makes the existing entry unreachable', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'Escape', level: 0, description: 'page escape' }));
+    r.activateLayer('L', 1, true);
+    r.register(entry({ id: '2', keys: 'Escape', level: 1, description: 'Close' }));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('stays silent when the only existing entry is disabled', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', enabled: false }));
+    r.register(entry({ id: '2', keys: 'x' }));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('warns and names the real winner on a same-level collision', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', priority: 5, description: 'Winner' }));
+    r.register(entry({ id: '2', keys: 'x', priority: 0, description: 'Loser' }));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const msg = String(warn.mock.calls[0][0]);
+    expect(msg).toContain('"x"');
+    expect(msg).toContain('Winner');
+    warn.mockRestore();
+  });
+
+  // This fixture (lower priority registered first, higher priority second)
+  // is deliberately chosen so the pre-insertion "top" and the post-insertion
+  // winner are two different entries. A regression that computed the winner
+  // before the splice (the pre-task behavior) would name the incumbent
+  // ("Incumbent") as the sole party and never mention "Override" at all, so
+  // this asserts the winner-then-"wins over"-then-loser shape specifically,
+  // not just substring presence.
+  it('names the true post-insertion winner even when it differs from the pre-insertion incumbent', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = new ShortcutRegistry();
+    r.register(entry({ id: '1', keys: 'x', priority: 0, description: 'Incumbent' }));
+    r.register(entry({ id: '2', keys: 'x', priority: 5, description: 'Override' }));
+    expect(warn).toHaveBeenCalledTimes(1);
+    const msg = String(warn.mock.calls[0][0]);
+    expect(msg).toMatch(/"Override".*wins over.*"Incumbent"/);
+    warn.mockRestore();
   });
 });

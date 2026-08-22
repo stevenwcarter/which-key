@@ -375,4 +375,18 @@ describe('WhichKeyPopup — wk-row--group class (brief requirement)', () => {
     // 'n' should be an isGroup candidate because it has sub-shortcuts
     expect(container.querySelector('.wk-row--group')).not.toBeNull();
   });
+
+  it('announces as a polite live region, not a dialog', () => {
+    vi.useFakeTimers();
+    const { getByTestId } = render(
+      <WhichKeyProvider><Setup /><WhichKeyPopup /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' })); });
+    act(() => { vi.advanceTimersByTime(600); });
+    const popup = getByTestId('whichkey-popup');
+    expect(popup).toHaveAttribute('role', 'status');
+    expect(popup).toHaveAttribute('aria-live', 'polite');
+    expect(popup).toHaveAttribute('aria-atomic', 'true');
+    expect(popup).not.toHaveAttribute('role', 'dialog');
+  });
 });

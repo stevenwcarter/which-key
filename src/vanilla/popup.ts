@@ -43,7 +43,9 @@ export const renderPopup = (p: string, snap: WhichKeySnapshot, opts: PopupOption
   el.dataset.layout = opts.layout;
   el.className = `${p}-popup ${p}-popup--${opts.layout}`;
   el.style.backgroundColor = bg;
-  el.setAttribute('role', 'dialog');
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-atomic', 'true');
   el.setAttribute('aria-label', 'Keyboard shortcuts');
   if (opts.layout === 'horizontal') {
     const body = document.createElement('div');

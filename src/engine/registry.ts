@@ -33,17 +33,31 @@ export class ShortcutRegistry {
 
   register(entry: ShortcutEntry): void {
     const bucket = this.shortcuts.get(entry.keys) ?? [];
-    if (bucket.length > 0) {
-      const top = this.findActive(bucket);
-      const topDesc = top?.description ?? '(no description)';
-      console.warn(
-        `[whichkey] Shortcut "${entry.keys}" registered while another is active. ` +
-          `Existing top: "${topDesc}". Stacking; new registration takes precedence until unmount.`,
-      );
-    }
     const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
     bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
     this.shortcuts.set(entry.keys, bucket);
+
+    // Only a genuine same-level collision is worth warning about: a different
+    // level is the documented, deliberate layer-override mechanism, and a
+    // sole disabled/unreachable incumbent isn't a competitor at all. Detect a
+    // genuine collision by checking for another *live* entry at this entry's
+    // own level, independent of which one findActive ends up crowning.
+    const block = this.blockLevel();
+    const rival = bucket.find(
+      (e) => e.id !== entry.id && e.level === entry.level && e.enabled && this.isReachable(e, block),
+    );
+    if (rival !== undefined) {
+      const winner = this.findActive(bucket);
+      if (winner !== undefined && winner.level === entry.level) {
+        const loser = winner.id === entry.id ? rival : entry;
+        console.warn(
+          `[whichkey] Shortcut "${entry.keys}" has a same-level collision: ` +
+            `"${winner.description ?? '(no description)'}" (level ${winner.level}, priority ${winner.priority}) ` +
+            `wins over "${loser.description ?? '(no description)'}" (level ${loser.level}, priority ${loser.priority}). ` +
+            `Raise the losing entry's priority or unregister one to resolve.`,
+        );
+      }
+    }
   }
 
   unregister(id: string): void {
@@ -135,6 +149,19 @@ export class ShortcutRegistry {
       });
     }
     return Array.from(seen.values());
+  }
+
+  /**
+   * Cheap existence check for `getActiveCandidates(prefix).length > 0`.
+   * Runs on every keystroke, so it allocates nothing and exits on the first hit.
+   */
+  hasCandidates(prefix: string): boolean {
+    const prefixWithSpace = prefix + ' ';
+    for (const [keys, bucket] of this.shortcuts) {
+      if (!keys.startsWith(prefixWithSpace)) continue;
+      if (this.findActive(bucket) !== undefined) return true;
+    }
+    return false;
   }
 
   private findActive(bucket: ShortcutEntry[]): ShortcutEntry | undefined {

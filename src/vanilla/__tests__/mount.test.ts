@@ -93,4 +93,109 @@ describe('mountWhichKey', () => {
     ui.unmount();
     wk.stop();
   });
+
+  it('gives the cheatsheet panel modal semantics, focus, and a close button', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const wk = createWhichKey();
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('?');
+
+    const panel = document.querySelector('.wk-cheatsheet') as HTMLElement;
+    expect(panel.getAttribute('aria-modal')).toBe('true');
+    expect(panel.getAttribute('aria-labelledby')).toBe('wk-cheatsheet-title');
+    expect(panel.contains(document.activeElement)).toBe(true);
+
+    const close = panel.querySelector('.wk-cheatsheet__close') as HTMLButtonElement;
+    expect(close).not.toBeNull();
+    close.click();
+    expect(wk.getSnapshot().cheatsheet.visible).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+
+    ui.unmount();
+    wk.stop();
+    trigger.remove();
+  });
+
+  it('Tab-cycles focus among focusable descendants, wrapping at both ends', () => {
+    const wk = createWhichKey();
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('?');
+
+    const panel = document.querySelector('.wk-cheatsheet') as HTMLElement;
+    const close = panel.querySelector('.wk-cheatsheet__close') as HTMLButtonElement;
+
+    // The panel ships exactly one focusable descendant (the close button).
+    // Append a second so forward/backward wrap is exercised on a genuine
+    // two-item cycle instead of trivially re-focusing the same element.
+    const second = document.createElement('button');
+    second.type = 'button';
+    second.textContent = 'second';
+    panel.appendChild(second);
+
+    // Forward Tab from the last item (second) wraps to the first (close).
+    second.focus();
+    expect(document.activeElement).toBe(second);
+    press('Tab');
+    expect(document.activeElement).toBe(close);
+
+    // Shift+Tab from the first item (close) wraps to the last (second).
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }));
+    expect(document.activeElement).toBe(second);
+
+    // Shift+Tab while focus sits on the panel itself also wraps to the last —
+    // this is the case the `active === panel` branch exists to cover.
+    panel.focus();
+    expect(document.activeElement).toBe(panel);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }));
+    expect(document.activeElement).toBe(second);
+
+    ui.unmount();
+    wk.stop();
+  });
+
+  it('unmount() while the cheatsheet is open removes it and restores focus', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const wk = createWhichKey();
+    wk.register('q', vi.fn(), { description: 'Quit' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('?');
+
+    expect(document.querySelector('.wk-cheatsheet')).not.toBeNull();
+    expect(document.activeElement).not.toBe(trigger);
+
+    ui.unmount();
+
+    expect(document.querySelector('.wk-cheatsheet')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    wk.stop();
+    trigger.remove();
+  });
+
+  it('renders the popup as a polite live region in the vanilla renderer', () => {
+    const wk = createWhichKey();
+    wk.registerGroup('g', { description: 'Go' });
+    wk.register('g a', vi.fn(), { description: 'Alpha' });
+    const ui = mountWhichKey(wk);
+    wk.start();
+    press('g');
+    vi.advanceTimersByTime(500);
+    const popup = document.querySelector('.wk-popup') as HTMLElement;
+    expect(popup.getAttribute('role')).toBe('status');
+    expect(popup.getAttribute('aria-live')).toBe('polite');
+    expect(popup.getAttribute('aria-atomic')).toBe('true');
+    ui.unmount();
+    wk.stop();
+  });
 });

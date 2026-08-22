@@ -31,19 +31,16 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/engine/index.d.ts",
-      "import": "./dist/engine/index.js",
-      "require": "./dist/engine/index.cjs"
+      "import": { "types": "./dist/engine/index.d.ts", "default": "./dist/engine/index.js" },
+      "require": { "types": "./dist/engine/index.d.cts", "default": "./dist/engine/index.cjs" }
     },
     "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.cjs"
+      "import": { "types": "./dist/react/index.d.ts", "default": "./dist/react/index.js" },
+      "require": { "types": "./dist/react/index.d.cts", "default": "./dist/react/index.cjs" }
     },
     "./vanilla": {
-      "types": "./dist/vanilla/index.d.ts",
-      "import": "./dist/vanilla/index.js",
-      "require": "./dist/vanilla/index.cjs"
+      "import": { "types": "./dist/vanilla/index.d.ts", "default": "./dist/vanilla/index.js" },
+      "require": { "types": "./dist/vanilla/index.d.cts", "default": "./dist/vanilla/index.cjs" }
     },
     "./styles.css": "./dist/styles.css"
   },
@@ -74,6 +71,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
     "commit-and-tag-version": "^12.7.3",

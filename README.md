@@ -78,7 +78,7 @@ Shortcuts are strings of one or more space-separated keys:
 | `g h`     | Leader sequence: press `g`, then `h`       |
 | `Ctrl+s`  | `Control` + `s`                            |
 | `Alt+x`   | `Alt` (or `Option` on macOS) + `x`        |
-| `Shift+/` | `Shift` + `/`                              |
+| `?`       | The shifted character itself — write `?`, not `Shift+/` |
 | `Cmd+k`   | `Command` (macOS) + `k`                   |
 | `Mod+s`   | `Cmd` on macOS, `Ctrl` elsewhere           |
 
@@ -223,22 +223,33 @@ import 'which-key/styles.css';
 
 Or bring your own by targeting the `wk-*` CSS class contract. All classes use the `wk-` prefix (or whatever you pass as `classPrefix` to `mountWhichKey`):
 
-| Class                   | Element                                   |
-|-------------------------|-------------------------------------------|
-| `wk-popup`              | Popup container                           |
-| `wk-popup--vertical`    | Modifier: corner popup layout             |
-| `wk-popup--horizontal`  | Modifier: bottom-bar layout               |
-| `wk-popup__header`      | Header area (vertical layout)             |
-| `wk-popup__body`        | Body area (horizontal layout)             |
-| `wk-popup__list`        | Candidate list (vertical layout)          |
-| `wk-popup__grid`        | Candidate grid (horizontal layout)        |
-| `wk-row`                | Single candidate row                      |
-| `wk-row--group`         | Modifier: row represents a group          |
-| `wk-row__label`         | Candidate label text                      |
-| `wk-kbd`                | `<kbd>` key chip                          |
-| `wk-sequence`           | Current-sequence display                  |
-| `wk-sequence__ellipsis` | `…` trailing the current sequence         |
-| `wk-cheatsheet`         | Cheatsheet backdrop/container             |
+| Class                         | Element                                          |
+|-------------------------------|--------------------------------------------------|
+| `wk-popup`                    | Popup container                                  |
+| `wk-popup--vertical`          | Modifier: corner popup layout                    |
+| `wk-popup--horizontal`        | Modifier: bottom-bar layout                      |
+| `wk-popup__header`            | Header area (vertical layout)                    |
+| `wk-popup__body`              | Body area (horizontal layout)                    |
+| `wk-popup__list`              | Candidate list (vertical layout)                 |
+| `wk-popup__grid`              | Candidate grid (horizontal layout)               |
+| `wk-row`                      | Single candidate row                             |
+| `wk-row--group`               | Modifier: row represents a group                 |
+| `wk-row__label`               | Candidate label text                             |
+| `wk-kbd`                      | `<kbd>` key chip                                 |
+| `wk-sequence`                 | Current-sequence display                         |
+| `wk-sequence__ellipsis`       | `…` trailing the current sequence                |
+| `wk-backdrop`                 | Full-screen dimmed overlay behind the cheatsheet |
+| `wk-cheatsheet`               | Cheatsheet panel (scrollable content box)        |
+| `wk-cheatsheet__close`        | Close button in the cheatsheet panel             |
+| `wk-cheatsheet__title`        | Cheatsheet heading                               |
+| `wk-cheatsheet__sections`     | Wrapper around all cheatsheet sections           |
+| `wk-cheatsheet__section`      | One group's section                              |
+| `wk-cheatsheet__list`         | List of shortcut entries                         |
+| `wk-cheatsheet__list--nested` | Modifier: list nested under a group              |
+| `wk-cheatsheet__item`         | One shortcut entry                               |
+| `wk-cheatsheet__group-title`  | Group heading row                                |
+| `wk-cheatsheet__group-label`  | Group description text                           |
+| `wk-cheatsheet__hint`         | "Press Escape to close" footer                   |
 
 Custom `classPrefix` example (vanilla only):
 

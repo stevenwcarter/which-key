@@ -78,7 +78,9 @@ const buildCheatsheetModel = (
 };
 
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
-  const { timeoutMs = 500, helpKey = '?', sortKeys, target = document } = options;
+  const { timeoutMs = 500, helpKey = '?', sortKeys } = options;
+  const explicitTarget = options.target;
+  let bound: Document | HTMLElement | null = null;
   const registry = new ShortcutRegistry();
   const cmp = resolveSort(sortKeys);
   const listeners = new Set<(snapshot: WhichKeySnapshot) => void>();
@@ -114,7 +116,16 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
 
   const matcher = new Matcher(registry, {
     timeoutMs,
-    onFire: (entry, event) => entry.handler(event),
+    onFire: (entry, event) => {
+      try {
+        entry.handler(event);
+      } catch (err) {
+        console.error(
+          `[whichkey] Handler for "${entry.keys}" threw; sequence state was reset.`,
+          err,
+        );
+      }
+    },
     onShowPopup: (state) => {
       popupVisible = true;
       // Defensive copy: never store the Matcher's live array in a snapshot.
@@ -125,6 +136,7 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
       emit();
     },
     onHidePopup: () => {
+      if (!popupVisible && currentSequence.length === 0) return;
       popupVisible = false;
       currentSequence = [];
       emit();
@@ -203,13 +215,17 @@ export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine =>
     },
     start() {
       if (started) return;
+      const resolved = explicitTarget ?? (typeof document !== 'undefined' ? document : null);
+      if (resolved === null) return;
       started = true;
-      target.addEventListener('keydown', handler);
+      bound = resolved;
+      bound.addEventListener('keydown', handler);
     },
     stop() {
       if (!started) return;
       started = false;
-      target.removeEventListener('keydown', handler);
+      bound?.removeEventListener('keydown', handler);
+      bound = null;
       matcher.cancel();
     },
     subscribe(listener) {

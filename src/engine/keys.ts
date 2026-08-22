@@ -34,7 +34,8 @@ const buildCanonical = (
   // Letter casing & shift suppression rules:
   //   - Letter:    any modifier (Ctrl/Alt/Cmd/Shift) → uppercase. Emit "Shift+" only when paired with another modifier.
   //   - Special:   keep "Shift+" verbatim (Shift+Tab is meaningful).
-  //   - Other:     drop "Shift+" — the shifted form is already in the base character (Shift+/ → ?).
+  //   - Other:     drop "Shift+" — callers must write the shifted character itself
+  //                (write "?" directly; "Shift+/" canonicalizes to "/" and warns).
   let key = base;
   let emitShift = false;
   if (isLetter) {
@@ -62,7 +63,21 @@ export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
 export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
 
-const KNOWN_MODIFIERS = new Set(['Ctrl', 'Alt', 'Shift', 'Cmd', 'Mod']);
+const MODIFIER_ALIASES = new Map<string, string>([
+  ['ctrl', 'Ctrl'], ['control', 'Ctrl'],
+  ['alt', 'Alt'], ['option', 'Alt'],
+  ['shift', 'Shift'],
+  ['cmd', 'Cmd'], ['meta', 'Cmd'], ['command', 'Cmd'],
+  ['mod', 'Mod'],
+]);
+
+// US-layout characters that a Shift press turns into something else. Used only
+// to decide whether to warn — never to rewrite the key, which would guess wrong
+// on non-US layouts.
+const SHIFT_ALTERS_US = new Set([
+  '`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+  '-', '=', '[', ']', '\\', ';', "'", ',', '.', '/',
+]);
 
 export const parseKey = (input: string): CanonicalKey => {
   if (!input || input.trim() === '') {
@@ -70,7 +85,7 @@ export const parseKey = (input: string): CanonicalKey => {
   }
   const segments = input.split('+');
   const baseRaw = segments.pop() as string;
-  if (baseRaw === '' || KNOWN_MODIFIERS.has(baseRaw)) {
+  if (baseRaw === '' || MODIFIER_ALIASES.has(baseRaw.toLowerCase())) {
     throw new Error(`whichkey: missing key after modifier(s) in "${input}"`);
   }
   let ctrl = false;
@@ -79,10 +94,11 @@ export const parseKey = (input: string): CanonicalKey => {
   let meta = false;
 
   for (const seg of segments) {
-    if (!KNOWN_MODIFIERS.has(seg)) {
+    const mod = MODIFIER_ALIASES.get(seg.toLowerCase());
+    if (mod === undefined) {
       throw new Error(`whichkey: unknown modifier "${seg}" in "${input}"`);
     }
-    switch (seg) {
+    switch (mod) {
       case 'Ctrl':
         ctrl = true;
         break;
@@ -109,6 +125,14 @@ export const parseKey = (input: string): CanonicalKey => {
   if (/^[A-Z]$/.test(base) && !ctrl && !alt && !meta && !shift) {
     shift = true;
   }
+
+  if (shift && SHIFT_ALTERS_US.has(base)) {
+    console.warn(
+      `[whichkey] "${input}": Shift is dropped for punctuation and digits — write the ` +
+        `shifted character directly (e.g. "?" not "Shift+/"). This binding will match "${base}".`,
+    );
+  }
+
   return buildCanonical(base, ctrl, alt, shift, meta);
 };
 

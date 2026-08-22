@@ -1,10 +1,13 @@
-import { useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { WhichKeyContext } from './context';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
 const noopSubscribe = () => () => {};
 const getNullSnapshot = () => null;
+
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const CHEATSHEET_TITLE_ID = 'wk-cheatsheet-title';
 
 export const ShortcutCheatsheet = () => {
   const engine = useContext(WhichKeyContext);
@@ -15,11 +18,36 @@ export const ShortcutCheatsheet = () => {
   );
   const visible = snapshot?.cheatsheet.visible ?? false;
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!engine || !visible) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') engine.closeCheatsheet(); };
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { engine.closeCheatsheet(); return; }
+      if (e.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) { e.preventDefault(); panel.focus(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      restoreRef.current?.focus?.();
+    };
   }, [engine, visible]);
 
   if (!engine || !visible) return null;
@@ -27,9 +55,12 @@ export const ShortcutCheatsheet = () => {
 
   return (
     <div data-testid="whichkey-cheatsheet-backdrop" className="wk-backdrop" onClick={engine.closeCheatsheet}>
-      <div data-testid="whichkey-cheatsheet" className="wk-cheatsheet" onClick={(e) => e.stopPropagation()}
-           role="dialog" aria-label="All keyboard shortcuts">
-        <h2 className="wk-cheatsheet__title">Keyboard shortcuts</h2>
+      <div ref={panelRef} data-testid="whichkey-cheatsheet" className="wk-cheatsheet"
+           onClick={(e) => e.stopPropagation()} tabIndex={-1}
+           role="dialog" aria-modal="true" aria-labelledby={CHEATSHEET_TITLE_ID}>
+        <button type="button" className="wk-cheatsheet__close"
+                aria-label="Close keyboard shortcuts" onClick={engine.closeCheatsheet}>×</button>
+        <h2 id={CHEATSHEET_TITLE_ID} className="wk-cheatsheet__title">Keyboard shortcuts</h2>
         <div className="wk-cheatsheet__sections">
           {model.standalone.length > 0 && (
             <ul className="wk-cheatsheet__list">

@@ -155,3 +155,88 @@ describe('ShortcutCheatsheet', () => {
     expect(getByTestId('whichkey-cheatsheet')).toHaveClass('wk-cheatsheet');
   });
 });
+
+describe('cheatsheet focus management', () => {
+  it('marks the panel as a modal dialog labelled by its title', () => {
+    const { getByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    const panel = getByTestId('whichkey-cheatsheet');
+    expect(panel).toHaveAttribute('aria-modal', 'true');
+    expect(panel).toHaveAttribute('aria-labelledby', 'wk-cheatsheet-title');
+    expect(document.getElementById('wk-cheatsheet-title')).not.toBeNull();
+  });
+
+  it('moves focus into the panel on open and restores it on close', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const { getByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    expect(getByTestId('whichkey-cheatsheet').contains(document.activeElement)).toBe(true);
+
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('exposes a keyboard-reachable close button that closes the sheet', () => {
+    const { getByTestId, getByLabelText, queryByTestId } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    const close = getByLabelText('Close keyboard shortcuts');
+    expect(getByTestId('whichkey-cheatsheet').contains(close)).toBe(true);
+    act(() => { close.click(); });
+    expect(queryByTestId('whichkey-cheatsheet')).toBeNull();
+  });
+
+  it('Tab-cycles focus among focusable descendants, wrapping at both ends', () => {
+    const { getByTestId, getByLabelText } = render(
+      <WhichKeyProvider><Setup /><ShortcutCheatsheet /></WhichKeyProvider>,
+    );
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' })); });
+    const panel = getByTestId('whichkey-cheatsheet');
+    const close = getByLabelText('Close keyboard shortcuts');
+
+    // The panel ships exactly one focusable descendant (the close button).
+    // Append a second so forward/backward wrap is exercised on a genuine
+    // two-item cycle instead of trivially re-focusing the same element.
+    const second = document.createElement('button');
+    second.type = 'button';
+    second.textContent = 'second';
+    panel.appendChild(second);
+
+    // Forward Tab from the last item (second) wraps to the first (close).
+    act(() => { second.focus(); });
+    expect(document.activeElement).toBe(second);
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    });
+    expect(document.activeElement).toBe(close);
+
+    // Shift+Tab from the first item (close) wraps to the last (second).
+    act(() => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(document.activeElement).toBe(second);
+
+    // Shift+Tab while focus sits on the panel itself also wraps to the last —
+    // this is the case the `active === panel` branch exists to cover.
+    act(() => { panel.focus(); });
+    expect(document.activeElement).toBe(panel);
+    act(() => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(document.activeElement).toBe(second);
+  });
+});

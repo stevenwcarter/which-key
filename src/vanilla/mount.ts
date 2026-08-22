@@ -23,6 +23,7 @@ export const mountWhichKey = (
 
   let popupNode: HTMLElement | null = null;
   let cheatsheetNode: HTMLElement | null = null;
+  let cheatsheetDestroy: (() => void) | null = null;
 
   const onEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') engine.closeCheatsheet(); };
 
@@ -38,12 +39,17 @@ export const mountWhichKey = (
     // Cheatsheet
     if (showCheatsheet) {
       if (snap.cheatsheet.visible && !cheatsheetNode) {
-        cheatsheetNode = renderCheatsheet(prefix, engine.getCheatsheetModel(), () => engine.closeCheatsheet());
+        const sheet = renderCheatsheet(prefix, engine.getCheatsheetModel(), () => engine.closeCheatsheet());
+        cheatsheetNode = sheet.element;
+        cheatsheetDestroy = sheet.destroy;
         container.appendChild(cheatsheetNode);
+        (cheatsheetNode.querySelector(`.${prefix}-cheatsheet`) as HTMLElement | null)?.focus();
         document.addEventListener('keydown', onEscape);
       } else if (!snap.cheatsheet.visible && cheatsheetNode) {
         cheatsheetNode.remove();
         cheatsheetNode = null;
+        cheatsheetDestroy?.();
+        cheatsheetDestroy = null;
         document.removeEventListener('keydown', onEscape);
       }
     }
@@ -57,6 +63,8 @@ export const mountWhichKey = (
       unsubscribe();
       popupNode?.remove();
       cheatsheetNode?.remove();
+      cheatsheetDestroy?.();
+      cheatsheetDestroy = null;
       document.removeEventListener('keydown', onEscape);
     },
   };
