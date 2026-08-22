@@ -270,9 +270,53 @@ mountWhichKey(wk, { classPrefix: 'myapp' });
 // produces: myapp-popup, myapp-kbd, etc.
 ```
 
-> **`classPrefix` opts you out of `which-key/styles.css` entirely.** The shipped stylesheet hardcodes `.wk-*` in every selector, so a custom prefix matches none of it — the popup and backdrop lose even their `position: fixed`, and everything renders inline in the body flow. This also swallows the `--wk-z-index`/`--wk-z-index-backdrop` custom properties described below: they only take effect inside the same `.wk-popup`/`.wk-backdrop` rules a custom prefix bypasses, so they don't offer a partial override either. If you set `classPrefix`, supply your own stylesheet covering the whole class table above. Do not import `which-key/styles.css` alongside it and expect a partial effect; there is none.
+> **`classPrefix` opts you out of `which-key/styles.css` entirely.** The shipped stylesheet hardcodes `.wk-*` in every selector, so a custom prefix matches none of it — the popup and backdrop lose even their `position: fixed`, and everything renders inline in the body flow. This also swallows the entire `--wk-*` custom-property palette described below (including `--wk-z-index`/`--wk-z-index-backdrop`), since every one of them is only read inside the same `.wk-popup`/`.wk-backdrop`/etc. rules a custom prefix bypasses — none of them offer a partial override. In particular, the popup's background comes entirely from `.wk-popup`'s `background` declaration now, so a custom prefix gets a **fully transparent popup**, and `backgroundOpacity` becomes a complete no-op. If you set `classPrefix`, supply your own stylesheet covering the whole class table above. Do not import `which-key/styles.css` alongside it and expect a partial effect; there is none.
 >
 > `classPrefix` is **vanilla-only**. The React components always emit `wk-`.
+
+### Theming
+
+The shipped stylesheet ships dark by default — a consumer who does nothing sees no change. It automatically follows the `prefers-color-scheme: light` media query, and an author can force either theme regardless of OS preference with `data-wk-theme="light"` or `data-wk-theme="dark"` on `<html>` — specifically the document root; an ancestor further down the tree will not work. The override selectors are `:root`-scoped, which matches only the actual document root element, so the palette they set is visible wherever the popup or cheatsheet render, including the vanilla renderer's popup host, which is appended to `document.body` rather than nested under the consumer's markup.
+
+Force light regardless of OS preference:
+
+```html
+<html data-wk-theme="light"></html>
+```
+
+Force dark regardless of OS preference:
+
+```html
+<html data-wk-theme="dark"></html>
+```
+
+All colours are `--wk-*` custom properties, so overriding one is the same as overriding any other CSS variable:
+
+```css
+:root {
+  --wk-focus-ring: #f59e0b;
+}
+```
+
+| Property               | Dark default (shipped)                                                    | Light value                                                                 |
+| ---------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `--wk-panel-bg`        | `#111827`                                                                 | `#ffffff`                                                                   |
+| `--wk-panel-bg-rgb`    | `17, 24, 39`                                                              | `255, 255, 255`                                                             |
+| `--wk-chip-bg`         | `#374151`                                                                 | `#f3f4f6`                                                                   |
+| `--wk-border`          | `#374151`                                                                 | `#d1d5db`                                                                   |
+| `--wk-text`            | `#f3f4f6`                                                                 | `#111827`                                                                   |
+| `--wk-text-muted`      | `#9ca3af`                                                                 | `#4b5563`                                                                   |
+| `--wk-text-subtle`     | `#6b7280`                                                                 | `#6b7280`                                                                   |
+| `--wk-row-label`       | `#e5e7eb`                                                                 | `#1f2937`                                                                   |
+| `--wk-row-label-group` | `#93c5fd`                                                                 | `#1d4ed8`                                                                   |
+| `--wk-focus-ring`      | `#93c5fd`                                                                 | `#1d4ed8`                                                                   |
+| `--wk-backdrop-bg`     | `rgba(0, 0, 0, 0.5)`                                                      | `rgba(0, 0, 0, 0.35)`                                                       |
+| `--wk-shadow-chip`     | `0 1px 2px rgba(0, 0, 0, 0.05)`                                           | `0 1px 2px rgba(0, 0, 0, 0.08)`                                             |
+| `--wk-shadow-panel`    | `0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)` | `0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15)` |
+
+The popup's `backgroundOpacity` prop/option (`<WhichKeyPopup>` and `mountWhichKey`) sets only the `--wk-popup-bg-opacity` custom property inline; the colour itself always comes from `--wk-panel-bg-rgb` in CSS, so the popup repaints correctly under either theme instead of staying pinned to one background.
+
+> `--wk-z-index`/`--wk-z-index-backdrop`, documented under [Stacking order](#stacking-order) just below, are part of this same `--wk-*` custom-property surface.
 
 ### Stacking order
 
@@ -314,7 +358,7 @@ document.addEventListener('keydown', (e) => {
 });
 ```
 
-If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the _unshifted_ character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names being **case-sensitive and exact** — `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. Use the exact `KeyboardEvent.key` spelling.
+If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the _unshifted_ character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names — `'escape'`, `'esc'`, `'up'` and `'f1'` are all accepted case-insensitively and round-trip correctly against the real event (`'Escape'`, `'ArrowUp'`, `'F1'`). A base that isn't one of these recognised names or aliases still registers, but now warns that the binding may never match; if the browser genuinely reports that exact spelling (an exotic `event.key` like `'MediaPlayPause'`), the warning is a false positive you can ignore, but a typo is far more likely.
 
 **4. Is an exclusive layer active?**
 An exclusive layer makes every shortcut below its level unreachable. Register with `global: true` to punch through, or check what is live with `engine.registry.getAllActive()`.

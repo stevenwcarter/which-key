@@ -15,11 +15,13 @@
    - [`useWhichKeyState(what?)`](#usewhichkeystatewhat)
    - [`<WhichKeyPopup>`](#whichkeypopup)
    - [`<ShortcutCheatsheet>`](#shortcutcheatsheet)
+   - [React escape hatches](#react-escape-hatches)
 3. [Vanilla — `which-key/vanilla`](#vanilla--which-keyvanilla)
    - [`mountWhichKey(engine, options?) => WhichKeyMountHandle`](#mountwhichkey)
 4. [Debugging](#debugging)
 5. [Key-string syntax](#key-string-syntax)
 6. [CSS class contract (`wk-*`)](#css-class-contract-wk-)
+7. [Theming (`--wk-*` custom properties)](#theming---wk--custom-properties)
 
 ---
 
@@ -41,14 +43,27 @@ const wk = createWhichKey({
 
 **Options** (`WhichKeyOptions`):
 
-| Property    | Type                                                | Default          | Description                                                                                                                                                             |
-| ----------- | --------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `timeoutMs` | `number`                                            | `500`            | Milliseconds of inactivity before a partial sequence is cancelled. A non-finite or negative value emits a `console.warn` and falls back to `500`.                       |
-| `helpKey`   | `string \| null`                                    | `'?'`            | Key that opens the cheatsheet. `null` disables the built-in help shortcut. An unparseable value emits a `console.warn` and disables the help shortcut; it never throws. |
-| `sortKeys`  | `'registration' \| 'alphabetical' \| KeyComparator` | `'registration'` | Controls the order of candidates in the popup and cheatsheet.                                                                                                           |
-| `target`    | `Document \| HTMLElement`                           | `document`       | DOM node on which the `keydown` listener is installed.                                                                                                                  |
+| Property    | Type                                                | Default          | Description                                                                                                                                                                                                                                                                                                                     |
+| ----------- | --------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeoutMs` | `number`                                            | `500`            | Milliseconds of inactivity before a partial sequence is cancelled. A non-finite or negative value emits a `console.warn` and falls back to `500`.                                                                                                                                                                               |
+| `helpKey`   | `string \| null`                                    | `'?'`            | Key that opens the cheatsheet. `null` disables the built-in help shortcut silently — this is the documented way to opt out. `''` also disables it but emits a `console.warn`, since an empty string is almost certainly a mistake. An unparseable value emits a `console.warn` and disables the help shortcut; it never throws. |
+| `sortKeys`  | `'registration' \| 'alphabetical' \| KeyComparator` | `'registration'` | Controls the order of candidates in the popup and cheatsheet.                                                                                                                                                                                                                                                                   |
+| `target`    | `Document \| HTMLElement`                           | `document`       | DOM node on which the `keydown` listener is installed.                                                                                                                                                                                                                                                                          |
 
 `KeyComparator` is `(a: string, b: string) => number` — the same contract as `Array.prototype.sort`.
+
+`SortMode` is the type of `sortKeys` above: `'alphabetical' | 'registration' | KeyComparator`.
+
+`alphabeticalKeysSort: KeyComparator` is the built-in comparator behind `sortKeys: 'alphabetical'` — a vim-style, case-insensitive sort with lowercase ordered before uppercase on a tie (so `'a'` < `'A'` < `'b'` < `'B'`), applied to the full canonical key string. It is exported so a custom `KeyComparator` can compose it instead of reimplementing it:
+
+```ts
+import { alphabeticalKeysSort, type KeyComparator } from 'which-key';
+
+const myComparator: KeyComparator = (a, b) => {
+  if (a === 'q') return -1; // always sort "q" first
+  return alphabeticalKeysSort(a, b);
+};
+```
 
 ---
 
@@ -74,16 +89,18 @@ off(); // unregister
 
 > **Invalid input soft-fails.** If `keys` cannot be parsed (empty string, unknown modifier, dangling `+`) or `handler` is not a function, `register` emits a `console.warn` and returns a no-op unregister function rather than throwing. This keeps `useShortcut` — which calls `register` from inside an effect — from tearing down the consumer's React tree on a typo.
 
+`ShortcutHandler` is `(event: KeyboardEvent) => void` — the handler type accepted here and by `LayerHandle.register` below.
+
 **Options** (`ShortcutOptions`):
 
-| Property         | Type      | Default | Description                                                                                                                             |
-| ---------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `description`    | `string`  | —       | Human-readable label shown in the popup and cheatsheet.                                                                                 |
-| `enableOnInputs` | `boolean` | `false` | When `false`, the shortcut is suppressed while focus is in a text input.                                                                |
-| `priority`       | `number`  | `0`     | Higher wins when multiple entries share the same key string.                                                                            |
-| `enabled`        | `boolean` | `true`  | Dynamically enable/disable without unregistering.                                                                                       |
-| `global`         | `boolean` | `false` | When `true`, this shortcut stays reachable even under an active exclusive layer.                                                        |
-| `level`          | `number`  | `0`     | Layer level this registration belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>` — most callers never set it directly. |
+| Property         | Type      | Default | Description                                                                                                                                                                                                                            |
+| ---------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description`    | `string`  | —       | Human-readable label shown in the popup and cheatsheet.                                                                                                                                                                                |
+| `enableOnInputs` | `boolean` | `false` | When `false`, the shortcut is suppressed while focus is in a text input.                                                                                                                                                               |
+| `priority`       | `number`  | `0`     | Higher wins when multiple entries share the same key string.                                                                                                                                                                           |
+| `enabled`        | `boolean` | `true`  | Dynamically enable/disable without unregistering.                                                                                                                                                                                      |
+| `global`         | `boolean` | `false` | When `true`, this shortcut stays reachable even under an active exclusive layer.                                                                                                                                                       |
+| `level`          | `number`  | `0`     | Layer level this registration belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>` — most callers never set it directly. Must be a non-negative integer; an invalid value emits a `console.warn` and falls back to `0`. |
 
 #### `engine.registerGroup(prefix, options) => () => void`
 
@@ -95,11 +112,11 @@ const off = wk.registerGroup('g', { description: 'Go to', priority: 0 });
 
 **Options**:
 
-| Property      | Type     | Default    | Description                                                                                 |
-| ------------- | -------- | ---------- | ------------------------------------------------------------------------------------------- |
-| `description` | `string` | (required) | Label shown in the popup for this prefix.                                                   |
-| `priority`    | `number` | `0`        | Higher priority groups sort earlier when combined.                                          |
-| `level`       | `number` | `0`        | Layer level this group belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. |
+| Property      | Type     | Default    | Description                                                                                                                                                                                |
+| ------------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `description` | `string` | (required) | Label shown in the popup for this prefix.                                                                                                                                                  |
+| `priority`    | `number` | `0`        | Higher priority groups sort earlier when combined.                                                                                                                                         |
+| `level`       | `number` | `0`        | Layer level this group belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. Must be a non-negative integer; an invalid value emits a `console.warn` and falls back to `0`. |
 
 Returns an unregister function.
 
@@ -196,6 +213,8 @@ Returns the current cheatsheet data model. Useful for building custom cheatsheet
 #### `engine.registry`
 
 Reference to the underlying `ShortcutRegistry`. Advanced use only — treat it as read-only. The supported read method is `getAllActive()`, documented under [Debugging](#debugging). The mutating methods (`register`, `unregister`, `activateLayer`) exist on the class but are driven by the engine; calling them directly bypasses the engine's bookkeeping.
+
+`engine.registry.version: number` — a read-only monotonic counter, starting at `0`, that increments on every registration, unregistration, or layer activation/deactivation. It does **not** change on reads (`getActive`, `getAllActive`, `getActiveCandidates`, `getActiveGroup`, etc.). Intended for memoising a derived view over the registry — e.g. `<ShortcutCheatsheet>` uses it to rebuild its cheatsheet model only when the registry actually changes, rather than on every render.
 
 ---
 
@@ -349,6 +368,8 @@ import { WhichKeyPopup } from 'which-key/react';
 | `maxRows`           | `number`                     | `5`          | Maximum rows in the horizontal grid.                    |
 | `backgroundOpacity` | `number`                     | `0.95`       | Panel background alpha (0–1).                           |
 
+`WhichKeyPopupLayout` is the type of `layout` above: `'vertical' | 'horizontal'`.
+
 ### `<ShortcutCheatsheet>`
 
 Renders the full-screen cheatsheet. Returns `null` when the cheatsheet is not visible. No props.
@@ -357,6 +378,18 @@ Renders the full-screen cheatsheet. Returns `null` when the cheatsheet is not vi
 import { ShortcutCheatsheet } from 'which-key/react';
 
 <ShortcutCheatsheet />;
+```
+
+### React escape hatches
+
+`WhichKeyContext` and `LayerContext` are the React contexts that back the hooks and layer components above. They are exported for advanced cases — a custom component that needs the raw `WhichKeyEngine` or the ambient layer level without going through `useShortcut`/`useShortcutGroup`/`useWhichKeyState` or `<WhichKeyLayer>`. Most consumers should use those instead of reading these contexts directly.
+
+```tsx
+import { useContext } from 'react';
+import { WhichKeyContext, LayerContext } from 'which-key/react';
+
+const engine = useContext(WhichKeyContext); // WhichKeyEngine | null; null outside <WhichKeyProvider>
+const { level } = useContext(LayerContext); // current layer level; { level: 0 } outside any <WhichKeyLayer>
 ```
 
 ---
@@ -392,12 +425,12 @@ wk.stop();
 
 **Options** (`MountOptions`):
 
-| Property      | Type                             | Default                                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------- | -------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `popup`       | `Partial<PopupOptions> \| false` | `{ layout: 'vertical', maxRows: 5, backgroundOpacity: 0.95 }` | Popup renderer options. Pass `false` to suppress the popup.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `cheatsheet`  | `boolean`                        | `true`                                                        | Whether to render the cheatsheet.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `container`   | `HTMLElement`                    | `document.body`                                               | DOM node into which rendered elements are appended.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `classPrefix` | `string`                         | `'wk'`                                                        | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. Setting it opts out of `which-key/styles.css` (which hardcodes `.wk-*` selectors, including the ones that read the `--wk-z-index`/`--wk-z-index-backdrop` custom properties) — supply your own stylesheet covering the class contract; importing the shipped sheet alongside a custom prefix has no partial effect. Vanilla only; the React components always emit `wk-`. |
+| Property      | Type                             | Default                                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | -------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `popup`       | `Partial<PopupOptions> \| false` | `{ layout: 'vertical', maxRows: 5, backgroundOpacity: 0.95 }` | Popup renderer options. Pass `false` to suppress the popup.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `cheatsheet`  | `boolean`                        | `true`                                                        | Whether to render the cheatsheet.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `container`   | `HTMLElement`                    | `document.body`                                               | DOM node into which rendered elements are appended.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `classPrefix` | `string`                         | `'wk'`                                                        | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. Setting it opts out of `which-key/styles.css` entirely (it hardcodes `.wk-*` selectors), which swallows the whole `--wk-*` custom-property palette — including `--wk-z-index`/`--wk-z-index-backdrop` and the popup's `background` — so the popup renders fully transparent and `backgroundOpacity` has no effect. Supply your own stylesheet covering the class contract; importing the shipped sheet alongside a custom prefix has no partial effect. Vanilla only; the React components always emit `wk-`. |
 
 **`PopupOptions`** (values inside `popup: {}`):
 
@@ -437,6 +470,24 @@ Keys are expressed as strings. Sequences use a single space as the separator.
 
 Modifier names are case-insensitive. Multiple modifiers may be combined: `Ctrl+Shift+p`, `Mod+Alt+f`.
 
+### Special keys
+
+A base that names a special key is accepted **case-insensitively**, and the common short spellings below are also accepted as aliases. Both forms canonicalize to the exact `event.key` spelling the browser reports, so they match at runtime:
+
+| Special key                                          | Aliases (case-insensitive)                     |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `Escape`                                             | `escape`, `esc`                                |
+| `Tab`                                                | `tab`                                          |
+| `Enter`                                              | `enter`                                        |
+| `Backspace`                                          | `backspace`                                    |
+| `Space`                                              | `space`, `spacebar`, literal `' '`             |
+| `ArrowUp` / `ArrowDown` / `ArrowLeft` / `ArrowRight` | `up`, `down`, `left`, `right`                  |
+| `Home` / `End`                                       | `home`, `end`                                  |
+| `PageUp` / `PageDown`                                | `pgup`, `pageup`, `pgdn`, `pagedn`, `pagedown` |
+| `F1`–`F12`                                           | `f1`–`f12` (any casing)                        |
+
+A base that is not one of the names above (or one of these aliases) is **not validated** — it passes through verbatim, since exotic-but-real `event.key` values (`'MediaPlayPause'`, `'BrowserBack'`, IME composition keys, …) must stay bindable. If it isn't a name any browser reports, the binding will never fire, and `parseKey` emits the `is not a key name this library recognises` warning (see [Console warnings](#console-warnings)) to flag it instead of failing silently.
+
 ### Examples
 
 ```
@@ -469,6 +520,8 @@ parseSequence('g h'); // ['g', 'h']
 
 Both **throw** for an unparseable string (an unknown modifier, a trailing `+`, an empty string). That is how you tell a typo from a mismatch. Contrast this with [`engine.register`](#engine-register), which catches that same error internally and **warns instead of throwing** — call `parseKey`/`parseSequence` yourself and a bad string is an exception; register it through the engine and a bad string is a console warning plus a no-op.
 
+Both return `CanonicalKey` — an alias for `string` (`export type CanonicalKey = string`) that names the canonicalized, registry-lookup-ready form of a key string. It carries no runtime behavior of its own; it exists so signatures like the ones on this page document intent.
+
 ### `eventToCanonical(event)`
 
 Canonicalize a live `KeyboardEvent` the way the matcher does at runtime. **Registration and runtime must produce byte-identical strings** — registry lookups are plain `Map` gets — so comparing the two is the fastest way to find a mismatch. Log both sides from a raw listener next to your registered key:
@@ -482,6 +535,24 @@ document.addEventListener('keydown', (e) => {
 ```
 
 If those two strings differ, that is your bug. This is exactly what happens with the `Shift+/` example above: physically holding Shift and pressing `/` on a US layout delivers a `KeyboardEvent` whose `key` is already `'?'`, so `eventToCanonical(e)` reports `'?'`. But `parseKey('Shift+/')` reports `'/'` (see above) — the two never match, and a shortcut registered as `'Shift+/'` silently never fires. Registering the shifted character directly, `'?'`, fixes it.
+
+### `isModifierOnlyEvent(event)` / `isInputTarget(target)`
+
+Matcher-internal predicates, exported for advanced diagnostics rather than as primary API — `Matcher.handleKeyDown` uses both to decide whether a `keydown` should be ignored outright. They are candidates for being unexported before a 1.0 release; most consumers should never need to call them directly.
+
+```ts
+import { isModifierOnlyEvent, isInputTarget } from 'which-key';
+
+document.addEventListener('keydown', (e) => {
+  if (isModifierOnlyEvent(e)) return; // a bare Shift/Ctrl/Alt/Meta press, nothing chorded yet
+  if (isInputTarget(e.target)) {
+    /* focus is in a text field */
+  }
+});
+```
+
+- `isModifierOnlyEvent(event: KeyboardEvent) => boolean` — `true` when `event.key` is itself a modifier name (`'Shift'`, `'Control'`, `'Alt'`, `'Meta'`), i.e. the keydown is a bare modifier press with no other key chorded yet. The matcher uses this to skip modifier-only keydowns instead of treating them as a (dead) one-key sequence.
+- `isInputTarget(target: EventTarget | null) => boolean` — `true` when `target` is an `<input>`, a `<textarea>`, or an element that is (or declares itself via `contenteditable`) content-editable. Backs the `enableOnInputs` option on `register`/`registerGroup`.
 
 ### `engine.registry.getAllActive()`
 
@@ -510,19 +581,22 @@ Every diagnostic which-key writes is prefixed `[whichkey]`. Nearly all of them a
 | `<what> used outside <WhichKeyProvider>; wrap your app in <WhichKeyProvider> for it to work.`                                                                                                                                        | A hook (`useShortcut`, `useShortcutGroup`, `useWhichKeyState`) or a renderer component (`<WhichKeyPopup>`, `<ShortcutCheatsheet>`, `<WhichKeyLayer>`) rendered with no `<WhichKeyProvider>` ancestor.                               | Wrap your app in `<WhichKeyProvider>`.                                                                                                                |
 | `invalid timeoutMs <value>; falling back to 500ms.`                                                                                                                                                                                  | `timeoutMs` passed to `createWhichKey` was not a non-negative finite number.                                                                                                                                                        | Pass a non-negative finite number, or omit the option.                                                                                                |
 | `invalid helpKey "<helpKey>": <reason>; help shortcut disabled.`                                                                                                                                                                     | `helpKey` passed to `createWhichKey` could not be parsed as a key string.                                                                                                                                                           | Fix the key string, or pass `helpKey: null` to disable the built-in help shortcut deliberately.                                                       |
+| `invalid helpKey ""; help shortcut disabled.`                                                                                                                                                                                        | `helpKey` was an empty string.                                                                                                                                                                                                      | Pass `helpKey: null` to disable help deliberately, or a valid key string.                                                                             |
 | `handler for "<keys>" is not a function; shortcut not registered.`                                                                                                                                                                   | `register`'s second argument was not a function.                                                                                                                                                                                    | Pass a function.                                                                                                                                      |
 | `invalid key string "<keys>": <reason>; shortcut not registered.`                                                                                                                                                                    | `register` could not parse the key string.                                                                                                                                                                                          | Fix the key string; see [Key-string syntax](#key-string-syntax).                                                                                      |
 | `invalid group prefix "<prefix>": <reason>; group not registered.`                                                                                                                                                                   | `registerGroup` could not parse the prefix.                                                                                                                                                                                         | Fix the prefix.                                                                                                                                       |
 | `invalid pushLayer level <value>; expected a non-negative integer. Falling back to <n>.`                                                                                                                                             | An explicit `level` passed to `pushLayer` was not a non-negative integer.                                                                                                                                                           | Omit `level` and let `pushLayer` allocate one.                                                                                                        |
+| `invalid level <value> for "<keys>"; expected a non-negative integer. Falling back to 0.`                                                                                                                                            | `level` on `register`/`registerGroup` was negative, fractional, `NaN` or `Infinity`. The registration still happens, but at `level: 0` instead of the requested value.                                                              | Omit `level` and let `pushLayer` / `<WhichKeyLayer>` stamp it, or pass a non-negative integer.                                                        |
 | `pushLayer level <n> undercuts the next free level (<n>); shortcuts on this layer may be blocked by an active exclusive layer.`                                                                                                      | An explicit `level` sits below the currently active layer stack.                                                                                                                                                                    | Usually a mistake — omit `level` and let `pushLayer` allocate one.                                                                                    |
 | `mountWhichKey called twice for the same container; the previous mount is still active. Call unmount() on it first. This call is a no-op.`                                                                                           | A second renderer was mounted on a container that already has one.                                                                                                                                                                  | Call `unmount()` on the first mount, or mount into a different container.                                                                             |
 | `invalid classPrefix "<prefix>"; must be a valid CSS identifier stem: letters, digits, "-" and "_", where the first character (or the character right after a leading "-") is a letter or "_", never a digit. Falling back to "wk".` | `classPrefix` passed to `mountWhichKey` is not a valid CSS identifier stem.                                                                                                                                                         | Use only letters, digits, `-` and `_`; the first character (or the character immediately after a leading `-`) must be a letter or `_`, never a digit. |
 | `"<input>": Shift is dropped for punctuation and digits — write the shifted character directly (e.g. "?" not "Shift+/"). This binding will match "<base>".`                                                                          | A key string like `'Shift+/'` was registered. `Shift+` is silently dropped for punctuation/digit base characters, so the binding matches the _unshifted_ key, not the shifted glyph.                                                | Register the shifted character directly (e.g. `'?'` instead of `'Shift+/'`).                                                                          |
+| `key string "<input>": "<base>" is not a key name this library recognises; if the browser does not report exactly this value, the binding will never match.`                                                                         | A multi-character base that is not a known special key or `F1`–`F12`.                                                                                                                                                               | Use the exact `event.key` spelling. Common aliases (`esc`, `up`, `pgup`, `f1`) are accepted case-insensitively.                                       |
 | `Handler for "<keys>" threw; sequence state was reset.` (**`console.error`, not `console.warn`**)                                                                                                                                    | Your own shortcut handler for `<keys>` threw an exception. which-key caught it, logged it (the original error is passed as a second argument to `console.error`), and reset the pending sequence buffer so the engine stays usable. | Fix the exception in your handler; this is not a which-key bug.                                                                                       |
 
 **Silent failures** — these produce no console output at all, so check them by hand:
 
-- **A key string that canonicalizes differently than the runtime event** (see [`eventToCanonical`](#eventtocanonicalevent) above). In particular, special-key base names are **case-sensitive and exact**: `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. This is a known open issue — use the exact `KeyboardEvent.key` spelling until it's addressed.
+- **A key string that canonicalizes differently than the runtime event** (see [`eventToCanonical`](#eventtocanonicalevent) above). Special-key base names (`Escape`, `Tab`, `ArrowUp`, `F1`, …) are accepted case-insensitively with the common aliases listed in [Key-string syntax](#key-string-syntax) (`'escape'`, `'esc'`, `'up'`, `'f1'`, …), so these now round-trip correctly. A base that isn't a recognised special key or alias still passes through verbatim, but now emits the `is not a key name this library recognises` warning above instead of failing silently — the only names that remain a silent risk are exotic multi-character `event.key` values that _are_ real (e.g. `'MediaPlayPause'`) but happen to be misspelled.
 - **A binding shadowed by an active exclusive layer** (see [`engine.registry.getAllActive()`](#engineregistrygetallactive) above).
 - **A shortcut suppressed because focus is in a text field** and it was registered without `enableOnInputs: true`.
 
@@ -562,3 +636,11 @@ The prebuilt stylesheet (`which-key/styles.css`) and the vanilla renderer both u
 | `wk-cheatsheet__hint`         | "Press Escape to close" footer                                   |
 
 When using a custom `classPrefix` (e.g. `'myapp'`), replace `wk-` with `myapp-` throughout. Note that setting `classPrefix` opts out of the shipped `which-key/styles.css` entirely — see [`mountWhichKey`'s `classPrefix` option](#mountwhichkey) under Vanilla for what that means and the warning emitted on an invalid value.
+
+---
+
+## Theming (`--wk-*` custom properties)
+
+The shipped stylesheet ships dark by default, follows `prefers-color-scheme: light` automatically, and an author can force either theme regardless of OS preference with `data-wk-theme="light"` or `data-wk-theme="dark"` on `<html>` — the document root; the override selectors are `:root`-scoped and never match an arbitrary ancestor, so the palette they set applies wherever the popup or cheatsheet render, including the vanilla renderer's `document.body` popup host. All colours are `--wk-*` custom properties (`--wk-panel-bg`, `--wk-panel-bg-rgb`, `--wk-chip-bg`, `--wk-border`, `--wk-text`, `--wk-text-muted`, `--wk-text-subtle`, `--wk-row-label`, `--wk-row-label-group`, `--wk-focus-ring`, `--wk-backdrop-bg`, `--wk-shadow-chip`, `--wk-shadow-panel`), overridable like any CSS variable; the README's [Theming](../README.md#theming) subsection has the full default-value table and a worked override.
+
+`<WhichKeyPopup>`'s and `mountWhichKey`'s `backgroundOpacity` sets only the `--wk-popup-bg-opacity` custom property inline — the colour composes in CSS from `--wk-panel-bg-rgb`, so the popup still repaints correctly under either theme. `--wk-z-index`/`--wk-z-index-backdrop` (README: [Stacking order](../README.md#stacking-order)) are part of the same custom-property surface.

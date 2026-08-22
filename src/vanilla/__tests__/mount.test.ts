@@ -215,7 +215,7 @@ describe('mountWhichKey', () => {
     vi.advanceTimersByTime(500);
 
     const popup = document.querySelector('.wk-popup') as HTMLElement;
-    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.style.getPropertyValue('--wk-popup-bg-opacity')).toBe('0.95');
     expect(popup.getAttribute('style')).not.toContain('NaN');
     const grid = document.querySelector('.wk-popup__grid') as HTMLElement;
     expect(grid.style.gridTemplateRows).toBe('repeat(5, auto)');

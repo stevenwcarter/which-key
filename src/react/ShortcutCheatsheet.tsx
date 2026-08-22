@@ -1,10 +1,23 @@
-import { useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { WhichKeyContext, warnNoProvider } from './context';
+import type { CheatsheetModel } from '../engine';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
 const noopSubscribe = () => () => {};
 const getNullSnapshot = () => null;
+
+// Hoisted so the closed-sheet case returns the same object identity on every
+// render — a fresh `{ standalone: [], groups: [] }` literal per call would
+// defeat useMemo for any consumer comparing the model by reference.
+const EMPTY_MODEL: CheatsheetModel = { standalone: [], groups: [] };
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 const CHEATSHEET_TITLE_ID = 'wk-cheatsheet-title';
@@ -63,8 +76,32 @@ export const ShortcutCheatsheet = () => {
     };
   }, [engine, visible]);
 
+  // Read before the early return — hooks must run unconditionally. Keyed on
+  // the registry's version (not just `visible`) so a late registration made
+  // while the sheet is already open still invalidates the memo; keying on
+  // `visible` alone would freeze the sheet at its open-time contents.
+  const registryVersion = engine?.registry.version ?? 0;
+  // registryVersion is deliberately unreferenced inside the factory below:
+  // it is a cache-invalidation signal for state the engine owns internally
+  // (the registry's mutation counter), not a value the computation itself
+  // reads. exhaustive-deps only sees identifiers used in the callback body,
+  // so it can't know this dep is load-bearing for invalidating a memo over a
+  // mutable, non-React-tracked data source.
+  //
+  // The `visible` gate inside the factory (not just as a dep) is equally
+  // load-bearing, the other direction: without it, every mounted
+  // <ShortcutCheatsheet> would rebuild its model — a registry scan, bucketing
+  // and sort — on every emit from ANY engine mutation (e.g. every
+  // activateLayer from a sibling <WhichKeyLayer> mount/unmount), even while
+  // this sheet is closed. Hooks still run unconditionally; only the
+  // (real, expensive) computation is skipped.
+  const model = useMemo(
+    () => (engine && visible ? engine.getCheatsheetModel() : EMPTY_MODEL),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, registryVersion, visible],
+  );
+
   if (!engine || !visible) return null;
-  const model = engine.getCheatsheetModel();
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-dismiss backdrop; the keyboard equivalent is the Escape handler installed in the useEffect above, and the panel (not the backdrop) is the focus target of this modal.

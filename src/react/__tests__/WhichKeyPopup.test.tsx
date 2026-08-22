@@ -126,7 +126,7 @@ describe('WhichKeyPopup props (clamping)', () => {
       vi.advanceTimersByTime(50);
     });
     const popup = getByTestId('whichkey-popup');
-    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.style.getPropertyValue('--wk-popup-bg-opacity')).toBe('0.95');
   });
 
   it('honors a custom backgroundOpacity on the vertical layout', () => {
@@ -143,7 +143,9 @@ describe('WhichKeyPopup props (clamping)', () => {
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    expect(getByTestId('whichkey-popup').style.backgroundColor).toBe('rgba(17, 24, 39, 0.5)');
+    expect(getByTestId('whichkey-popup').style.getPropertyValue('--wk-popup-bg-opacity')).toBe(
+      '0.5',
+    );
   });
 
   it('clamps backgroundOpacity above 1 down to 1', () => {
@@ -160,9 +162,7 @@ describe('WhichKeyPopup props (clamping)', () => {
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    // jsdom's CSSOM normalizes `rgba(r, g, b, 1)` to `rgb(r, g, b)` when read back
-    // via element.style.backgroundColor. The implementation outputs the rgba form.
-    expect(getByTestId('whichkey-popup').style.backgroundColor).toBe('rgb(17, 24, 39)');
+    expect(getByTestId('whichkey-popup').style.getPropertyValue('--wk-popup-bg-opacity')).toBe('1');
   });
 
   it('clamps backgroundOpacity below 0 up to 0', () => {
@@ -179,7 +179,7 @@ describe('WhichKeyPopup props (clamping)', () => {
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    expect(getByTestId('whichkey-popup').style.backgroundColor).toBe('rgba(17, 24, 39, 0)');
+    expect(getByTestId('whichkey-popup').style.getPropertyValue('--wk-popup-bg-opacity')).toBe('0');
   });
 
   it('renders horizontal layout with data-layout="horizontal" and wk-popup--horizontal class', () => {
@@ -312,7 +312,9 @@ describe('WhichKeyPopup props (clamping)', () => {
     act(() => {
       vi.advanceTimersByTime(50);
     });
-    expect(getByTestId('whichkey-popup').style.backgroundColor).toBe('rgba(17, 24, 39, 0.7)');
+    expect(getByTestId('whichkey-popup').style.getPropertyValue('--wk-popup-bg-opacity')).toBe(
+      '0.7',
+    );
   });
 
   // Brief-required assertion: a group candidate row carries the group modifier.
@@ -451,7 +453,7 @@ describe('WhichKeyPopup — non-finite props [B29]', () => {
       vi.advanceTimersByTime(50);
     });
     const popup = getByTestId('whichkey-popup');
-    expect(popup.style.backgroundColor).toBe('rgba(17, 24, 39, 0.95)');
+    expect(popup.style.getPropertyValue('--wk-popup-bg-opacity')).toBe('0.95');
     expect(popup.getAttribute('style')).not.toContain('NaN');
   });
 

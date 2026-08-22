@@ -6,7 +6,6 @@ export type PopupOptions = {
   maxRows: number;
   backgroundOpacity: number;
 };
-const PANEL_BG_RGB = '17, 24, 39';
 
 const kbd = (p: string, text: string): HTMLElement => {
   const el = document.createElement('kbd');
@@ -44,12 +43,14 @@ export const renderPopup = (
   opts: PopupOptions,
 ): HTMLElement | null => {
   if (!snap.popup.visible) return null;
-  const bg = `rgba(${PANEL_BG_RGB}, ${clamp01(opts.backgroundOpacity)})`;
   const el = document.createElement('div');
   el.dataset.testid = 'whichkey-popup';
   el.dataset.layout = opts.layout;
   el.className = `${p}-popup ${p}-popup--${opts.layout}`;
-  el.style.backgroundColor = bg;
+  // The colour lives in src/styles.css (--wk-panel-bg-rgb), which follows
+  // prefers-color-scheme / data-wk-theme; only the runtime opacity needs to
+  // reach the element.
+  el.style.setProperty('--wk-popup-bg-opacity', String(clamp01(opts.backgroundOpacity)));
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('aria-atomic', 'true');

@@ -10,12 +10,25 @@ export class ShortcutRegistry {
   // are the only two writers of `layers`, so nulling here is exhaustive.
   private blockLevelCache: number | null = null;
 
+  // Monotonic, bumped by every mutator. Lets a consumer memoise derived views
+  // (the React cheatsheet rebuilds a full scan + bucketing + sorts otherwise)
+  // without making them stale: unlike keying on "is the sheet open", a late
+  // registration still invalidates. Public because ShortcutRegistry is an
+  // exported class — see docs/API.md.
+  private _version = 0;
+
+  get version(): number {
+    return this._version;
+  }
+
   activateLayer(id: string, level: number, exclusive: boolean): void {
+    this._version++;
     this.layers.set(id, { level, exclusive });
     this.blockLevelCache = null;
   }
 
   deactivateLayer(id: string): void {
+    this._version++;
     this.layers.delete(id);
     this.blockLevelCache = null;
   }
@@ -41,6 +54,7 @@ export class ShortcutRegistry {
   }
 
   register(entry: ShortcutEntry): void {
+    this._version++;
     const bucket = this.shortcuts.get(entry.keys) ?? [];
     const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
     bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
@@ -71,6 +85,7 @@ export class ShortcutRegistry {
   }
 
   unregister(id: string): void {
+    this._version++;
     for (const [keys, bucket] of this.shortcuts) {
       const idx = bucket.findIndex((e) => e.id === id);
       if (idx >= 0) {
@@ -82,6 +97,7 @@ export class ShortcutRegistry {
   }
 
   registerGroup(entry: GroupEntry): void {
+    this._version++;
     const bucket = this.groups.get(entry.prefix) ?? [];
     const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
     bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
@@ -89,6 +105,7 @@ export class ShortcutRegistry {
   }
 
   unregisterGroup(id: string): void {
+    this._version++;
     for (const [prefix, bucket] of this.groups) {
       const idx = bucket.findIndex((e) => e.id === id);
       if (idx >= 0) {
