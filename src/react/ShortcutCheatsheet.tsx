@@ -22,6 +22,15 @@ const EMPTY_MODEL: CheatsheetModel = { standalone: [], groups: [] };
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 const CHEATSHEET_TITLE_ID = 'wk-cheatsheet-title';
 
+/**
+ * Full-screen cheatsheet of every active shortcut. Takes no props and renders
+ * `null` while the cheatsheet is closed — and during server rendering, so it is
+ * SSR-safe and activates after hydration.
+ *
+ * While open it traps Tab focus inside the panel, closes on `Escape`, and
+ * restores focus to the previously focused element on close. Emits the fixed
+ * `wk-*` class names styled by `which-key/styles.css`.
+ */
 export const ShortcutCheatsheet = () => {
   const engine = useContext(WhichKeyContext);
   const snapshot = useSyncExternalStore(

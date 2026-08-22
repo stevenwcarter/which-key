@@ -2,6 +2,15 @@ import { useContext, useEffect, useLayoutEffect, useRef } from 'react';
 import { WhichKeyContext, LayerContext, warnNoProvider } from './context';
 import type { ShortcutHandler, ShortcutOptions } from '../engine';
 
+/**
+ * Registers a shortcut for the lifetime of the component, stamped with the
+ * ambient `<WhichKeyLayer>` level.
+ *
+ * `handler` is held in a ref, so it need not be stable and never causes a
+ * re-registration on its own. Re-registration happens when the engine, `keys`,
+ * or an individual option value changes — a fresh `options` object carrying the
+ * same values does not trigger one.
+ */
 export const useShortcut = (
   keys: string,
   handler: ShortcutHandler,

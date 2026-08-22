@@ -38,26 +38,68 @@ const resolveLevel = (requested: number | undefined, what: string): number => {
   return 0;
 };
 
+/**
+ * Options accepted by `createWhichKey`. Every field is optional, and an invalid
+ * value warns and falls back to its default rather than throwing.
+ */
 export type WhichKeyOptions = {
+  /**
+   * Milliseconds of inactivity before a partial sequence is cancelled. Defaults
+   * to `500`; a non-finite, negative, or `setTimeout`-overflowing value warns
+   * and falls back to `500`.
+   */
   timeoutMs?: number;
+  /**
+   * Key that toggles the cheatsheet. Defaults to `'?'`. `null` disables the
+   * built-in help shortcut silently; `''`, or a string `parseKey` cannot parse,
+   * disables it with a warning.
+   */
   helpKey?: string | null;
+  /** Order of candidates in the popup and cheatsheet. Defaults to `'registration'`. */
   sortKeys?: SortMode;
+  /** Node `start()` installs the `keydown` listener on. Defaults to `document`. */
   target?: Document | HTMLElement;
 };
 
+/** One cheatsheet row: a shortcut's canonical key string and its label. */
 export type CheatsheetEntry = { keys: string; description: string | undefined };
+/**
+ * A first key and the shortcuts filed under it. `description` is the label from
+ * a matching `registerGroup`, or `undefined` when no group was registered.
+ */
 export type CheatsheetGroup = {
   prefix: string;
   description: string | undefined;
   entries: CheatsheetEntry[];
 };
+/**
+ * The cheatsheet view model returned by `engine.getCheatsheetModel()`. A
+ * shortcut is `standalone` only when it is the sole entry filed under its first
+ * key, its whole key string is that one key, and no group label is registered
+ * for it; everything else is bucketed by first key into `groups`.
+ */
 export type CheatsheetModel = { standalone: CheatsheetEntry[]; groups: CheatsheetGroup[] };
 
+/**
+ * Immutable view of the engine's UI state, handed to `subscribe` listeners and
+ * returned by `getSnapshot()`.
+ *
+ * Two invariants consumers depend on: the object identity is stable between
+ * emits (`getSnapshot()` returns the cached snapshot, which is what keeps
+ * `useSyncExternalStore` from re-rendering forever), and the whole tree —
+ * `currentSequence` and `candidates` included — must be treated as read-only.
+ */
 export type WhichKeySnapshot = {
   popup: { visible: boolean; currentSequence: string[]; candidates: WhichKeyCandidate[] };
   cheatsheet: { visible: boolean };
 };
 
+/**
+ * Handle returned by `pushLayer`. Its `register` and `registerGroup` behave
+ * like the engine methods of the same name but stamp this handle's `level` onto
+ * each registration and track it, so `pop()` can unregister everything the
+ * handle created and then deactivate the layer. `pop()` is idempotent.
+ */
 export type LayerHandle = {
   readonly level: number;
   register: WhichKeyEngine['register'];
@@ -65,23 +107,56 @@ export type LayerHandle = {
   pop(): void;
 };
 
+/** The object returned by `createWhichKey`. */
 export type WhichKeyEngine = {
+  /**
+   * Registers a shortcut and returns its unregister function. An unparseable
+   * `keys` string or a non-function handler warns and returns a no-op
+   * unregister rather than throwing.
+   */
   register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
+  /**
+   * Labels a key prefix in the popup and cheatsheet, and returns an unregister
+   * function. An unparseable prefix warns and returns a no-op.
+   */
   registerGroup(
     prefix: string,
     options: { description: string; priority?: number; level?: number },
   ): () => void;
+  /**
+   * Activates a layer at an explicit level without owning any registrations,
+   * and returns an idempotent deactivate function. Prefer `pushLayer` unless
+   * you are managing registration lifetimes yourself.
+   */
   activateLayer(level: number, exclusive: boolean): () => void;
+  /** Pushes a layer and returns a handle owning everything registered through it. */
   pushLayer(options?: { exclusive?: boolean; level?: number }): LayerHandle;
+  /** Attaches the `keydown` listener to the configured target. Idempotent. */
   start(): void;
+  /** Detaches the listener and cancels any in-progress sequence. Idempotent. */
   stop(): void;
+  /** Subscribes to state changes; returns an unsubscribe function. */
   subscribe(listener: (snapshot: WhichKeySnapshot) => void): () => void;
+  /**
+   * Returns the current snapshot. The identity is cached and changes only when
+   * the state does, so it is safe to hand straight to `useSyncExternalStore`.
+   */
   getSnapshot(): WhichKeySnapshot;
+  /** Opens the cheatsheet; no-op if already open. */
   openCheatsheet(): void;
+  /** Closes the cheatsheet; no-op if already closed. */
   closeCheatsheet(): void;
+  /** Toggles the cheatsheet. */
   toggleCheatsheet(): void;
+  /** Cancels any in-progress key sequence and hides the popup. */
   cancel(): void;
+  /** Builds the cheatsheet view model — useful for a custom cheatsheet UI. */
   getCheatsheetModel(): CheatsheetModel;
+  /**
+   * The underlying registry. Advanced use only, and effectively read-only: the
+   * supported read is `getAllActive()`, and calling the mutators directly
+   * bypasses the engine's bookkeeping.
+   */
   readonly registry: ShortcutRegistry;
 };
 
@@ -118,6 +193,16 @@ const buildCheatsheetModel = (
   return { standalone, groups };
 };
 
+/**
+ * Creates a which-key engine: a registry, a matcher, and the snapshot store the
+ * renderers subscribe to.
+ *
+ * No `keydown` listener is bound until `start()` is called. Invalid options
+ * soft-fail — a bad `timeoutMs` warns and falls back to `500`, a bad `helpKey`
+ * warns and leaves the built-in help shortcut disabled — because the React
+ * provider calls this from its render body, where a throw would take down the
+ * consumer's tree.
+ */
 export const createWhichKey = (options: WhichKeyOptions = {}): WhichKeyEngine => {
   const { helpKey = '?', sortKeys } = options;
   // setTimeout silently coerces NaN / negative / overflow to 0, which turns

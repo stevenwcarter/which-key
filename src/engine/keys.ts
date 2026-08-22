@@ -138,12 +138,23 @@ const buildCanonical = (
   return parts.join('+');
 };
 
+/**
+ * Canonicalizes a live `KeyboardEvent` — the runtime half of the canonical-key
+ * contract. Its output must stay byte-identical to `parseKey`'s for the same
+ * chord: registry lookups are plain `Map` gets, so any divergence surfaces as a
+ * shortcut that silently never fires.
+ */
 export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
   const raw = event.key;
   const base = raw === ' ' ? 'Space' : raw;
   return buildCanonical(base, event.ctrlKey, event.altKey, event.shiftKey, event.metaKey);
 };
 
+/**
+ * True when the keydown is a bare `Shift`/`Control`/`Alt`/`Meta` press with
+ * nothing chorded onto it yet. The matcher ignores these, so holding a modifier
+ * never aborts a pending sequence.
+ */
 export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
 
@@ -186,6 +197,20 @@ const SHIFT_ALTERS_US = new Set([
   '/',
 ]);
 
+/**
+ * Canonicalizes one chord written as a key string — the registration half of
+ * the canonical-key contract, which `eventToCanonical` must match byte for
+ * byte.
+ *
+ * Modifier names are case-insensitive and accept the usual aliases
+ * (`control`, `option`, `meta`/`command`, `mod`); `Mod` resolves to `Cmd` on
+ * macOS and `Ctrl` everywhere else. A bare uppercase letter implies Shift, so
+ * `parseKey('N')` matches a real Shift+n press.
+ *
+ * Throws on an empty string, an unknown modifier, or a missing base after a
+ * `+`. A base that is not a key name this library recognises only warns and
+ * passes through verbatim, so exotic `event.key` values stay bindable.
+ */
 export const parseKey = (input: string): CanonicalKey => {
   if (!input || input.trim() === '') {
     throw new Error('whichkey: empty key string');
@@ -243,6 +268,11 @@ export const parseKey = (input: string): CanonicalKey => {
   return buildCanonical(base, ctrl, alt, shift, meta);
 };
 
+/**
+ * Splits a space-separated sequence and canonicalizes each chord with
+ * `parseKey`. Throws on an empty or whitespace-only string, and on any chord
+ * `parseKey` itself rejects.
+ */
 export const parseSequence = (input: string): CanonicalKey[] => {
   if (!input || input.trim() === '') {
     throw new Error('whichkey: empty sequence string');
@@ -253,6 +283,11 @@ export const parseSequence = (input: string): CanonicalKey[] => {
     .map(parseKey);
 };
 
+/**
+ * True when `target` is a text-entry element — an `<input>`, a `<textarea>`, or
+ * anything content-editable. Backs the `enableOnInputs` guard: a shortcut
+ * registered without it is suppressed while such an element has focus.
+ */
 export const isInputTarget = (target: EventTarget | null): boolean => {
   if (!target) return false;
   if (!(target instanceof HTMLElement)) return false;

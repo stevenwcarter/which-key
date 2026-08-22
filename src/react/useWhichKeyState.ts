@@ -9,6 +9,15 @@ const EMPTY: WhichKeySnapshot = {
 const noopSubscribe = () => () => {};
 const getEmptySnapshot = () => EMPTY;
 
+/**
+ * Subscribes to the engine's popup state through `useSyncExternalStore` and
+ * returns it in the shape React components render from.
+ *
+ * Server rendering — and any render with no `<WhichKeyProvider>` above — yields
+ * an empty, invisible state instead of throwing, which is what makes the
+ * renderer components SSR-safe. `what` only names the caller in the
+ * missing-provider warning.
+ */
 export const useWhichKeyState = (what = 'useWhichKeyState()'): WhichKeyState => {
   const engine = useContext(WhichKeyContext);
   // From an effect, not render: this hook backs SSR-safe components that must

@@ -2,10 +2,25 @@ import { eventToCanonical, isInputTarget, isModifierOnlyEvent } from './keys';
 import type { ShortcutRegistry } from './registry';
 import type { ShortcutEntry } from './types';
 
+/**
+ * Callbacks the `Matcher` drives as each keystroke resolves. `createWhichKey`
+ * supplies these; they are not part of the public engine surface.
+ */
 export type MatcherOptions = {
+  /** How long a committed prefix waits before its popup shows or its leaf fires. */
   timeoutMs: number;
+  /** Fires a resolved shortcut, passing the original `keydown` that completed it. */
   onFire: (entry: ShortcutEntry, event: KeyboardEvent) => void;
+  /**
+   * Shows or refreshes the popup for the sequence committed so far.
+   * `currentSequence` is a per-call copy of the matcher's buffer; treat it as
+   * read-only.
+   */
   onShowPopup: (state: { currentSequence: string[] }) => void;
+  /**
+   * Hides the popup. Called on every buffer reset, so it can fire when nothing
+   * is on screen.
+   */
   onHidePopup: () => void;
 };
 
@@ -27,6 +42,18 @@ export type MatcherOptions = {
 const echoesCharacter = (event: KeyboardEvent): boolean =>
   event.key.length === 1 && !event.metaKey && !(event.ctrlKey && !event.altKey);
 
+/**
+ * Resolves `keydown` events against the registry, owning the pending-sequence
+ * buffer and every timer involved.
+ *
+ * Canonicalizing a key onto the buffer leads to one of three outcomes: a pure
+ * leaf (a match with no continuations) fires immediately; a key that is both a
+ * leaf and a prefix commits the buffer and fires after `timeoutMs` unless a
+ * continuation arrives first; a prefix-only key commits the buffer and shows
+ * the popup after `timeoutMs`, refreshing it immediately if it is already up.
+ * `Escape` cancels a partial sequence unless an explicit `Escape` leaf exists
+ * for the prospective sequence.
+ */
 export class Matcher {
   private buffer: string[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -45,6 +72,7 @@ export class Matcher {
     private readonly options: MatcherOptions,
   ) {}
 
+  /** Feeds one `keydown` through the matcher, advancing, firing, or aborting the sequence. */
   handleKeyDown(event: KeyboardEvent): void {
     if (isModifierOnlyEvent(event)) return;
 
@@ -173,6 +201,7 @@ export class Matcher {
     this.resetBuffer();
   }
 
+  /** Drops the pending sequence, clears the timer, and hides the popup. */
   cancel(): void {
     this.resetBuffer();
   }

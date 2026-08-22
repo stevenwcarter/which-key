@@ -1,6 +1,11 @@
 import type { WhichKeyCandidate, WhichKeySnapshot } from '../engine';
 import { clamp01, clampRows } from '../shared/clamp';
 
+/**
+ * Fully-resolved popup renderer options. `mountWhichKey` fills in whatever its
+ * caller left out of `MountOptions.popup`, so — unlike the React props — every
+ * field here is required by the time the renderer sees it.
+ */
 export type PopupOptions = {
   layout: 'vertical' | 'horizontal';
   maxRows: number;

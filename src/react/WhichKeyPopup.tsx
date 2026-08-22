@@ -3,10 +3,22 @@ import { useWhichKeyState } from './useWhichKeyState';
 import type { WhichKeyCandidate, WhichKeyState } from '../engine';
 import { clamp01, clampRows, DEFAULT_BACKGROUND_OPACITY, DEFAULT_MAX_ROWS } from '../shared/clamp';
 
+/** Popup placement: a corner panel (`'vertical'`) or a bottom bar (`'horizontal'`). */
 export type WhichKeyPopupLayout = 'vertical' | 'horizontal';
+/** Props for `<WhichKeyPopup>`. Out-of-range values are clamped, never rejected. */
 export type WhichKeyPopupProps = {
+  /** Corner popup or bottom bar. Defaults to `'vertical'`. */
   layout?: WhichKeyPopupLayout;
+  /**
+   * Maximum rows in the horizontal grid. Defaults to `5`; other values are
+   * floored to an integer of at least `1`, and a non-finite value falls back to
+   * the default.
+   */
   maxRows?: number;
+  /**
+   * Panel background alpha. Defaults to `0.95`; other values are clamped to
+   * `0`-`1`, and a non-finite value falls back to the default.
+   */
   backgroundOpacity?: number;
 };
 
@@ -95,6 +107,13 @@ const HorizontalBar = ({
   </div>
 );
 
+/**
+ * Renders the pending-sequence popup, listing the keys that can follow what has
+ * been pressed so far. Returns `null` when the popup is not visible — including
+ * during server rendering, so it is SSR-safe and activates after hydration.
+ *
+ * Emits the fixed `wk-*` class names styled by `which-key/styles.css`.
+ */
 export const WhichKeyPopup = ({
   layout = 'vertical',
   maxRows = DEFAULT_MAX_ROWS,

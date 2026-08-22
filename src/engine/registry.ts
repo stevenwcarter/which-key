@@ -1,5 +1,19 @@
 import type { ShortcutEntry, GroupEntry, WhichKeyCandidate } from './types';
 
+/**
+ * Stores every registration in priority-sorted buckets keyed by canonical key
+ * string (and by group prefix), so several components can bind the same key at
+ * once.
+ *
+ * A bucket's winner is resolved by level, then priority, then latest
+ * registration. An active `exclusive` layer raises a reachability floor: an
+ * entry below its level is unreachable unless it was registered with
+ * `global: true`.
+ *
+ * Exported for diagnostics, where `getAllActive()` is the supported read. The
+ * mutators are driven by the engine — calling them directly bypasses its
+ * bookkeeping.
+ */
 export class ShortcutRegistry {
   private shortcuts = new Map<string, ShortcutEntry[]>();
   private groups = new Map<string, GroupEntry[]>();
@@ -17,6 +31,11 @@ export class ShortcutRegistry {
   // exported class — see docs/API.md.
   private _version = 0;
 
+  /**
+   * Monotonic mutation counter, starting at `0`. Bumped by every registration,
+   * unregistration, and layer activation or deactivation, and never by a read.
+   * Intended as a memoisation key for a derived view over the registry.
+   */
   get version(): number {
     return this._version;
   }
@@ -144,6 +163,11 @@ export class ShortcutRegistry {
     return best;
   }
 
+  /**
+   * Every shortcut currently winning its bucket — what would actually fire
+   * right now, once level, priority, and layer blocking are resolved. The array
+   * is freshly built, but the entries are the live registration objects.
+   */
   getAllActive(): ShortcutEntry[] {
     const out: ShortcutEntry[] = [];
     for (const bucket of this.shortcuts.values()) {

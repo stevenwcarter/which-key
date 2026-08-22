@@ -1,7 +1,17 @@
 import { createContext } from 'react';
 import type { WhichKeyEngine } from '../engine';
 
+/**
+ * The engine created by the nearest `<WhichKeyProvider>`, or `null` outside one.
+ * An advanced escape hatch — prefer `useShortcut`, `useShortcutGroup`, and
+ * `useWhichKeyState`.
+ */
 export const WhichKeyContext = createContext<WhichKeyEngine | null>(null);
+/**
+ * The ambient layer level, `{ level: 0 }` outside any `<WhichKeyLayer>`. An
+ * advanced escape hatch — prefer nesting `<WhichKeyLayer>`, which sets this and
+ * activates the layer for you.
+ */
 export const LayerContext = createContext<{ level: number }>({ level: 0 });
 
 // One deduped diagnostic for every "used outside <WhichKeyProvider>" path.
