@@ -53,6 +53,11 @@ const SPECIAL_KEY_ALIASES = new Map<string, string>([
   ['pgup', 'PageUp'],
   ['pgdn', 'PageDown'],
   ['pagedn', 'PageDown'],
+  // `+` is the modifier separator, so parseKey can never receive it as a base
+  // (`'+'.split('+')` leaves nothing). `eventToCanonical` emits '+' for a real
+  // keypress, so without this alias the two halves of the canonical-key
+  // contract disagree and every `+` binding is silently dead. Spell it 'Plus'.
+  ['plus', '+'],
 ]);
 
 /** `f1`-`f12` in any casing -> `F1`-`F12`. */

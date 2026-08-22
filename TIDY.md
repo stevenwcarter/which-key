@@ -53,13 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
 - [x] execute [ ] skip
 
-### T12. The `+` key is unbindable — `eventToCanonical` can emit it, `parseKey` never can (src/engine/keys.ts:195)
-
-- Lenses: opportunistic
-- Risk: high — needs characterization tests first
-- Proposed fix: decision-needed: `parseKey` splits on `'+'`, so no registration string can ever produce a canonical `'+'` base, while a real `+` keypress canonicalizes to `'+'` — the two directions CLAUDE.md requires to be byte-identical disagree, and any binding for that key silently never matches. Fixing it means choosing an escape convention (e.g. a trailing-`+` special case, or `'Plus'` as a `SPECIAL_KEY_ALIASES` entry), which changes what registration strings are accepted and interacts with bughunt.md's open B48 marker on `SPECIAL_KEYS` doing double duty. Decide the convention before writing code; characterization tests for the current `parseKey`/`eventToCanonical` pairing come first. Same file region as T10/T11 — see the note on T10.
-- [x] execute [ ] skip
-
 ### T13. Four terminal branches inline, with the popup refresh-or-hide decision written twice: `Matcher.handleKeyDown` (src/engine/matcher.ts:48-175, 127 lines)
 
 - Lenses: long-methods

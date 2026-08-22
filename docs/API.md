@@ -485,6 +485,9 @@ A base that names a special key is accepted **case-insensitively**, and the comm
 | `Home` / `End`                                       | `home`, `end`                                  |
 | `PageUp` / `PageDown`                                | `pgup`, `pageup`, `pgdn`, `pagedn`, `pagedown` |
 | `F1`–`F12`                                           | `f1`–`f12` (any casing)                        |
+| `+`                                                  | `plus` (a bare `+` is the modifier separator)  |
+
+`+` is the one base that cannot be written literally: `parseKey` splits key strings on `+`, so `'+'` and `'Ctrl++'` both throw `missing key after modifier(s)`. Spell it `Plus` — `parseKey('Plus')` canonicalizes to `'+'` and `parseKey('Ctrl+Plus')` to `'Ctrl++'`, which is exactly what `eventToCanonical` emits for the matching keypress.
 
 A base that is not one of the names above (or one of these aliases) is **not validated** — it passes through verbatim, since exotic-but-real `event.key` values (`'MediaPlayPause'`, `'BrowserBack'`, IME composition keys, …) must stay bindable. If it isn't a name any browser reports, the binding will never fire, and `parseKey` emits the `is not a key name this library recognises` warning (see [Console warnings](#console-warnings)) to flag it instead of failing silently.
 

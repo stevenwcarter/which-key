@@ -541,3 +541,33 @@ describe('parseKey/eventToCanonical pairing around "+" [T12 characterization]', 
     expect(parseKey('Ctrl+=')).toBe(eventToCanonical(ev({ key: '=', ctrlKey: true })));
   });
 });
+
+describe('parseKey — the "Plus" alias makes "+" bindable [T12]', () => {
+  it('round-trips against a real "+" keypress', () => {
+    expect(parseKey('Plus')).toBe('+');
+    expect(parseKey('Plus')).toBe(eventToCanonical(ev({ key: '+' })));
+    // US layout: '+' is Shift+'=', and buildCanonical drops Shift for punctuation.
+    expect(parseKey('Plus')).toBe(eventToCanonical(ev({ key: '+', shiftKey: true })));
+  });
+
+  it('accepts any casing, works under modifiers, and works inside a sequence', () => {
+    expect(parseKey('plus')).toBe('+');
+    expect(parseKey('PLUS')).toBe('+');
+    expect(parseKey('Ctrl+Plus')).toBe('Ctrl++');
+    expect(parseKey('Ctrl+Plus')).toBe(eventToCanonical(ev({ key: '+', ctrlKey: true })));
+    expect(parseSequence('g Plus')).toEqual(['g', '+']);
+  });
+
+  it('does not warn about an unrecognised base', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(parseKey('Plus')).toBe('+');
+    expect(parseKey('Ctrl+Plus')).toBe('Ctrl++');
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('still rejects the bare "+" spelling — the splitting rule is unchanged (D1)', () => {
+    expect(() => parseKey('+')).toThrow(/missing key after modifier/);
+    expect(() => parseKey('Ctrl++')).toThrow(/missing key after modifier/);
+  });
+});
