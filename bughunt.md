@@ -82,16 +82,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: key `seen` by `nextKey` only and merge rather than skip — on a collision promote the entry to `isGroup: true` (a deeper continuation exists) and keep `description = this.getActiveGroup(subPrefix)?.description ?? existing.description ?? top.description` so the leaf's label survives when no group label is registered.
 - [x] execute   [ ] skip
 
-### B21. Popup shows a stale sequence and stale candidates during the leaf-AND-prefix wait: `Matcher.handleKeyDown` (src/engine/matcher.ts:54)
-- Category: correctness
-- Impact: 6 (severity 3 × blast-radius 2)
-- Effort: S
-- Risk: medium
-- Evidence: empirically confirmed. The leaf-AND-prefix branch (matcher.ts:52-67) commits the new buffer but never calls `onShowPopup`, while the prefix-only branch (:73-75) does refresh when the popup is already visible. With `g h` (leaf) + `g h x` + `g p` registered and `timeoutMs=50`: after `g` + timeout the snapshot is `visible=true seq=["g"] cands=["h","p"]`; immediately after pressing `h` it is *still* `seq=["g"] cands=["h","p"]` even though the buffer is now `[g,h]` and the only real continuation is `x`. The user sees the wrong prompt for the whole timeout window, and `p` is advertised as pressable when it will abort the sequence. This is the observable half of the `Matcher.popupVisible` / controller `popupVisible` split.
-- Blast radius: src/engine/matcher.ts:52,73; src/engine/controller.ts:118; src/react/WhichKeyPopup.tsx:35; src/vanilla/popup.ts:51
-- Proposed fix: mirror the prefix-only branch — after `this.commitBuffer(prospective); this.clearTimer();` add `if (this.popupVisible) this.options.onShowPopup({ currentSequence: [...this.buffer] });`.
-- [x] execute   [ ] skip
-
 ### B22. registerGroup never canonicalizes its prefix, so group labels silently vanish: `WhichKeyEngine.registerGroup` (src/engine/controller.ts:168)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)

@@ -375,3 +375,54 @@ describe('Matcher — onFire exceptions do not wedge the buffer [B4, matcher hal
     );
   });
 });
+
+describe('Matcher — popup freshness during the leaf-AND-prefix wait [B21]', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('refreshes the visible popup when a leaf-AND-prefix key commits', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x' }));
+    registry.register(entry({ id: 'gp', keys: 'g p' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g'] });
+
+    onShowPopup.mockClear();
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onShowPopup).toHaveBeenCalledOnce();
+    expect(onShowPopup).toHaveBeenLastCalledWith({ currentSequence: ['g', 'h'] });
+  });
+
+  it('does not refresh when the popup is not yet visible', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h' }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x' }));
+
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    matcher.handleKeyDown(ev({ key: 'h' }));
+    expect(onShowPopup).not.toHaveBeenCalled();
+  });
+
+  it('never surfaces a buffer tainted by a character echoed into a text field', () => {
+    const onShowPopup = vi.fn<ShowFn>();
+    const onHidePopup = vi.fn<HideFn>();
+    const { registry, matcher } = buildMatcher({ onShowPopup, onHidePopup }, 50);
+    registry.register(entry({ id: 'gh', keys: 'g h', enableOnInputs: true }));
+    registry.register(entry({ id: 'ghx', keys: 'g h x', enableOnInputs: true }));
+    registry.register(entry({ id: 'gp', keys: 'g p', enableOnInputs: true }));
+
+    const input = document.createElement('input');
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    vi.advanceTimersByTime(50);
+    onShowPopup.mockClear();
+
+    // 'h' typed into a text field echoes a character — the latch must hold.
+    matcher.handleKeyDown(ev({ key: 'h' }, input));
+    expect(onShowPopup).not.toHaveBeenCalled();
+  });
+});

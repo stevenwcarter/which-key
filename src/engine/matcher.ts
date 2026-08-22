@@ -89,6 +89,14 @@ export class Matcher {
       // Leaf-AND-prefix — commit buffer, start timer to fire leaf if no continuation.
       this.commitBuffer(prospective, isInputTarget(eventTarget) && echoesCharacter(event));
       this.clearTimer();
+      // Mirror the prefix-only branch: if the popup is already up it must
+      // track the buffer, or it advertises the PREVIOUS prefix's candidates
+      // for the whole timeout window — keys that would now abort the
+      // sequence. Same input-echo latch applies: never paint a buffer that
+      // echoed characters into a text field.
+      if (this.popupVisible && !this.bufferTouchedInput) {
+        this.options.onShowPopup({ currentSequence: [...this.buffer] });
+      }
       const fireTarget = eventTarget;
       // Fire the ORIGINAL event, never a synthesized one. A `new
       // KeyboardEvent(...)` that is never dispatched has target === null,
