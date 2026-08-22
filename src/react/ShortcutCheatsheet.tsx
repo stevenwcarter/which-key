@@ -28,7 +28,8 @@ const useCheatsheetFocusTrap = (
 
   useEffect(() => {
     if (!active) return;
-    restoreRef.current = document.activeElement as HTMLElement | null;
+    const previouslyFocused = document.activeElement;
+    restoreRef.current = previouslyFocused instanceof HTMLElement ? previouslyFocused : null;
     panelRef.current?.focus();
 
     const onKey = (e: KeyboardEvent) => {
@@ -43,7 +44,7 @@ const useCheatsheetFocusTrap = (
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      restoreRef.current?.focus?.();
+      restoreRef.current?.focus();
     };
   }, [panelRef, active, onEscape]);
 };

@@ -34,13 +34,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: decision-needed: `GroupEntry` has no `global` field, so `getActiveGroup` blocks a group label at `level < blockLevel()` even when the shortcuts under that prefix remain reachable via `global: true` — an exclusive layer can therefore leave a still-firing shortcut with its prefix label missing from the popup and cheatsheet. Closing the asymmetry means adding `global` to the public `GroupEntry`/group-registration options and deciding whether group labels _should_ follow their shortcuts through a layer block; that is a semantics + public-API call, not a mechanical tidy. Note T15 extracts the shared winner cascade across `findActive`/`getActiveGroup` and must deliberately preserve this asymmetry until it is decided.
 - [ ] execute [ ] skip
 
-### T31. Cast and defensive optional call compensating for each other: `document.activeElement as HTMLElement | null` (src/react/ShortcutCheatsheet.tsx:43)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: `document.activeElement` is `Element | null`; the cast asserts something the runtime does not guarantee (an `SVGElement` or bare `Element` both reach here), which is why the restore call at line 75 is written `restoreRef.current?.focus?.()`. An `instanceof` narrow removes both: `const active = document.activeElement; restoreRef.current = active instanceof HTMLElement ? active : null;` and then plain `restoreRef.current?.focus();`. The identical two-line pattern at src/vanilla/cheatsheet.ts:94 and :121 should be changed in the same pass — that pair is the save/restore half T16 deliberately leaves in each renderer.
-- [x] execute [ ] skip
-
 ### T35. `CLAUDE.md` misdescribes the deferred-fire event as synthetic (CLAUDE.md:42)
 
 - Lenses: comments

@@ -69,12 +69,13 @@ const buildSections = (p: string, model: CheatsheetModel): HTMLElement => {
 
 /** Cycles Tab inside `panel`; returns the teardown that also restores focus. */
 const installFocusTrap = (panel: HTMLElement): (() => void) => {
-  const previouslyFocused = document.activeElement as HTMLElement | null;
+  const previouslyFocused = document.activeElement;
+  const restore = previouslyFocused instanceof HTMLElement ? previouslyFocused : null;
   const onKey = (e: KeyboardEvent) => trapTab(panel, e);
   document.addEventListener('keydown', onKey);
   return () => {
     document.removeEventListener('keydown', onKey);
-    previouslyFocused?.focus?.();
+    restore?.focus();
   };
 };
 
