@@ -7,7 +7,7 @@ import { mountWhichKey } from '../vanilla';
 import { WhichKeyProvider, useShortcut, WhichKeyPopup, ShortcutCheatsheet } from '../react';
 import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
 
-const root = join(import.meta.dirname, '../../') + '/';
+const root = join(import.meta.dirname, '../../');
 
 /**
  * The documented cross-renderer copy contract, the string sibling of
