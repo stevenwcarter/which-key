@@ -280,7 +280,7 @@ The default of `1000` clears Ant Design's modal layer but sits below Bootstrap's
 
 ## API
 
-See **[docs/API.md](./docs/API.md)** for the full reference.
+See **[docs/API.md](https://github.com/stevenwcarter/which-key/blob/main/docs/API.md)** for the full reference.
 
 ---
 
@@ -292,7 +292,7 @@ The test suite is gated at **80%** (lines, statements, functions, branches). `np
 
 ## Contributing
 
-See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
+See **[CONTRIBUTING.md](https://github.com/stevenwcarter/which-key/blob/main/CONTRIBUTING.md)**.
 
 ---
 

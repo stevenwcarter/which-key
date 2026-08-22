@@ -108,16 +108,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a top-level `permissions:\n  contents: read` block after `on:` (no step needs write), and pin the third-party action to a full commit SHA with a trailing version comment: `uses: codecov/codecov-action@<40-char-sha> # v5.x.x`. The first-party `actions/checkout@v4` and `actions/setup-node@v4` may stay on tags.
 - [ ] execute   [ ] skip
 
-### B43. Stale .npmignore shadowed by `files`, and the README's API.md link is unreachable from the tarball: `.npmignore` / `files` (.npmignore:1)
-- Category: api-surface
-- Impact: 1 (severity 1 × blast-radius 1)
-- Effort: S
-- Risk: low
-- Evidence: both `.npmignore` and `package.json` `files` are present; `files` wins, so `.npmignore` is dead config a future maintainer will edit expecting an effect. Verified via `npm pack --dry-run`: the tarball is exactly LICENSE, README.md, package.json and `dist/**` (18 files), so nothing needed is dropped. But README.md:254 links `[docs/API.md](./docs/API.md)` and `docs/` is not in `files`, so the reference the README calls "the full reference" ships as a dangling relative link in the installed package and on npmjs.com.
-- Blast radius: .npmignore:1; package.json:27; README.md:254
-- Proposed fix: delete `.npmignore` so `files` is the single source of truth, and either add `"docs"` to `files` or change README.md:254 to an absolute GitHub URL so the link resolves from a node_modules copy and from npmjs.com.
-- [x] execute   [ ] skip
-
 > **decision-needed (behavioral):** `ShortcutCheatsheet` rebuilds the whole cheatsheet model in the render body on every re-render (src/react/ShortcutCheatsheet.tsx:26) — `getCheatsheetModel()` runs a full registry scan, a bucketing pass and up to 2+G sorts, and the component re-renders on every emit (since B5, emits fire only on real state changes rather than on every keystroke). The vanilla renderer does not have this problem: mount.ts:41 builds the model once at the open transition. Impact 4 (severity 2 × blast-radius 2). The two fixes trade off differently — a `useMemo` keyed on `visible` matches vanilla's semantics but makes the sheet a snapshot of open-time (late registrations won't appear), while a registry `version` counter preserves freshness but adds a member to `ShortcutRegistry`. Pick the semantics before applying.
 
 > **decision-needed (architectural):** `<WhichKeyLayer>` derives its level from React tree depth (`parent.level + 1`, src/react/WhichKeyLayer.tsx:12), so two sibling layers under the same parent both activate the same level. Confirmed at the engine level: with two exclusive layers at level 1, `blockLevel()` is 1 and `isReachable` uses `entry.level >= block`, so the base shortcut is correctly blocked but each exclusive sibling's shortcuts remain fully reachable from the other — two simultaneously-mounted exclusive modals do not isolate from each other. Impact 4 (severity 2 × blast-radius 2). The fix (allocate per layer instance via `engine.pushLayer` and publish `handle.level` through context as state) changes the level a child sees between first render and post-effect render — a real behavioral change. Decide whether sibling isolation is wanted at all.
