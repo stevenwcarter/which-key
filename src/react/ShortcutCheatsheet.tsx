@@ -1,8 +1,8 @@
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { WhichKeyContext } from './context';
 import { Kbd } from './Kbd';
 import { useEngineSnapshot } from './useEngineSnapshot';
-import type { CheatsheetModel } from '../engine';
+import type { CheatsheetEntry, CheatsheetGroup, CheatsheetModel } from '../engine';
 import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/strings';
 
@@ -10,6 +10,66 @@ import { CHEATSHEET_HINT, NO_DESCRIPTION, SHORTCUTS_LABEL } from '../shared/stri
 // render — a fresh `{ standalone: [], groups: [] }` literal per call would
 // defeat useMemo for any consumer comparing the model by reference.
 const EMPTY_MODEL: CheatsheetModel = { standalone: [], groups: [] };
+
+// Hoisted so the no-engine case hands the trap a stable identity; a fresh
+// `() => {}` per render would re-run its effect on every render.
+const noop = () => {};
+
+/**
+ * While `active`: moves focus into `panelRef`, cycles Tab inside it, closes on
+ * `Escape`, and restores focus to the previously focused element on teardown.
+ */
+const useCheatsheetFocusTrap = (
+  panelRef: RefObject<HTMLDivElement | null>,
+  active: boolean,
+  onEscape: () => void,
+): void => {
+  const restoreRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onEscape();
+        return;
+      }
+      const panel = panelRef.current;
+      if (panel) trapTab(panel, e);
+    };
+
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      restoreRef.current?.focus?.();
+    };
+  }, [panelRef, active, onEscape]);
+};
+
+const EntryRow = ({ entry }: { entry: CheatsheetEntry }) => (
+  <li className="wk-cheatsheet__item">
+    <Kbd>{entry.keys}</Kbd>
+    <span>{entry.description ?? NO_DESCRIPTION}</span>
+  </li>
+);
+
+const GroupSection = ({ group }: { group: CheatsheetGroup }) => (
+  <section className="wk-cheatsheet__section">
+    <h3 className="wk-cheatsheet__group-title">
+      <Kbd>{group.prefix}</Kbd>
+      {group.description ? (
+        <span className="wk-cheatsheet__group-label">{group.description}</span>
+      ) : null}
+    </h3>
+    <ul className="wk-cheatsheet__list wk-cheatsheet__list--nested">
+      {group.entries.map((e) => (
+        <EntryRow key={e.keys} entry={e} />
+      ))}
+    </ul>
+  </section>
+);
 
 /**
  * Full-screen cheatsheet of every active shortcut. Takes no props and renders
@@ -25,28 +85,7 @@ export const ShortcutCheatsheet = () => {
   const visible = useEngineSnapshot(engine, '<ShortcutCheatsheet>').cheatsheet.visible;
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const restoreRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!engine || !visible) return;
-    restoreRef.current = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        engine.closeCheatsheet();
-        return;
-      }
-      const panel = panelRef.current;
-      if (panel) trapTab(panel, e);
-    };
-
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      restoreRef.current?.focus?.();
-    };
-  }, [engine, visible]);
+  useCheatsheetFocusTrap(panelRef, Boolean(engine) && visible, engine?.closeCheatsheet ?? noop);
 
   // Read before the early return — hooks must run unconditionally. Keyed on
   // the registry's version (not just `visible`) so a late registration made
@@ -76,7 +115,7 @@ export const ShortcutCheatsheet = () => {
   if (!engine || !visible) return null;
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-dismiss backdrop; the keyboard equivalent is the Escape handler installed in the useEffect above, and the panel (not the backdrop) is the focus target of this modal.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-dismiss backdrop; the keyboard equivalent is the Escape handler installed by useCheatsheetFocusTrap above, and the panel (not the backdrop) is the focus target of this modal.
     <div
       data-testid="whichkey-cheatsheet-backdrop"
       className="wk-backdrop"
@@ -108,30 +147,12 @@ export const ShortcutCheatsheet = () => {
           {model.standalone.length > 0 && (
             <ul className="wk-cheatsheet__list">
               {model.standalone.map((e) => (
-                <li key={e.keys} className="wk-cheatsheet__item">
-                  <Kbd>{e.keys}</Kbd>
-                  <span>{e.description ?? NO_DESCRIPTION}</span>
-                </li>
+                <EntryRow key={e.keys} entry={e} />
               ))}
             </ul>
           )}
           {model.groups.map((g) => (
-            <section key={g.prefix} className="wk-cheatsheet__section">
-              <h3 className="wk-cheatsheet__group-title">
-                <Kbd>{g.prefix}</Kbd>
-                {g.description ? (
-                  <span className="wk-cheatsheet__group-label">{g.description}</span>
-                ) : null}
-              </h3>
-              <ul className="wk-cheatsheet__list wk-cheatsheet__list--nested">
-                {g.entries.map((e) => (
-                  <li key={e.keys} className="wk-cheatsheet__item">
-                    <Kbd>{e.keys}</Kbd>
-                    <span>{e.description ?? NO_DESCRIPTION}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <GroupSection key={g.prefix} group={g} />
           ))}
         </div>
         <div className="wk-cheatsheet__hint">{CHEATSHEET_HINT}</div>

@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T17. 145-line component mixing subscription, focus trap, memo and JSX: `ShortcutCheatsheet` (src/react/ShortcutCheatsheet.tsx:25-169)
-
-- Lenses: long-methods
-- Risk: low
-- Proposed fix: Extract a module-private hook in the same file, `const useCheatsheetFocusTrap = (panelRef: RefObject<HTMLDivElement | null>, active: boolean, onEscape: () => void): void`, holding lines 41-77 verbatim — same document-level listener, same Escape call, no semantic change (the modality/Escape-propagation question is bughunt's open decision-needed marker and must not be touched here). Also extract a module-private `const EntryRow = ({ entry }: { entry: CheatsheetEntry }) => …` for the `<li>` markup duplicated at 138-143 and 155-160, and `const GroupSection = ({ group }: { group: CheatsheetGroup }) => …` for 146-163. The body drops to roughly 40 lines. Keep the two long explanatory comments on the `useMemo` — they document a real invariant. Sequencing: T16 extracts the shared `trapTab` body this hook should call, and T19 replaces the store-subscription lines the component opens with — do T16 and T19 first, then this one.
-- [x] execute [ ] skip
-
 ### T20. 102-line DOM builder with no internal structure: `renderCheatsheet` (src/vanilla/cheatsheet.ts:23-124)
 
 - Lenses: long-methods
