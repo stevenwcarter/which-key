@@ -39,7 +39,7 @@ Three published entry points, one per directory under `src/`, wired in `package.
 `Matcher` (`src/engine/matcher.ts`) owns the pending-sequence buffer and all timers. Three cases after canonicalizing a key onto the buffer:
 
 - **pure leaf** (match, no continuations) → fire immediately
-- **leaf AND prefix** → commit buffer, wait `timeoutMs`, then fire the leaf with a _synthetic_ `KeyboardEvent`
+- **leaf AND prefix** → commit buffer, wait `timeoutMs`, then fire the leaf with the _original_ `KeyboardEvent` (deliberately not a synthesized one — an undispatched `new KeyboardEvent(...)` would have `target === null`, be non-cancelable, and report all modifier flags false, so a handler would behave differently purely because its shortcut is also a prefix)
 - **prefix only** → commit buffer, wait `timeoutMs`, then show the popup (refresh immediately if already visible)
 
 `Escape` cancels a partial sequence unless an explicit `Escape` leaf exists for the prospective sequence.

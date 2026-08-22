@@ -34,11 +34,4 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: decision-needed: `GroupEntry` has no `global` field, so `getActiveGroup` blocks a group label at `level < blockLevel()` even when the shortcuts under that prefix remain reachable via `global: true` — an exclusive layer can therefore leave a still-firing shortcut with its prefix label missing from the popup and cheatsheet. Closing the asymmetry means adding `global` to the public `GroupEntry`/group-registration options and deciding whether group labels _should_ follow their shortcuts through a layer block; that is a semantics + public-API call, not a mechanical tidy. Note T15 extracts the shared winner cascade across `findActive`/`getActiveGroup` and must deliberately preserve this asymmetry until it is decided.
 - [ ] execute [ ] skip
 
-### T35. `CLAUDE.md` misdescribes the deferred-fire event as synthetic (CLAUDE.md:42)
-
-- Lenses: comments
-- Risk: low
-- Proposed fix: CLAUDE.md's "Runtime flow" section says the leaf-AND-prefix branch fires "the leaf with a _synthetic_ `KeyboardEvent`". The code deliberately does the opposite: `src/engine/matcher.ts:149` is `const fireEvent = event;`, carrying a comment that explains a never-dispatched synthetic event would have `target === null`, would not be cancelable, and would report all modifier flags false. Reword line 42 to say the original `keydown` is retained and reused, and note why. Found by the doc-comment fixer while documenting `MatcherOptions.onFire`; CLAUDE.md is outside the lens scan scope (markdown), so it was not caught in triage.
-- [x] execute [ ] skip
-
 ## Skip (do not re-flag in future runs)
