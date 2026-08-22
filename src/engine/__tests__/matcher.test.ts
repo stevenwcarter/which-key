@@ -222,6 +222,17 @@ describe('Matcher — sequences', () => {
     expect(onFire).toHaveBeenCalledOnce();
   });
 
+  it('Escape completes a pending compound sequence when a leaf is registered for it, instead of cancelling [B38]', () => {
+    const onFire = vi.fn<FireFn>();
+    const { registry, matcher } = buildMatcher({ onFire });
+    const e = entry({ keys: 'g Escape' });
+    registry.register(e);
+    matcher.handleKeyDown(ev({ key: 'g' }));
+    matcher.handleKeyDown(ev({ key: 'Escape' }));
+    expect(onFire).toHaveBeenCalledOnce();
+    expect(onFire).toHaveBeenCalledWith(e, expect.any(KeyboardEvent));
+  });
+
   it('mismatched key after a prefix clears buffer', () => {
     const onFire = vi.fn();
     const onHidePopup = vi.fn();
