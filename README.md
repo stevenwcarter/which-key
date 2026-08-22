@@ -358,7 +358,7 @@ document.addEventListener('keydown', (e) => {
 });
 ```
 
-If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the _unshifted_ character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names being **case-sensitive and exact** — `'escape'`, `'esc'`, `'up'` and `'f1'` all register successfully but can never match a real event, because the runtime reports `'Escape'`, `'ArrowUp'` and `'F1'`. Use the exact `KeyboardEvent.key` spelling.
+If those two differ for the same physical keypress, that is your bug. Watch for: letters uppercase under any modifier (`parseKey('ctrl+k')` → `'Ctrl+K'`); `Shift+` dropped for punctuation and digits, which silently rebinds to the _unshifted_ character (`parseKey('Shift+/')` → `'/'`, not `'?'` — write `register('?', ...)` directly; the library warns when it detects this); and special key names — `'escape'`, `'esc'`, `'up'` and `'f1'` are all accepted case-insensitively and round-trip correctly against the real event (`'Escape'`, `'ArrowUp'`, `'F1'`). A base that isn't one of these recognised names or aliases still registers, but now warns that the binding may never match; if the browser genuinely reports that exact spelling (an exotic `event.key` like `'MediaPlayPause'`), the warning is a false positive you can ignore, but a typo is far more likely.
 
 **4. Is an exclusive layer active?**
 An exclusive layer makes every shortcut below its level unreachable. Register with `global: true` to punch through, or check what is live with `engine.registry.getAllActive()`.

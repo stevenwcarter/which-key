@@ -231,6 +231,79 @@ describe('parseKey — special-key aliases [B15]', () => {
   });
 });
 
+describe('parseKey — recognised-but-previously-unlisted bases do not warn [B48]', () => {
+  // Pre-fix, every one of these canonicalized correctly and would match a
+  // real event, but normalizeBase warned anyway because SPECIAL_KEYS (an
+  // internal buildCanonical concern) was being read as "the key inventory".
+  // Load-bearing: each assertion fails against the pre-fix code, which
+  // warned for every exact-cased name here and had no lowercase alias.
+  const cases: Array<[string, KeyboardEventInit]> = [
+    ['Delete', { key: 'Delete' }],
+    ['Insert', { key: 'Insert' }],
+    ['CapsLock', { key: 'CapsLock' }],
+    ['ContextMenu', { key: 'ContextMenu' }],
+    ['PrintScreen', { key: 'PrintScreen' }],
+    ['ScrollLock', { key: 'ScrollLock' }],
+    ['Pause', { key: 'Pause' }],
+    ['NumLock', { key: 'NumLock' }],
+    ['Clear', { key: 'Clear' }],
+    ['Help', { key: 'Help' }],
+    ['F13', { key: 'F13' }],
+    // Lowercase spellings: closes the converse hole where register('delete')
+    // etc. was still silently dead (no alias mapped it onto 'Delete').
+    ['delete', { key: 'Delete' }],
+    ['insert', { key: 'Insert' }],
+    ['capslock', { key: 'CapsLock' }],
+    ['contextmenu', { key: 'ContextMenu' }],
+    ['printscreen', { key: 'PrintScreen' }],
+    ['scrolllock', { key: 'ScrollLock' }],
+    ['pause', { key: 'Pause' }],
+    ['numlock', { key: 'NumLock' }],
+    ['clear', { key: 'Clear' }],
+    ['help', { key: 'Help' }],
+  ];
+
+  it.each(cases)(
+    'parseKey(%p) round-trips against the real event and does not warn',
+    (alias, init) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(parseKey(alias)).toBe(eventToCanonical(new KeyboardEvent('keydown', init)));
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    },
+  );
+
+  it('does not warn for F14-F24', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (const n of [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]) {
+      expect(parseKey(`F${n}`)).toBe(
+        eventToCanonical(new KeyboardEvent('keydown', { key: `F${n}` })),
+      );
+    }
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('applies Delete under a modifier too (Mod+Delete)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const orig = navigator.platform;
+    Object.defineProperty(navigator, 'platform', { value: 'Linux x86_64', configurable: true });
+    expect(parseKey('Mod+Delete')).toBe(
+      eventToCanonical(new KeyboardEvent('keydown', { key: 'Delete', ctrlKey: true })),
+    );
+    Object.defineProperty(navigator, 'platform', { value: orig, configurable: true });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('a genuinely unknown base still warns (does not over-widen the fix)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(parseKey('Blorp')).toBe('Blorp');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('will never match'));
+    warn.mockRestore();
+  });
+});
+
 describe('isMacPlatform — absent navigator [B31]', () => {
   it('resolves Mod to Ctrl instead of throwing when navigator is undefined', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
