@@ -71,7 +71,11 @@ const buildCheatsheetModel = (
   const standalone: CheatsheetEntry[] = [];
   const groups: CheatsheetGroup[] = [];
   for (const [prefix, entries] of buckets) {
-    if (entries.length === 1 && entries[0].keys === prefix) {
+    // A single entry whose keys ARE the prefix is a standalone shortcut —
+    // unless the consumer registered a group label for that prefix, in which
+    // case standalone would silently drop the label (standalone entries carry
+    // no group description).
+    if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix)) {
       standalone.push(entries[0]);
     } else {
       groups.push({ prefix, description: registry.getActiveGroup(prefix)?.description, entries });

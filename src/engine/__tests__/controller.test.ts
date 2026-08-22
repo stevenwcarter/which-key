@@ -710,3 +710,26 @@ describe('createWhichKey — timeoutMs validation [B30]', () => {
     warn.mockRestore();
   });
 });
+
+describe('buildCheatsheetModel — labelled single-entry prefix [B37]', () => {
+  it('renders a labelled single-entry prefix as a group, not standalone', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('g', vi.fn(), { description: 'Go' });
+    wk.registerGroup('g', { description: 'Go to' });
+
+    const model = wk.getCheatsheetModel();
+    expect(model.standalone).toEqual([]);
+    expect(model.groups).toEqual([
+      { prefix: 'g', description: 'Go to', entries: [{ keys: 'g', description: 'Go' }] },
+    ]);
+  });
+
+  it('still puts an UNlabelled single-entry prefix in standalone', () => {
+    const wk = createWhichKey({ helpKey: null });
+    wk.register('g', vi.fn(), { description: 'Go' });
+
+    const model = wk.getCheatsheetModel();
+    expect(model.standalone).toEqual([{ keys: 'g', description: 'Go' }]);
+    expect(model.groups).toEqual([]);
+  });
+});

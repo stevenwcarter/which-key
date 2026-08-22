@@ -178,16 +178,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: validate against `/^-?[A-Za-z_][A-Za-z0-9_-]*$/`; on failure `console.warn('[whichkey] invalid classPrefix "…"; falling back to "wk"')` and use `'wk'`. Document the constraint in docs/API.md:325.
 - [x] execute   [ ] skip
 
-### B37. buildCheatsheetModel silently drops a registered group description when the prefix also has a same-named leaf: `buildCheatsheetModel` (src/engine/controller.ts:66)
-- Category: correctness
-- Impact: 2 (severity 2 × blast-radius 1)
-- Effort: S
-- Risk: medium
-- Evidence: empirically confirmed. The heuristic `entries.length === 1 && entries[0].keys === prefix` routes the bucket to `standalone`, which carries no group description. With `register('g', …)` plus `registerGroup('g', {description: 'Go to'})` the model comes back as `standalone=["g"] groups=[]` — the "Go to" label the consumer registered is never rendered anywhere in the cheatsheet, even though the popup would show it. Neighbouring cases are fine (`'g h'` alone → group; `'g' + 'g h'` → group containing both). controller.ts:230-231 is uncovered and controller.test.ts:94 exercises only the clean partition.
-- Blast radius: src/engine/controller.ts:65,66,69; src/react/ShortcutCheatsheet.tsx:34; src/vanilla/cheatsheet.ts:43
-- Proposed fix: require that no group label exists for the prefix — `if (entries.length === 1 && entries[0].keys === prefix && !registry.getActiveGroup(prefix))` — so a labelled prefix always renders as a single-entry group section.
-- [x] execute   [ ] skip
-
 ### B39. Vanilla example styles a class the renderer never emits, so the demo cheatsheet renders broken: inline stylesheet (examples/vanilla/index.html:52)
 - Category: frontend
 - Impact: 2 (severity 2 × blast-radius 1)
