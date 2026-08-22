@@ -157,7 +157,9 @@ export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
 export const isModifierOnlyEvent = (event: KeyboardEvent): boolean =>
   MODIFIER_KEY_NAMES.has(event.key);
 
-const MODIFIER_ALIASES = new Map<string, string>([
+type ModifierName = 'Ctrl' | 'Alt' | 'Shift' | 'Cmd' | 'Mod';
+
+const MODIFIER_ALIASES = new Map<string, ModifierName>([
   ['ctrl', 'Ctrl'],
   ['control', 'Ctrl'],
   ['alt', 'Alt'],
@@ -246,6 +248,10 @@ export const parseKey = (input: string): CanonicalKey => {
         if (isMacPlatform()) meta = true;
         else ctrl = true;
         break;
+      default: {
+        const exhaustive: never = mod;
+        throw new Error(`whichkey: unknown modifier "${String(exhaustive)}" in "${input}"`);
+      }
     }
   }
 

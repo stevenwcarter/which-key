@@ -185,13 +185,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Either extract `const bucketByFirstKey = (entries: ShortcutEntry[]): Map<string, CheatsheetEntry[]>` (lines 92-99) and `const sortModel = (model: CheatsheetModel, cmp: KeyComparator): void` (113-117), leaving the partition loop as the body; or, if the single readable pipeline is preferred, add three section comments — `// 1. bucket entries by their leading key`, `// 2. partition into standalone shortcuts vs labelled groups`, `// 3. apply the caller's key comparator`. Keep the existing explanatory comment at 103-106 attached to the partition condition.
 - [x] execute [ ] skip
 
-### T28. Switch over `MODIFIER_ALIASES` values cannot be exhaustiveness-checked (src/engine/keys.ts:150)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: `MODIFIER_ALIASES` is typed `Map<string, string>`, so adding an alias whose canonical value is not one of the five cases in the switch at keys.ts:208-225 compiles cleanly and is then silently ignored — producing a canonical string with the modifier dropped, the exact failure mode `normalizeBase`'s warning exists to prevent on the base-key side. Name the value type (`type ModifierName = 'Ctrl' | 'Alt' | 'Shift' | 'Cmd' | 'Mod';`, `new Map<string, ModifierName>([…])`) and add a `default:` case asserting `const _exhaustive: never = mod;`. `MODIFIER_ALIASES` is module-private, so no public types change. If T10 lands first, the switch lives inside `parseModifiers`.
-- [x] execute [ ] skip
-
 ### T29. `_version` bumped before checking whether anything was removed (src/engine/registry.ts:88 and :108)
 
 - Lenses: opportunistic
