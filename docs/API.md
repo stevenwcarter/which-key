@@ -9,6 +9,7 @@
    - [`CheatsheetModel`](#cheatsheetmodel)
 2. [React — `which-key/react`](#react--which-keyreact)
    - [`<WhichKeyProvider>`](#whichkeyprovider)
+   - [`<WhichKeyLayer>`](#whichkeylayer)
    - [`useShortcut(keys, handler, options?)`](#useshortcutkeys-handler-options)
    - [`useShortcutGroup(prefix, options)`](#useshortcutgroupprefix-options)
    - [`useWhichKeyState(what?)`](#usewhichkeystatewhat)
@@ -80,6 +81,8 @@ off(); // unregister
 | `enableOnInputs`| `boolean` | `false` | When `false`, the shortcut is suppressed while focus is in a text input.       |
 | `priority`      | `number`  | `0`     | Higher wins when multiple entries share the same key string.                   |
 | `enabled`       | `boolean` | `true`  | Dynamically enable/disable without unregistering.                              |
+| `global`        | `boolean` | `false` | When `true`, this shortcut stays reachable even under an active exclusive layer. |
+| `level`         | `number`  | `0`     | Layer level this registration belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>` — most callers never set it directly. |
 
 #### `engine.registerGroup(prefix, options) => () => void`
 
@@ -95,8 +98,53 @@ const off = wk.registerGroup('g', { description: 'Go to', priority: 0 });
 |---------------|----------|---------|----------------------------------------------------|
 | `description` | `string` | (required) | Label shown in the popup for this prefix.       |
 | `priority`    | `number` | `0`     | Higher priority groups sort earlier when combined. |
+| `level`       | `number` | `0`     | Layer level this group belongs to. Normally set for you by `pushLayer` / `<WhichKeyLayer>`. |
 
 Returns an unregister function.
+
+#### `engine.pushLayer(options?) => LayerHandle`
+
+Pushes a new keybinding layer and returns a handle that owns everything registered through it. This is the recommended way to scope shortcuts to a modal, drawer, or focused pane: `pop()` unregisters every shortcut and group the handle created **and** deactivates the layer, so there is no teardown bookkeeping to get wrong.
+
+```ts
+const layer = engine.pushLayer({ exclusive: true });
+layer.register('Escape', close, { description: 'Close dialog' });
+layer.registerGroup('g', { description: 'Go to' });
+// later:
+layer.pop();   // unregisters both, then deactivates the layer
+```
+
+**Options**:
+
+| Property    | Type      | Default                | Description                                                                                                                                       |
+|-------------|-----------|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `exclusive` | `boolean` | `false`                 | When `true`, this layer raises the block level: shortcuts and groups at a lower level become unreachable unless registered with `global: true`. When `false`, the layer is additive — lower-level shortcuts keep firing alongside it. |
+| `level`     | `number`  | `registry.nextLevel()`  | Explicit level ordinal. Must be a non-negative integer.                                                                                             |
+
+> **Level validation.** An invalid `level` (not a non-negative integer) emits a `console.warn` and falls back to the next free level. A *valid* explicit `level` that undercuts the next free level (e.g. reusing a lower number while a higher layer is already active) emits a separate advisory `console.warn` but still activates at the requested level — this can leave the new layer's shortcuts blocked by an already-active exclusive layer above it.
+
+**`LayerHandle`**:
+
+```ts
+type LayerHandle = {
+  readonly level: number;
+  register(keys: string, handler: ShortcutHandler, options?: ShortcutOptions): () => void;
+  registerGroup(prefix: string, options: { description: string; priority?: number; level?: number }): () => void;
+  pop(): void;
+};
+```
+
+`register` and `registerGroup` behave exactly like the engine methods of the same name, except each stamps this handle's `level` onto the registration and tracks it so `pop()` can unregister it later. `pop()` is idempotent.
+
+#### `engine.activateLayer(level, exclusive) => () => void`
+
+Lower-level primitive: activates a layer at an explicit level without owning any registrations. Returns a deactivate function that is safe to call more than once — only the first call has effect. Prefer `pushLayer` unless you are managing registration lifetimes yourself.
+
+```ts
+const deactivate = engine.activateLayer(1, true);
+// ... later
+deactivate();
+```
 
 #### `engine.start() => void`
 
@@ -226,6 +274,25 @@ import { WhichKeyProvider } from 'which-key/react';
 
 > **SSR / client-only:** `<WhichKeyPopup>` and `<ShortcutCheatsheet>` render nothing during server rendering and activate after hydration on the client — they are client-only UI components.
 
+### `<WhichKeyLayer>`
+
+Scopes every `useShortcut` / `useShortcutGroup` call in its subtree to a nested keybinding layer. Mount it around a modal or focused pane; unmounting it deactivates the layer.
+
+```tsx
+<WhichKeyLayer exclusive>
+  <Dialog />
+</WhichKeyLayer>
+```
+
+**Props** (`WhichKeyLayerProps`):
+
+| Prop        | Type        | Default    | Description                                                                                        |
+|-------------|-------------|------------|------------------------------------------------------------------------------------------------------|
+| `children`  | `ReactNode` | (required) | Subtree whose shortcuts belong to this layer.                                                        |
+| `exclusive` | `boolean`   | `false`    | When `true`, shortcuts at lower levels become unreachable unless registered with `global: true`.     |
+
+The layer's level is derived from React tree depth (`parent.level + 1`), so nesting `<WhichKeyLayer>` components stacks levels. Note that two **sibling** layers under the same parent share a level and therefore do not isolate from each other.
+
 ### `useShortcut(keys, handler, options?)`
 
 Registers a shortcut for the lifetime of the component. Re-registers automatically if `keys` or `options` change.
@@ -327,7 +394,7 @@ wk.stop();
 
 | Property      | Type                              | Default         | Description                                                        |
 |---------------|-----------------------------------|-----------------|--------------------------------------------------------------------|
-| `popup`       | `Partial<PopupOptions> \| false`  | `{}`            | Popup renderer options. Pass `false` to suppress the popup.        |
+| `popup`       | `Partial<PopupOptions> \| false`  | `{ layout: 'vertical', maxRows: 5, backgroundOpacity: 0.95 }` | Popup renderer options. Pass `false` to suppress the popup. |
 | `cheatsheet`  | `boolean`                         | `true`          | Whether to render the cheatsheet.                                  |
 | `container`   | `HTMLElement`                     | `document.body` | DOM node into which rendered elements are appended.                |
 | `classPrefix` | `string`                          | `'wk'`          | CSS class prefix (replaces `wk-` with `<classPrefix>-`). Must be a valid CSS identifier stem (`/^-?[A-Za-z_][A-Za-z0-9_-]*$/`); an invalid value warns and falls back to `'wk'`. |

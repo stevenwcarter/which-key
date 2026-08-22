@@ -32,16 +32,6 @@ Last triage: 2026-08-21 against `codehealth/2026-08-21` @ bfbb4cc. B1-B13 execut
 - Proposed fix: add a case-insensitive alias table for known special bases (SPECIAL_KEYS plus `Space` and `F1`-`F12`, with `esc`→`Escape`, `up`/`down`/`left`/`right`→`Arrow*`, `pgup`/`pgdn`→`PageUp`/`PageDown`) and normalize `base` through it before `buildCanonical`. For a multi-character base not in the table and not `F1`-`F12`, `console.warn` that the key string will never match — do not throw, since exotic `event.key` values should stay bindable.
 - [ ] execute   [ ] skip
 
-### B16. docs/API.md omits the entire layers API it claims to fully document: `WhichKeyEngine` (docs/API.md:53)
-- Category: api-surface
-- Impact: 9 (severity 3 × blast-radius 3)
-- Effort: M
-- Risk: low
-- Evidence: README.md:254 calls docs/API.md "the full reference". The `WhichKeyEngine` section (53-144) documents register/registerGroup/start/stop/subscribe/getSnapshot/cheatsheet methods/cancel/registry — but not `pushLayer` or `activateLayer`. The React section (194-287) and its table of contents omit `<WhichKeyLayer>` and `WhichKeyLayerProps` entirely, though both are exported from src/react/index.ts:4-5. Further drift in the same file: the `ShortcutOptions` table (73-80) omits the real `global` and `level` options (types.ts:10-11); the `registerGroup` options table (90-95) omits `level`; and the `popup` default is listed as `{}` (322) when the real defaults are `{layout:'vertical', maxRows:5, backgroundOpacity:0.95}`. A consumer reading only the reference cannot discover layers at all.
-- Blast radius: docs/API.md:15,53,73,90,194,322; src/engine/controller.ts:37; src/react/WhichKeyLayer.tsx:9
-- Proposed fix: add `engine.pushLayer(options?)` and `engine.activateLayer(level, exclusive)` sections plus a `LayerHandle` type block to the engine section; add a `<WhichKeyLayer>` section and TOC entry to the React section; add `global`/`level` rows to the ShortcutOptions table, `level` to the registerGroup table, and correct the `popup` default. Docs-only.
-- [x] execute   [ ] skip
-
 ### B45. An explicit negative `level` on register()/registerGroup() silently makes the shortcut unreachable: `ShortcutOptions.level` (src/engine/types.ts)
 - Category: api-surface
 - Impact: 6 (severity 3 × blast-radius 2)
