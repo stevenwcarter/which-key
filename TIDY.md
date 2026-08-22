@@ -101,13 +101,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 
 ## Low severity
 
-### T29. `_version` bumped before checking whether anything was removed (src/engine/registry.ts:88 and :108)
-
-- Lenses: opportunistic
-- Risk: low
-- Proposed fix: Move `this._version++` inside the `if (idx >= 0)` block in both `unregister` (registry.ts:88) and `unregisterGroup` (registry.ts:108). Scenario: a consumer calls the same unregister function twice, or calls `LayerHandle.pop()` after each child effect already unregistered its own entries (controller.ts:348 iterates `owned`, and each wrapped fn calls `registry.unregister(id)` for an id that may already be gone). Each miss still bumps `version`, so `<ShortcutCheatsheet>`'s memo (ShortcutCheatsheet.tsx:98, keyed on `registry.version`) is invalidated and rebuilds the full model — a `getAllActive()` scan plus bucketing plus three sorts — on the next render even though the registry did not change. Covered by src/engine/**tests**/registry.test.ts. If T14 is also taken, express this as `removeById` returning a boolean and land it once, not twice.
-- [x] execute [ ] skip
-
 ### T30. Group labels have no `global` escape hatch from an exclusive layer: `getActiveGroup` (src/engine/registry.ts:133)
 
 - Lenses: opportunistic

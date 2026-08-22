@@ -582,3 +582,25 @@ describe('registry resolution cascade — characterization [T15]', () => {
     expect(r.getActiveGroup('g')).toBeUndefined();
   });
 });
+
+describe('ShortcutRegistry.version — a no-op unregister is not a mutation [T29]', () => {
+  it('does not bump version when unregister removes nothing', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'a', keys: 'a' }));
+    registry.unregister('a');
+    const v = registry.version;
+    registry.unregister('a');
+    registry.unregister('never-registered');
+    expect(registry.version).toBe(v);
+  });
+
+  it('does not bump version when unregisterGroup removes nothing', () => {
+    const registry = new ShortcutRegistry();
+    registry.registerGroup({ id: 'g', prefix: 'g', description: 'Go', priority: 0, level: 0 });
+    registry.unregisterGroup('g');
+    const v = registry.version;
+    registry.unregisterGroup('g');
+    registry.unregisterGroup('never-registered');
+    expect(registry.version).toBe(v);
+  });
+});

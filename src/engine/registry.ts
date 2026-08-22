@@ -165,9 +165,13 @@ export class ShortcutRegistry {
     }
   }
 
+  // Only a real removal is a mutation. A double unregister — or
+  // LayerHandle.pop() running after each child effect already dropped its own
+  // entry — otherwise bumps `version` for nothing, invalidating
+  // <ShortcutCheatsheet>'s memo (keyed on registry.version) and forcing a full
+  // getAllActive() scan plus bucketing plus three sorts on the next render.
   unregister(id: string): void {
-    this._version++;
-    removeById(this.shortcuts, id);
+    if (removeById(this.shortcuts, id)) this._version++;
   }
 
   registerGroup(entry: GroupEntry): void {
@@ -176,8 +180,7 @@ export class ShortcutRegistry {
   }
 
   unregisterGroup(id: string): void {
-    this._version++;
-    removeById(this.groups, id);
+    if (removeById(this.groups, id)) this._version++;
   }
 
   getActive(keys: string): ShortcutEntry | undefined {
