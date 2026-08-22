@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { WhichKeyContext, warnNoProvider } from './context';
 import type { CheatsheetModel } from '../engine';
+import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 
 const Kbd = ({ children }: { children: ReactNode }) => <kbd className="wk-kbd">{children}</kbd>;
 
@@ -18,9 +19,6 @@ const getNullSnapshot = () => null;
 // render — a fresh `{ standalone: [], groups: [] }` literal per call would
 // defeat useMemo for any consumer comparing the model by reference.
 const EMPTY_MODEL: CheatsheetModel = { standalone: [], groups: [] };
-
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-const CHEATSHEET_TITLE_ID = 'wk-cheatsheet-title';
 
 /**
  * Full-screen cheatsheet of every active shortcut. Takes no props and renders
@@ -57,25 +55,8 @@ export const ShortcutCheatsheet = () => {
         engine.closeCheatsheet();
         return;
       }
-      if (e.key !== 'Tab') return;
       const panel = panelRef.current;
-      if (!panel) return;
-      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (items.length === 0) {
-        e.preventDefault();
-        panel.focus();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && (active === first || active === panel)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      if (panel) trapTab(panel, e);
     };
 
     document.addEventListener('keydown', onKey);

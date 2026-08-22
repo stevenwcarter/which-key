@@ -1,7 +1,5 @@
 import type { CheatsheetModel } from '../engine';
-
-const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-const CHEATSHEET_TITLE_ID = 'wk-cheatsheet-title';
+import { CHEATSHEET_TITLE_ID, trapTab } from '../shared/focus-trap';
 
 const kbd = (p: string, text: string): HTMLElement => {
   const el = document.createElement('kbd');
@@ -93,25 +91,7 @@ export const renderCheatsheet = (
   // panel.focus() would be a no-op. mount.ts focuses it after appendChild.
   const previouslyFocused = document.activeElement as HTMLElement | null;
 
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (items.length === 0) {
-      e.preventDefault();
-      panel.focus();
-      return;
-    }
-    const first = items[0];
-    const last = items[items.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === panel)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
+  const onKey = (e: KeyboardEvent) => trapTab(panel, e);
   document.addEventListener('keydown', onKey);
 
   return {
