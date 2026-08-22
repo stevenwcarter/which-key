@@ -1,5 +1,35 @@
 import type { ShortcutEntry, GroupEntry, WhichKeyCandidate } from './types';
 
+// Both buckets keep entries in ascending priority order, inserting BEFORE the
+// first strictly-higher-priority entry. That insertion point is what makes
+// "latest registration wins at equal priority" true, because findActive and
+// getActiveGroup tiebreak on bucket index. Shared so the shortcut and group
+// paths cannot drift apart.
+const insertByPriority = <T extends { priority: number }>(
+  map: Map<string, T[]>,
+  key: string,
+  entry: T,
+): void => {
+  const bucket = map.get(key) ?? [];
+  const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
+  bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
+  map.set(key, bucket);
+};
+
+// Returns whether an entry was actually removed, so a caller can avoid
+// bumping a mutation counter for an unregister that found nothing.
+const removeById = <T extends { id: string }>(map: Map<string, T[]>, id: string): boolean => {
+  for (const [key, bucket] of map) {
+    const idx = bucket.findIndex((e) => e.id === id);
+    if (idx >= 0) {
+      bucket.splice(idx, 1);
+      if (bucket.length === 0) map.delete(key);
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Stores every registration in priority-sorted buckets keyed by canonical key
  * string (and by group prefix), so several components can bind the same key at
@@ -74,10 +104,10 @@ export class ShortcutRegistry {
 
   register(entry: ShortcutEntry): void {
     this._version++;
+    insertByPriority(this.shortcuts, entry.keys, entry);
+    // insertByPriority always leaves a bucket behind for this key; the `?? []`
+    // only satisfies Map.get's `| undefined`.
     const bucket = this.shortcuts.get(entry.keys) ?? [];
-    const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
-    bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
-    this.shortcuts.set(entry.keys, bucket);
 
     // Only a genuine same-level collision is worth warning about: a different
     // level is the documented, deliberate layer-override mechanism, and a
@@ -105,34 +135,17 @@ export class ShortcutRegistry {
 
   unregister(id: string): void {
     this._version++;
-    for (const [keys, bucket] of this.shortcuts) {
-      const idx = bucket.findIndex((e) => e.id === id);
-      if (idx >= 0) {
-        bucket.splice(idx, 1);
-        if (bucket.length === 0) this.shortcuts.delete(keys);
-        return;
-      }
-    }
+    removeById(this.shortcuts, id);
   }
 
   registerGroup(entry: GroupEntry): void {
     this._version++;
-    const bucket = this.groups.get(entry.prefix) ?? [];
-    const insertIndex = bucket.findIndex((e) => e.priority > entry.priority);
-    bucket.splice(insertIndex === -1 ? bucket.length : insertIndex, 0, entry);
-    this.groups.set(entry.prefix, bucket);
+    insertByPriority(this.groups, entry.prefix, entry);
   }
 
   unregisterGroup(id: string): void {
     this._version++;
-    for (const [prefix, bucket] of this.groups) {
-      const idx = bucket.findIndex((e) => e.id === id);
-      if (idx >= 0) {
-        bucket.splice(idx, 1);
-        if (bucket.length === 0) this.groups.delete(prefix);
-        return;
-      }
-    }
+    removeById(this.groups, id);
   }
 
   getActive(keys: string): ShortcutEntry | undefined {

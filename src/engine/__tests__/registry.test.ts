@@ -493,3 +493,25 @@ describe('ShortcutRegistry.version [D1]', () => {
     expect(registry.version).toBe(v);
   });
 });
+
+describe('ShortcutRegistry — priority-ordered insertion [T14]', () => {
+  let warn: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
+  it('inserts before the first strictly-higher-priority entry, so equal priorities stay in registration order', () => {
+    const registry = new ShortcutRegistry();
+    registry.register(entry({ id: 'lo', keys: 'x', priority: 0 }));
+    registry.register(entry({ id: 'hi', keys: 'x', priority: 5 }));
+    registry.register(entry({ id: 'mid', keys: 'x', priority: 0 }));
+    expect(registry.getActive('x')?.id).toBe('hi');
+    registry.unregister('hi');
+    expect(registry.getActive('x')?.id).toBe('mid');
+    registry.unregister('mid');
+    expect(registry.getActive('x')?.id).toBe('lo');
+  });
+});

@@ -32,13 +32,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T14. Priority-ordered insert and remove-by-id each written twice (src/engine/registry.ts:58, with 89-96, 101-104, 109-116)
-
-- Lenses: duplication
-- Risk: medium
-- Proposed fix: Insert is duplicated at registry.ts:58-61 (`register`) and 101-104 (`registerGroup`), identical modulo `this.shortcuts`/`entry.keys` vs `this.groups`/`entry.prefix`; remove is duplicated at 89-96 (`unregister`) and 109-116 (`unregisterGroup`), identical modulo the map. Add two module-private generics at the top of registry.ts (nothing new exported, so the published `ShortcutRegistry` surface is unchanged): `const insertByPriority = <T extends { priority: number }>(map: Map<string, T[]>, key: string, entry: T): void` and `const removeById = <T extends { id: string }>(map: Map<string, T[]>, id: string): boolean`. Keep the extraction byte-identical — the `findIndex(e => e.priority > entry.priority)` insertion point is what makes "latest registration wins at equal priority" true, and both `findActive` and `getActiveGroup` tiebreak on bucket index. Have `removeById` return whether it removed anything so T29's fix (bump `_version` only on a real removal) composes cleanly; if both are taken, land T29's semantics as part of this extraction rather than twice.
-- [x] execute [ ] skip
-
 ### T15. Level→priority→latest winner cascade written twice (src/engine/registry.ts:212-230 and 129-144)
 
 - Lenses: duplication
