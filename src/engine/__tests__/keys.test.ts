@@ -468,3 +468,40 @@ describe('modifier case-insensitivity', () => {
     expect(() => parseKey('Alt+cmd')).toThrow(/missing key after modifier/);
   });
 });
+
+describe('canonical-key parity: parseKey ⇄ eventToCanonical [Invariant 1]', () => {
+  // The load-bearing test for this milestone. parseKey and eventToCanonical are
+  // only ever joined through buildCanonical, and registry lookups are plain Map
+  // gets — so a signature change at that join point that transposes two flags
+  // type-checks silently and leaves BOTH directions' own unit tests green while
+  // every real binding stops matching. This asserts the pairing itself.
+  const chords: Array<[string, KeyboardEventInit & { key: string }]> = [
+    ['a', { key: 'a' }],
+    ['A', { key: 'A', shiftKey: true }],
+    ['Ctrl+k', { key: 'k', ctrlKey: true }],
+    ['Ctrl+Shift+p', { key: 'P', ctrlKey: true, shiftKey: true }],
+    ['Alt+x', { key: 'x', altKey: true }],
+    ['Cmd+k', { key: 'k', metaKey: true }],
+    [
+      'Ctrl+Alt+Shift+Cmd+p',
+      { key: 'P', ctrlKey: true, altKey: true, shiftKey: true, metaKey: true },
+    ],
+    ['Shift+Tab', { key: 'Tab', shiftKey: true }],
+    ['Shift+F1', { key: 'F1', shiftKey: true }],
+    ['F12', { key: 'F12' }],
+    ['Ctrl+Escape', { key: 'Escape', ctrlKey: true }],
+    ['space', { key: ' ' }],
+    ['Ctrl+space', { key: ' ', ctrlKey: true }],
+    ['Shift+space', { key: ' ', shiftKey: true }],
+    ['Alt+ArrowUp', { key: 'ArrowUp', altKey: true }],
+    ['Ctrl+Shift+ArrowLeft', { key: 'ArrowLeft', ctrlKey: true, shiftKey: true }],
+    ['?', { key: '?', shiftKey: true }],
+    ['/', { key: '/' }],
+    ['5', { key: '5' }],
+    ['Ctrl+pgdn', { key: 'PageDown', ctrlKey: true }],
+  ];
+
+  it.each(chords)('parseKey(%p) === eventToCanonical of the matching keypress', (spec, init) => {
+    expect(parseKey(spec)).toBe(eventToCanonical(ev(init)));
+  });
+});

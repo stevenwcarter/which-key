@@ -102,13 +102,9 @@ const isMacPlatform = (): boolean => {
   return /Mac|iPod|iPhone|iPad/i.test(platform);
 };
 
-const buildCanonical = (
-  base: string,
-  ctrl: boolean,
-  alt: boolean,
-  shift: boolean,
-  meta: boolean,
-): CanonicalKey => {
+type Modifiers = { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean };
+
+const buildCanonical = (base: string, { ctrl, alt, shift, meta }: Modifiers): CanonicalKey => {
   const isLetter = /^[a-zA-Z]$/.test(base);
   const isFunctionKey = /^F([1-9]|1[0-2])$/.test(base);
   const isSpecial = SPECIAL_KEYS.has(base) || base === 'Space' || isFunctionKey;
@@ -146,7 +142,12 @@ const buildCanonical = (
 export const eventToCanonical = (event: KeyboardEvent): CanonicalKey => {
   const raw = event.key;
   const base = raw === ' ' ? 'Space' : raw;
-  return buildCanonical(base, event.ctrlKey, event.altKey, event.shiftKey, event.metaKey);
+  return buildCanonical(base, {
+    ctrl: event.ctrlKey,
+    alt: event.altKey,
+    shift: event.shiftKey,
+    meta: event.metaKey,
+  });
 };
 
 /**
@@ -270,7 +271,7 @@ export const parseKey = (input: string): CanonicalKey => {
     );
   }
 
-  return buildCanonical(base, ctrl, alt, shift, meta);
+  return buildCanonical(base, { ctrl, alt, shift, meta });
 };
 
 /**

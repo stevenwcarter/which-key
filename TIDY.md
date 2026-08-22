@@ -53,13 +53,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Extract the three-way level-validation ladder (lines 315-333) into a module-private pure helper `const resolvePushLayerLevel = (requested: number | undefined, nextLevel: number): number`, carrying both existing `console.warn` calls verbatim; it captures nothing from the closure. Optionally also lift the `track`/`owned` machinery (336-343) into `const createOwnershipTracker = (): { track: (un: () => void) => () => void; releaseAll: () => void }`. `pushLayer` then reads: resolve level, activate, build handle. `LayerHandle` is untouched, so no public signature changes.
 - [x] execute [ ] skip
 
-### T9. Four consecutive positional booleans on the canonical-string join point: `buildCanonical` (src/engine/keys.ts:106)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: `buildCanonical(base, ctrl, alt, shift, meta)` is called from `eventToCanonical` (keys.ts:145, with `event.ctrlKey, event.altKey, event.shiftKey, event.metaKey`) and from `parseKey` (keys.ts:243, with local `ctrl, alt, shift, meta`). A transposition at either site type-checks silently and breaks exactly the parseKey/eventToCanonical byte-identity invariant CLAUDE.md calls "the join key". Introduce `type Modifiers = { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean }` and take it as a single destructured parameter; body unchanged, both call sites pass an object literal. `buildCanonical` is module-private, so this is not a public-API change. Guard with the 65 cases in src/engine/**tests**/keys.test.ts.
-- [x] execute [ ] skip
-
 ### T10. Five phases with no internal structure: `parseKey` (src/engine/keys.ts:189-244, 56 lines)
 
 - Lenses: long-methods
