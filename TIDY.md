@@ -25,13 +25,6 @@ Last triage: 2026-08-22 against `main` @ e3f3360. Toolchain: npm run build / npm
 - Proposed fix: Split into private methods on `Matcher`, each already self-terminating with a `return` today: `private resolveEventTarget(event: KeyboardEvent): EventTarget | null` (lines 53-57, the composedPath logic), `private fireLeafNow(leaf, event, target): void` (73-86), `private scheduleLeafFire(leaf, event, prospective, target): void` (88-134), `private schedulePopup(prospective: string[], target): void` (136-170), plus `private syncVisiblePopup(): void` for the duplicated `if (this.popupVisible) { tainted ? hide : refresh }` block at 97-109 / 150-159. `handleKeyDown` then reads as guard clauses plus a four-way dispatch. All new members are private, so the published `Matcher`/`handleKeyDown` signature is unchanged. If the state machine is better kept in one place, the fallback is section comments (`// --- branch 1: pure leaf ---` etc.) — but the `syncVisiblePopup` extraction is worth doing either way.
 - [ ] execute [ ] skip
 
-### T22. Cast where the same codebase uses the generic overload: `querySelector(...) as HTMLElement | null` (src/vanilla/mount.ts:109)
-
-- Lenses: idioms
-- Risk: low
-- Proposed fix: src/vanilla/cheatsheet.ts:98 and src/react/ShortcutCheatsheet.tsx:54 both spell this `panel.querySelectorAll<HTMLElement>(FOCUSABLE)`; only this site casts. `querySelector` is generic in exactly the same way — ``cheatsheetNode.querySelector<HTMLElement>(`.${prefix}-cheatsheet`)?.focus();`` — and the wrapping parens go away too.
-- [x] execute [ ] skip
-
 ## Low severity
 
 ### T30. Group labels have no `global` escape hatch from an exclusive layer: `getActiveGroup` (src/engine/registry.ts:133)
