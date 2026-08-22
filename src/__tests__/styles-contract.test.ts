@@ -95,3 +95,46 @@ describe('styles.css — theming contract [D2]', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// Parses a rule body's `prop: value;` declarations into a plain object, so
+// two blocks can be compared by content (property names + values) rather
+// than by verbatim text — order and incidental whitespace don't matter.
+const parseDeclarations = (body: string): Record<string, string> => {
+  const decls: Record<string, string> = {};
+  for (const statement of body.split(';')) {
+    const trimmed = statement.trim();
+    if (!trimmed) continue;
+    const colon = trimmed.indexOf(':');
+    if (colon === -1) continue;
+    decls[trimmed.slice(0, colon).trim()] = trimmed.slice(colon + 1).trim();
+  }
+  return decls;
+};
+
+describe('styles.css — the two light-palette blocks stay in sync', () => {
+  // Ruling 3 deliberately duplicates the 13 light declarations verbatim
+  // (plain CSS cannot share a property block across two selectors, and
+  // light-dark() would raise the browser floor — see the comment above
+  // `:root[data-wk-theme='light']` in styles.css). Nothing else pins that
+  // the two copies agree: edit one and not the other and OS-light users
+  // silently get a different palette from data-wk-theme="light" users, with
+  // every other test in this suite still green.
+  it('declares the same custom properties with the same values in both blocks', () => {
+    const mediaMatch = css.match(
+      /@media\s*\(prefers-color-scheme:\s*light\)\s*\{\s*:root:not\(\[data-wk-theme=['"]dark['"]\]\)\s*\{([^}]*)\}\s*\}/,
+    );
+    const forcedMatch = css.match(/:root\[data-wk-theme=['"]light['"]\]\s*\{([^}]*)\}/);
+    if (!mediaMatch || !forcedMatch) {
+      throw new Error('could not locate both light-palette rule bodies in styles.css');
+    }
+
+    const mediaDecls = parseDeclarations(mediaMatch[1]);
+    const forcedDecls = parseDeclarations(forcedMatch[1]);
+
+    // Sanity check the extraction itself found real declarations, so a
+    // regex that silently matched nothing can't make this pass vacuously.
+    expect(Object.keys(mediaDecls).length).toBeGreaterThan(0);
+
+    expect(forcedDecls).toEqual(mediaDecls);
+  });
+});
